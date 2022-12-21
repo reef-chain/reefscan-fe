@@ -81,11 +81,7 @@ export default {
   },
   apollo: {
     clientConfigs: {
-      default: {
-        httpEndpoint: network.backendHttp,
-        wsEndpoint: network.backendWs,
-        websocketsOnly: true,
-      },
+      default: `~/plugins/apollo-config.js`,
     },
   },
   bootstrapVue: {
@@ -114,11 +110,17 @@ export default {
       } else {
         config.resolve.extensions = ['.mjs']
       }
-      config.module.rules.push({
-        test: /\.mjs$/,
-        include: /node_modules/,
-        type: 'javascript/auto',
-      })
+      config.module.rules.push(
+        {
+          test: /\.mjs$/,
+          include: /node_modules/,
+          type: 'javascript/auto',
+        },
+        {
+          test: /\.js$/,
+          loader: require.resolve('@open-wc/webpack-import-meta-loader'),
+        }
+      )
       // https://github.com/nuxt/nuxt.js/issues/1142
       config.resolve.alias.vue = 'vue/dist/vue.common'
 

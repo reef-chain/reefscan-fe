@@ -125,7 +125,7 @@
             <Row>
               <Cell>Contract balance</Cell>
               <Cell>
-                <span>{{ formatAmount(this.balance) }}</span>
+                <span>{{ formatAmount(balance) }}</span>
               </Cell>
             </Row>
             <!--TODO Ziga
@@ -275,11 +275,10 @@
 <script>
 import { gql } from 'graphql-tag'
 import VueJsonPretty from 'vue-json-pretty'
-import { ethers } from 'ethers'
+import { ethers, Contract } from 'ethers'
 // import cbor from 'cbor'
 import Hash from 'ipfs-only-hash'
 import { Promised } from 'vue-promised'
-import { Contract } from 'ethers'
 import { Provider } from '@reef-defi/evm-provider'
 import { WsProvider } from '@polkadot/api'
 import ERC20Abi from '../../assets/erc20Abi.json'
