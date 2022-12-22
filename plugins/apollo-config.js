@@ -28,8 +28,7 @@ export default (ctx) => {
   return {
     link,
     cache: new InMemoryCache(),
-    httpEndpoint: network.backendHttp,
-    wsEndpoint: network.backendWs,
+    defaultHttpLink: false,
     websocketsOnly: true,
   }
 }

@@ -10,7 +10,7 @@
     "@jridgewell/gen-mapping" "^0.1.0"
     "@jridgewell/trace-mapping" "^0.3.9"
 
-"@apollo/client@^3.1.5":
+"@apollo/client@^3.1.5", "@apollo/client@^3.7.3":
   version "3.7.3"
   resolved "https://registry.yarnpkg.com/@apollo/client/-/client-3.7.3.tgz#ab3fe31046e74bc1a3762363a185ba5bcfffc58b"
   integrity sha512-nzZ6d6a4flLpm3pZOGpuAUxLlp9heob7QcCkyIqZlCLvciUibgufRfYTwfkWCc4NaGHGSZyodzvfr79H6oUwGQ==
@@ -10374,10 +10374,22 @@ graphql-tools@^6.0.9:
     "@graphql-tools/wrap" "^6.2.4"
     tslib "~2.0.1"
 
+graphql-transport-ws@^1.9.0:
+  version "1.9.0"
+  resolved "https://registry.yarnpkg.com/graphql-transport-ws/-/graphql-transport-ws-1.9.0.tgz#81891de870619d4e39242954a9e0f832dd980179"
+  integrity sha512-yrw7nIR4V+lWWRCVCa5ogagHWjlPLDO/Ld1177V4S4fqcMO4qVJyTgMKbTcAUXBhlEATqN7Scb5Oy8Ly+zKFwg==
+  dependencies:
+    ws "^7.3.1"
+
 graphql-ws@^4.4.1:
   version "4.9.0"
   resolved "https://registry.yarnpkg.com/graphql-ws/-/graphql-ws-4.9.0.tgz#5cfd8bb490b35e86583d8322f5d5d099c26e365c"
   integrity sha512-sHkK9+lUm20/BGawNEWNtVAeJzhZeBg21VmvmLoT5NdGVeZWv5PdIhkcayQIAgjSyyQ17WMKmbDijIPG2On+Ag==
+
+graphql-ws@^5.11.2:
+  version "5.11.2"
+  resolved "https://registry.yarnpkg.com/graphql-ws/-/graphql-ws-5.11.2.tgz#d5e0acae8b4d4a4cf7be410a24135cfcefd7ddc0"
+  integrity sha512-4EiZ3/UXYcjm+xFGP544/yW1+DVI8ZpKASFbzrV5EDTFWJp0ZvLl4Dy2fSZAzz9imKp5pZMIcjB0x/H69Pv/6w==
 
 "graphql@14.0.2 - 14.2.0 || ^14.3.1 || ^15.0.0", graphql@^15.1.0:
   version "15.8.0"

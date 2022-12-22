@@ -2,7 +2,7 @@
   <Card class="list-view block-details">
     <Headline>
       {{ $t('details.block.block') }} #
-      {{ formatNumber(parsedBlock.id) }}
+      {{ formatNumber(parsedBlock.height) }}
     </Headline>
 
     <Data>

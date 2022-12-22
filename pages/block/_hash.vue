@@ -57,16 +57,31 @@ export default {
   apollo: {
     $subscribe: {
       block: {
+        // query: gql`
+        //   subscription block($block_hash: String!) {
+        //     block(where: { hash: { _eq: $block_hash } }) {
+        //       author
+        //       finalized
+        //       id
+        //       hash
+        //       parent_hash
+        //       state_root
+        //       extrinsic_root
+        //       timestamp
+        //     }
+        //   }
+        // `,
         query: gql`
-          subscription block($block_hash: String!) {
-            block(where: { hash: { _eq: $block_hash } }) {
+          subscription blocks($block_hash: String!) {
+            blocks(where: { hash_eq: $block_hash }) {
               author
               finalized
               id
               hash
-              parent_hash
-              state_root
-              extrinsic_root
+              height
+              parentHash
+              stateRoot
+              extrinsicRoot
               timestamp
             }
           }
@@ -77,71 +92,71 @@ export default {
           }
         },
         result({ data }) {
-          if (data.block[0]) {
-            this.blockNumber = data.block[0].id
-            this.parsedBlock = data.block[0]
+          if (data.blocks[0]) {
+            this.blockNumber = data.blocks[0].id
+            this.parsedBlock = data.blocks[0]
           }
           this.loading = false
         },
       },
-      event: {
-        query: gql`
-          subscription event($block_id: bigint!) {
-            event(where: { block_id: { _eq: $block_id } }) {
-              block_id
-              data
-              index
-              method
-              phase
-              section
-            }
-          }
-        `,
-        skip() {
-          return !this.blockNumber
-        },
-        variables() {
-          return {
-            block_id: this.blockNumber,
-          }
-        },
-        result({ data }) {
-          this.parsedEvents = data.event
-        },
-      },
-      extrinsic: {
-        query: gql`
-          subscription extrinsic($block_id: bigint!) {
-            extrinsic(where: { block_id: { _eq: $block_id } }) {
-              id
-              block_id
-              index
-              signer
-              section
-              method
-              args
-              hash
-              docs
-              type
-              status
-            }
-          }
-        `,
-        skip() {
-          return !this.blockNumber
-        },
-        variables() {
-          return {
-            block_id: this.blockNumber,
-          }
-        },
-        result({ data }) {
-          this.parsedExtrinsics = data.extrinsic.map((e) => ({
-            ...e,
-            success: e.status === 'success',
-          }))
-        },
-      },
+      // event: {
+      //   query: gql`
+      //     subscription event($block_id: bigint!) {
+      //       event(where: { block_id: { _eq: $block_id } }) {
+      //         block_id
+      //         data
+      //         index
+      //         method
+      //         phase
+      //         section
+      //       }
+      //     }
+      //   `,
+      //   skip() {
+      //     return !this.blockNumber
+      //   },
+      //   variables() {
+      //     return {
+      //       block_id: this.blockNumber,
+      //     }
+      //   },
+      //   result({ data }) {
+      //     this.parsedEvents = data.event
+      //   },
+      // },
+      // extrinsic: {
+      //   query: gql`
+      //     subscription extrinsic($block_id: bigint!) {
+      //       extrinsic(where: { block_id: { _eq: $block_id } }) {
+      //         id
+      //         block_id
+      //         index
+      //         signer
+      //         section
+      //         method
+      //         args
+      //         hash
+      //         docs
+      //         type
+      //         status
+      //       }
+      //     }
+      //   `,
+      //   skip() {
+      //     return !this.blockNumber
+      //   },
+      //   variables() {
+      //     return {
+      //       block_id: this.blockNumber,
+      //     }
+      //   },
+      //   result({ data }) {
+      //     this.parsedExtrinsics = data.extrinsic.map((e) => ({
+      //       ...e,
+      //       success: e.status === 'success',
+      //     }))
+      //   },
+      // },
     },
   },
 }
