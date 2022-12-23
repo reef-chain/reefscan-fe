@@ -97,34 +97,39 @@ export default {
       block: {
         query: gql`
           subscription blocks(
-            $blockNumber: bigint_comparison_exp
+            $where: BlockWhereInput
             $perPage: Int!
             $offset: Int!
           ) {
-            block(
-              limit: $perPage
+            blocks(
               offset: $offset
-              where: { id: $blockNumber }
-              order_by: { id: desc }
+              limit: $perPage
+              where: $where
+              orderBy: height_DESC
             ) {
               id
-              finalized
               hash
+              finalized
               timestamp
+              height
             }
           }
         `,
         variables() {
           return {
             blockNumber: this.isBlockNumber(this.filter)
-              ? { _eq: parseInt(this.filter) }
+              ? { height_eq: parseInt(this.filter) }
               : {},
             perPage: this.perPage,
             offset: (this.currentPage - 1) * this.perPage,
           }
         },
         result({ data }) {
-          this.blocks = data.block
+          this.blocks = data.blocks
+          this.blocks = this.blocks.map((block) => {
+            block.id = block.height
+            return block
+          })
           if (this.filter) {
             this.totalRows = this.blocks.length
           }
@@ -134,14 +139,14 @@ export default {
       totalBlocks: {
         query: gql`
           subscription chain_info {
-            chain_info(where: { name: { _eq: "blocks" } }, limit: 1) {
+            chainInfos(where: { id_eq: "blocks" }, limit: 1) {
               count
             }
           }
         `,
         result({ data }) {
           if (!this.filter) {
-            this.totalRows = data.chain_info[0].count
+            this.totalRows = data.chainInfos[0].count
           }
         },
       },
