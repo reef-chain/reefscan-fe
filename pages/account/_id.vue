@@ -190,20 +190,20 @@
           </Data>
 
           <Tabs v-model="tab" :options="$options.tabs" />
-
-          <AccountTransfers
+          <!-- TODO: add back once transfers and token_holders are implemented -->
+          <!-- <AccountTransfers
             v-if="tab === 'transfers'"
             :account-id="accountId"
-          />
+          /> -->
 
-          <AccountTokenBalances
+          <!-- <AccountTokenBalances
             v-if="tab === 'tokens'"
             :account-id="accountId"
-          />
+          /> -->
 
           <Activity v-if="tab === 'activity'" :account-id="accountId" />
-
-          <StakingRewards v-if="tab === 'rewards'" :account-id="accountId" />
+          <!-- TODO: add back once staking is implemented -->
+          <!-- <StakingRewards v-if="tab === 'rewards'" :account-id="accountId" /> -->
         </Card>
       </b-container>
     </section>
@@ -260,30 +260,29 @@ export default {
       account: {
         query: gql`
           subscription account($address: String!) {
-            account(
+            accounts(
               where: {
-                _or: [
-                  { address: { _ilike: $address } }
-                  { evm_address: { _ilike: $address } }
+                OR: [
+                  { evmAddress_containsInsensitive: $address }
+                  { id_containsInsensitive: $address }
                 ]
               }
             ) {
-              address
-              evm_address
-              available_balance
-              free_balance
-              locked_balance
-              block_id
+              id
+              freeBalance
+              evmAddress
+              lockedBalance
+              availableBalance
               timestamp
               nonce
               identity
-              evm_nonce
-              free_balance
-              available_balance
-              locked_balance
-              reserved_balance
-              vested_balance
-              voting_balance
+              evmNonce
+              vestedBalance
+              votingBalance
+              reservedBalance
+              block {
+                height
+              }
             }
           }
         `,
@@ -293,8 +292,19 @@ export default {
           }
         },
         result({ data }) {
-          if (data && data.account && data.account.length > 0) {
-            this.parsedAccount = data.account[0]
+          if (data && data.accounts && data.accounts.length > 0) {
+            this.parsedAccount = data.accounts[0]
+            this.parsedAccount = {
+              ...this.parsedAccount,
+              address: this.parsedAccount.id,
+              available_balance: this.parsedAccount.availableBalance,
+              locked_balance: this.parsedAccount.lockedBalance,
+              free_balance: this.parsedAccount.freeBalance,
+              reserved_balance: this.parsedAccount.reservedBalance,
+              vested_balance: this.parsedAccount.vestedBalance,
+              voting_balance: this.parsedAccount.votingBalance,
+              block_id: this.parsedAccount.block.height,
+            }
           } else if (this.accountId.length === 42) {
             this.$router.push({
               path: `/contract/${this.accountId}`,

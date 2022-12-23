@@ -18,14 +18,14 @@ export default async function ({ app, route, store, redirect }) {
     const client = app.apolloProvider.defaultClient
     const query = gql`
       query account {
-        account(where: {evm_address: {_eq: "${checkAddress()}"}}) {
-          address
+        accounts(where: {evmAddress_eq: "${checkAddress()}"}) {
+          id
         }
       }
     `
     const response = await client.query({ query })
-    if (response.data.account.length > 0) {
-      const accountId = response.data.account[0].address
+    if (response.data.accounts.length > 0) {
+      const accountId = response.data.account[0].id
       if (accountId) {
         redirect(`/account/${accountId}`)
       } else {

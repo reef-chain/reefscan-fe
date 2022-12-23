@@ -149,12 +149,14 @@ export default {
       extrinsic: {
         query: gql`
           subscription extrinsic($signer: String!) {
-            extrinsic(
-              order_by: { block_id: desc }
-              where: { signer: { _eq: $signer } }
+            extrinsics(
+              orderBy: block_height_DESC
+              where: { signer_eq: $signer }
             ) {
               id
-              block_id
+              block {
+                height
+              }
               signer
               hash
               section
@@ -173,7 +175,13 @@ export default {
           return !this.accountId
         },
         result({ data }) {
-          this.activities = data.extrinsic
+          data.extrinsics = data.extrinsics.map((item) => {
+            return {
+              ...item,
+              block_id: item.block.height,
+            }
+          })
+          this.activities = data.extrinsics
           this.totalRows = this.activities.length
           this.loading = false
         },

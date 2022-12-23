@@ -274,20 +274,6 @@ export default {
   apollo: {
     $subscribe: {
       favoriteAccounts: {
-        // query: gql`
-        //   subscription favoriteAccount($addresses: String_comparison_exp) {
-        //     account(
-        //       order_by: { free_balance: desc }
-        //       where: { address: $addresses }
-        //     ) {
-        //       address
-        //       evm_address
-        //       available_balance
-        //       free_balance
-        //       locked_balance
-        //     }
-        //   }
-        // `,
         query: gql`
           subscription favoriteAccount($addresses: [String!]) {
             accounts(orderBy: freeBalance_DESC, where: { id_in: $addresses }) {
