@@ -52,17 +52,16 @@ export default {
   apollo: {
     event: {
       query: gql`
-        query event($extrinsic_id: bigint!, $index: bigint!) {
-          event(
-            where: {
-              extrinsic_id: { _eq: $extrinsic_id }
-              index: { _eq: $index }
-            }
+        query event($extrinsic_id: Int!, $index: Int!) {
+          events(
+            where: { extrinsic: { id_eq: $extrinsic_id }, index_eq: $index }
           ) {
             id
             extrinsic {
               id
-              block_id
+              block {
+                height
+              }
               index
             }
             index
@@ -84,7 +83,9 @@ export default {
         }
       },
       result({ data }) {
-        this.parsedEvent = data.event[0]
+        this.parsedEvent = data.events[0]
+        this.parsedEvent.extrinsic.block_id =
+          this.parsedEvent.extrinsic.block.id
         this.loading = false
       },
     },

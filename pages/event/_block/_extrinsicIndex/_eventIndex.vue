@@ -52,25 +52,29 @@ export default {
     },
   },
   apollo: {
-    event: {
+    events: {
       query: gql`
-        query event(
-          $block_id: bigint!
-          $extrinsic_index: bigint!
-          $event_index: bigint!
+        query events(
+          $block_id: Int!
+          $extrinsic_index: Int!
+          $event_index: Int!
         ) {
-          event(
+          events(
             where: {
-              block_id: { _eq: $block_id }
-              index: { _eq: $event_index }
-              extrinsic: { index: { _eq: $extrinsic_index } }
+              block: { height_eq: $block_id }
+              index_eq: $event_index
+              extrinsic: { index_eq: $extrinsic_index }
             }
           ) {
             id
-            block_id
+            block {
+              height
+            }
             extrinsic {
               id
-              block_id
+              block {
+                height
+              }
               index
             }
             index
@@ -93,7 +97,10 @@ export default {
         }
       },
       result({ data }) {
-        this.parsedEvent = data?.event[0]
+        this.parsedEvent = data?.events[0]
+        this.parsedEvent.block_id = this.parsedEvent.block.height
+        this.parsedEvent.extrinsic.block_id =
+          this.parsedEvent.extrinsic.block.height
         this.loading = false
       },
     },

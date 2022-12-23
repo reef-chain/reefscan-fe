@@ -46,9 +46,9 @@ export default {
     },
   },
   apollo: {
-    extrinsic: {
+    extrinsics: {
       query: gql`
-        query extrinsic($hash: String!) {
+        query extrinsics($hash: String!) {
           extrinsics(where: { hash_eq: $hash }) {
             id
             block {

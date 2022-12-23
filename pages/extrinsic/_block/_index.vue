@@ -50,7 +50,7 @@ export default {
     },
   },
   apollo: {
-    extrinsic: {
+    extrinsics: {
       query: gql`
         query extrinsics($block_height: Int!, $index: Int!) {
           extrinsics(
