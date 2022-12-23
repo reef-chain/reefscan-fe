@@ -274,29 +274,44 @@ export default {
   apollo: {
     $subscribe: {
       favoriteAccounts: {
+        // query: gql`
+        //   subscription favoriteAccount($addresses: String_comparison_exp) {
+        //     account(
+        //       order_by: { free_balance: desc }
+        //       where: { address: $addresses }
+        //     ) {
+        //       address
+        //       evm_address
+        //       available_balance
+        //       free_balance
+        //       locked_balance
+        //     }
+        //   }
+        // `,
         query: gql`
-          subscription favoritAccount($addresses: String_comparison_exp) {
-            account(
-              order_by: { free_balance: desc }
-              where: { address: $addresses }
-            ) {
-              address
-              evm_address
-              available_balance
-              free_balance
-              locked_balance
+          subscription favoriteAccount($addresses: [String!]) {
+            accounts(orderBy: freeBalance_DESC, where: { id_in: $addresses }) {
+              id
+              freeBalance
+              evmAddress
+              lockedBalance
+              availableBalance
             }
           }
         `,
         variables() {
           return {
-            addresses: { _in: this.favorites },
+            addresses: this.favorites,
           }
         },
         result({ data }) {
           if (data && data.account) {
-            this.favoriteAccounts = data.account.map((account) => ({
+            this.favoriteAccounts = data.accounts.map((account) => ({
               ...account,
+              address: account.id,
+              free_balance: account.freeBalance,
+              evm_address: account.evmAddress,
+              locked_balance: account.lockedBalance,
               favorite: true,
             }))
             this.updateFavoritesRank()
@@ -308,36 +323,48 @@ export default {
           subscription account(
             $perPage: Int!
             $offset: Int!
-            $address: String_comparison_exp
-            $evmAddress: String_comparison_exp
+            $where: AccountWhereInput
           ) {
-            account(
-              order_by: { free_balance: desc }
+            accounts(
+              orderBy: freeBalance_DESC
               limit: $perPage
               offset: $offset
-              where: { address: $address, evm_address: $evmAddress }
+              where: $where
             ) {
-              address
-              evm_address
-              available_balance
-              free_balance
-              locked_balance
+              id
+              evmAddress
+              availableBalance
+              freeBalance
+              lockedBalance
             }
           }
         `,
         variables() {
+          let where = {}
+          if (this.isAddress(this.filter)) {
+            where = { id_eq: this.filter }
+          } else if (this.isContractId(this.filter)) {
+            where = {
+              evmAddress_eq: this.toContractAddress(this.filter),
+            }
+          }
           return {
             perPage: this.perPage,
             offset: (this.currentPage - 1) * this.perPage,
-            address: this.isAddress(this.filter) ? { _eq: this.filter } : {},
-            evmAddress: this.isContractId(this.filter)
-              ? { _eq: this.toContractAddress(this.filter) }
-              : {},
+            where,
           }
         },
         result({ data }) {
-          if (data && data.account) {
-            this.allAccounts = data.account.map((account, index) => ({
+          if (data && data.accounts) {
+            data.accounts = data.accounts.map((account) => ({
+              ...account,
+              address: account.id,
+              free_balance: account.freeBalance,
+              evm_address: account.evmAddress,
+              locked_balance: account.lockedBalance,
+              available_balance: account.availableBalance,
+            }))
+            this.allAccounts = data.accounts.map((account, index) => ({
               ...account,
               favorite: this.favorites.includes(account.address),
               rank: index + (this.currentPage - 1) * this.perPage + 1,
@@ -355,13 +382,13 @@ export default {
       totalAccounts: {
         query: gql`
           subscription chain_info {
-            chain_info(where: { name: { _eq: "accounts" } }, limit: 1) {
+            chainInfos(where: { id_eq: "accounts" }, limit: 1) {
               count
             }
           }
         `,
         result({ data }) {
-          this.nAccounts = data.chain_info[0].count
+          this.nAccounts = data.chainInfos[0].count
           this.totalRows = this.nAccounts
         },
       },

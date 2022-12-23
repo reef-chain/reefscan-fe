@@ -117,7 +117,7 @@ export default {
         `,
         variables() {
           return {
-            blockNumber: this.isBlockNumber(this.filter)
+            where: this.isBlockNumber(this.filter)
               ? { height_eq: parseInt(this.filter) }
               : {},
             perPage: this.perPage,
