@@ -136,52 +136,92 @@ export default {
       perPage: null,
       currentPage: 1,
       totalRows: 1,
-      nTransfers: 0,
+      nTransfers: 1,
     }
   },
   apollo: {
     $subscribe: {
       extrinsic: {
+        // query: gql`
+        //   subscription transfer(
+        //     $blockNumber: bigint_comparison_exp
+        //     $extrinsicHash: String_comparison_exp
+        //     $fromAddress: String_comparison_exp
+        //     $perPage: Int!
+        //     $offset: Int!
+        //   ) {
+        //     transfer(
+        //       limit: $perPage
+        //       offset: $offset
+        //       where: {
+        //         extrinsic: { block_id: $blockNumber, hash: $extrinsicHash }
+        //         from_address: $fromAddress
+        //       }
+        //       order_by: { extrinsic: { id: desc } }
+        //     ) {
+        //       extrinsic {
+        //         id
+        //         hash
+        //         index
+        //         block_id
+        //         args
+        //         status
+        //         error_message
+        //       }
+        //       from_account {
+        //         address
+        //       }
+        //       to_account {
+        //         address
+        //       }
+        //       token {
+        //         address
+        //         verified_contract {
+        //           contract_data
+        //         }
+        //       }
+        //       to_evm_address
+        //       from_evm_address
+        //       amount
+        //       timestamp
+        //       denom
+        //     }
+        //   }
+        // `,
         query: gql`
           subscription transfer(
-            $blockNumber: bigint_comparison_exp
-            $extrinsicHash: String_comparison_exp
-            $fromAddress: String_comparison_exp
             $perPage: Int!
             $offset: Int!
+            $where: TransferWhereInput
           ) {
-            transfer(
+            transfers(
               limit: $perPage
+              orderBy: extrinsic_id_DESC
               offset: $offset
-              where: {
-                extrinsic: { block_id: $blockNumber, hash: $extrinsicHash }
-                from_address: $fromAddress
-              }
-              order_by: { extrinsic: { id: desc } }
+              where: $where
             ) {
+              to {
+                id
+                evmAddress
+              }
+              token {
+                id
+              }
+              from {
+                id
+                evmAddress
+              }
               extrinsic {
                 id
                 hash
                 index
-                block_id
+                block {
+                  height
+                }
                 args
                 status
-                error_message
+                errorMessage
               }
-              from_account {
-                address
-              }
-              to_account {
-                address
-              }
-              token {
-                address
-                verified_contract {
-                  contract_data
-                }
-              }
-              to_evm_address
-              from_evm_address
               amount
               timestamp
               denom
@@ -189,41 +229,81 @@ export default {
           }
         `,
         variables() {
+          let where = {}
+          if (this.filter) {
+            if (this.isBlockNumber(this.filter)) {
+              where = {
+                extrinsic: {
+                  block: { height_eq: parseInt(this.filter) },
+                },
+              }
+            } else if (this.isHash(this.filter)) {
+              where = {
+                extrinsic: {
+                  hash_eq: this.filter,
+                },
+              }
+            }
+          }
+          // return {
+          //   blockNumber: this.isBlockNumber(this.filter)
+          //     ? { _eq: parseInt(this.filter) }
+          //     : {},
+          //   extrinsicHash: this.isHash(this.filter) ? { _eq: this.filter } : {},
+          //   fromAddress: {},
+          //   perPage: this.perPage,
+          //   offset: (this.currentPage - 1) * this.perPage,
+          // }
           return {
-            blockNumber: this.isBlockNumber(this.filter)
-              ? { _eq: parseInt(this.filter) }
-              : {},
-            extrinsicHash: this.isHash(this.filter) ? { _eq: this.filter } : {},
-            fromAddress: {},
+            where,
             perPage: this.perPage,
             offset: (this.currentPage - 1) * this.perPage,
           }
         },
         async result({ data }) {
-          const converted = data.transfer.map(
-            ({
-              timestamp,
-              from_account: from,
-              to_account: to,
-              amount,
-              extrinsic,
-              to_evm_address: toEvm,
-              from_evm_address: fromEvm,
-              token,
-            }) => ({
-              amount,
-              success: extrinsic.status === 'success',
-              timestamp,
-              hash: extrinsic.hash,
-              idx: extrinsic.index,
-              extrinsicId: extrinsic.id,
-              block_id: extrinsic.block_id,
-              to: to === null ? toEvm : to.address, // resolveAddress(toEvm, to, extrinsic.event.data[1]),
-              from: from === null ? fromEvm : from.address, // resolveAddress(toEvm, to, extrinsic.event.data[0]), // from === null ? fromEvm : from.address,
-              symbol: token.verified_contract?.contract_data?.symbol || ' ',
-              decimals: token.verified_contract?.contract_data?.decimals || 1,
-            })
-          )
+          console.log(data)
+          // const converted = data.transfers.map(
+          //   ({
+          //     timestamp,
+          //     from_account: from,
+          //     to_account: to,
+          //     amount,
+          //     extrinsic,
+          //     to_evm_address: toEvm,
+          //     from_evm_address: fromEvm,
+          //     token,
+          //   }) => ({
+          //     amount,
+          //     success: extrinsic.status === 'success',
+          //     timestamp,
+          //     hash: extrinsic.hash,
+          //     idx: extrinsic.index,
+          //     extrinsicId: extrinsic.id,
+          //     block_id: extrinsic.block_id,
+          //     to: to === null ? toEvm : to.address, // resolveAddress(toEvm, to, extrinsic.event.data[1]),
+          //     from: from === null ? fromEvm : from.address, // resolveAddress(toEvm, to, extrinsic.event.data[0]), // from === null ? fromEvm : from.address,
+          //     symbol: token.verified_contract?.contract_data?.symbol || ' ',
+          //     decimals: token.verified_contract?.contract_data?.decimals || 1,
+          //   })
+          // )\
+
+          // TODO: fix this
+          const converted = data.transfers.map((transfer) => {
+            console.log(transfer)
+            return {
+              amount: transfer.amount,
+              success: transfer.extrinsic.status === 'success',
+              timestamp: transfer.timestamp,
+              hash: transfer.extrinsic.hash,
+              idx: transfer.extrinsic.index,
+              extrinsicId: transfer.extrinsic.id,
+              block_id: transfer.extrinsic.block.height,
+              // to: transfer.to === null ? transfer.toEvmAddress : transfer.to.evmAddress, // resolveAddress(toEvm, to, extrinsic.event.data[1]),
+              // from: transfer.from === null ? transfer.fromEvmAddress : transfer.from.evmAddress, // resolveAddress(toEvm, to, extrinsic.event.data[0]), // from === null ? fromEvm : from.address,
+              // symbol: transfer.token.verified_contract?.contract_data?.symbol || ' ',
+              // decimals: transfer.token.verified_contract?.contract_data?.decimals || 18,
+            }
+          })
           const repared = converted.map(async (transfer) => {
             if (transfer.to !== 'deleted' && transfer.from !== 'deleted') {
               return transfer
@@ -252,21 +332,21 @@ export default {
           this.loading = false
         },
       },
-      totalTransfers: {
-        query: gql`
-          subscription total {
-            transfer_aggregate {
-              aggregate {
-                count
-              }
-            }
-          }
-        `,
-        result({ data }) {
-          this.nTransfers = data.transfer_aggregate.aggregate.count
-          this.totalRows = this.nTransfers
-        },
-      },
+      // totalTransfers: {
+      //   query: gql`
+      //     subscription total {
+      //       transfer_aggregate {
+      //         aggregate {
+      //           count
+      //         }
+      //       }
+      //     }
+      //   `,
+      //   result({ data }) {
+      //     this.nTransfers = data.transfer_aggregate.aggregate.count
+      //     this.totalRows = this.nTransfers
+      //   },
+      // },
     },
   },
 }
