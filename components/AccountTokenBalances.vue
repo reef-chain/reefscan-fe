@@ -130,23 +130,18 @@ export default {
       token_holder: {
         query: gql`
           subscription token_holder($accountId: String!) {
-            token_holder(
-              order_by: { balance: desc }
-              where: { signer: { _eq: $accountId } }
+            tokenHolders(
+              orderBy: balance_DESC
+              where: { signer: { id_eq: $accountId } }
             ) {
-              signer
+              signer {
+                id
+                evmAddress
+              }
               balance
               info
-              token_address
-              contract {
-                address
-                verified_contract {
-                  name
-                  contract_data
-                }
-              }
-              account {
-                evm_address
+              token {
+                id
               }
             }
           }
@@ -160,18 +155,16 @@ export default {
           return !this.accountId
         },
         result({ data }) {
-          this.balances = data.token_holder.map((balance) => ({
-            contract_id: balance.contract.address,
-            holder_account_id: balance.signer,
-            holder_evm_address: balance.account.evm_address,
+          this.balances = data.tokenHolders.map((balance) => ({
+            contract_id: balance.token.id,
+            holder_account_id: balance.signer.id,
+            holder_evm_address: balance.signer.evmAddress,
             balance: balance.balance.toLocaleString('fullwide', {
               useGrouping: false,
             }),
-            token_name: balance.contract.verified_contract.contract_data.name,
-            token_symbol:
-              balance.contract.verified_contract.contract_data.symbol, // TODO check
-            token_decimals:
-              balance.contract.verified_contract.contract_data.decimals,
+            token_name: balance.info.name,
+            token_symbol: balance.info.symbol,
+            token_decimals: balance.info.decimals,
           }))
           this.totalRows = this.balances.length
           this.loading = false

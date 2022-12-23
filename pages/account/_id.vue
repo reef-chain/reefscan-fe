@@ -195,10 +195,10 @@
             :account-id="accountId"
           />
 
-          <!-- <AccountTokenBalances
+          <AccountTokenBalances
             v-if="tab === 'tokens'"
             :account-id="accountId"
-          /> -->
+          />
 
           <Activity v-if="tab === 'activity'" :account-id="accountId" />
           <!-- TODO: add back once staking is implemented -->
