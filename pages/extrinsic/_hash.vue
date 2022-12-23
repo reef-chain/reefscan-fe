@@ -49,9 +49,11 @@ export default {
     extrinsic: {
       query: gql`
         query extrinsic($hash: String!) {
-          extrinsic(where: { hash: { _eq: $hash } }) {
+          extrinsics(where: { hash_eq: $hash }) {
             id
-            block_id
+            block {
+              height
+            }
             index
             signer
             section
@@ -61,8 +63,8 @@ export default {
             docs
             type
             timestamp
-            error_message
-            signed_data
+            errorMessage
+            signedData
           }
         }
       `,
@@ -75,7 +77,10 @@ export default {
         }
       },
       result({ data }) {
-        this.parsedExtrinsic = data.extrinsic[0]
+        this.parsedExtrinsic = data.extrinsics[0]
+        this.parsedExtrinsic.block_id = this.parsedExtrinsic.block.height
+        this.parsedExtrinsic.error_message = this.parsedExtrinsic.errorMessage
+        this.parsedExtrinsic.signed_data = this.parsedExtrinsic.signedData
         this.loading = false
       },
     },

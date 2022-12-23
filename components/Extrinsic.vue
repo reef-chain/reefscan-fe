@@ -139,7 +139,11 @@
         </Cell>
       </Row>
     </Data>
-    <extrinsic-events :extrinsic-id="parseInt(extrinsic.id)" />
+    <extrinsic-events
+      :extrinsic-id="parseInt(extrinsic.id)"
+      :extrinsic-index="parseInt(extrinsic.index)"
+      :extrinsic-block-height="parseInt(extrinsic.block_id)"
+    />
   </Card>
 </template>
 

@@ -26,8 +26,8 @@ export default {
   data() {
     return {
       loading: true,
-      blockNumber: this.$route.params.block,
-      extrinsicIndex: this.$route.params.index,
+      blockNumber: Number(this.$route.params.block),
+      extrinsicIndex: Number(this.$route.params.index),
       parsedExtrinsic: undefined,
     }
   },
@@ -45,19 +45,21 @@ export default {
   },
   watch: {
     $route() {
-      this.blockNumber = this.$route.params.block
-      this.extrinsicIndex = this.$route.params.index
+      this.blockNumber = Number(this.$route.params.block)
+      this.extrinsicIndex = Number(this.$route.params.index)
     },
   },
   apollo: {
     extrinsic: {
       query: gql`
-        query extrinsic($block_id: bigint!, $index: bigint!) {
-          extrinsic(
-            where: { block_id: { _eq: $block_id }, index: { _eq: $index } }
+        query extrinsics($block_height: Int!, $index: Int!) {
+          extrinsics(
+            where: { block: { height_eq: $block_height }, index_eq: $index }
           ) {
             id
-            block_id
+            block {
+              height
+            }
             index
             signer
             section
@@ -67,22 +69,25 @@ export default {
             docs
             type
             timestamp
-            error_message
-            signed_data
+            errorMessage
+            signedData
           }
         }
       `,
       skip() {
-        return !this.blockNumber || !this.extrinsicIndex
+        return !this.blockNumber
       },
       variables() {
         return {
-          block_id: this.blockNumber,
+          block_height: this.blockNumber,
           index: this.extrinsicIndex,
         }
       },
       result({ data }) {
-        this.parsedExtrinsic = data.extrinsic[0]
+        this.parsedExtrinsic = data.extrinsics[0]
+        this.parsedExtrinsic.block_id = this.parsedExtrinsic.block.height
+        this.parsedExtrinsic.error_message = this.parsedExtrinsic.errorMessage
+        this.parsedExtrinsic.signed_data = this.parsedExtrinsic.signedData
         this.loading = false
       },
     },

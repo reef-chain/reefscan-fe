@@ -37,6 +37,14 @@ export default {
       type: Number,
       default: () => 0,
     },
+    extrinsicIndex: {
+      type: Number,
+      default: () => 0,
+    },
+    extrinsicBlockHeight: {
+      type: Number,
+      default: () => 0,
+    },
   },
   data: () => {
     return {
@@ -48,15 +56,22 @@ export default {
     $subscribe: {
       events: {
         query: gql`
-          subscription events($extrinsic_id: bigint!) {
-            event(
-              order_by: { index: asc }
-              where: { extrinsic_id: { _eq: $extrinsic_id } }
+          subscription events($extrinsic_index: Int!, $block_height: Int!) {
+            events(
+              orderBy: index_ASC
+              where: {
+                extrinsic: {
+                  index_eq: $extrinsic_index
+                  block: { height_eq: $block_height }
+                }
+              }
             ) {
               extrinsic {
                 id
-                block_id
                 index
+                block {
+                  height
+                }
               }
               index
               data
@@ -67,11 +82,17 @@ export default {
         `,
         variables() {
           return {
-            extrinsic_id: parseInt(this.extrinsicId),
+            // extrinsic_id: this.extrinsicId.toString (),
+            block_height: this.extrinsicBlockHeight,
+            extrinsic_index: this.extrinsicIndex,
           }
         },
         result({ data }) {
-          this.events = data.event
+          data.events = data.events.map((item) => {
+            item.extrinsic.block_id = item.extrinsic.block.height
+            return item
+          })
+          this.events = data.events
           this.loading = false
         },
       },
