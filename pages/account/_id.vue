@@ -190,11 +190,10 @@
           </Data>
 
           <Tabs v-model="tab" :options="$options.tabs" />
-          <!-- TODO: add back once transfers and token_holders are implemented -->
-          <!-- <AccountTransfers
+          <AccountTransfers
             v-if="tab === 'transfers'"
             :account-id="accountId"
-          /> -->
+          />
 
           <!-- <AccountTokenBalances
             v-if="tab === 'tokens'"

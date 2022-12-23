@@ -192,18 +192,57 @@ export default {
   apollo: {
     $subscribe: {
       transfer: {
+        // query: gql`
+        //   subscription transfer($accountId: String!) {
+        //     transfer(
+        //       order_by: { block_id: desc }
+        //       where: {
+        //         _or: [
+        //           { to_address: { _eq: $accountId } }
+        //           { from_address: { _eq: $accountId } }
+        //         ]
+        //       }
+        //     ) {
+        //       block_id
+        //       extrinsic {
+        //         index
+        //         section
+        //         method
+        //         hash
+        //         status
+        //       }
+        //       to_address
+        //       from_address
+        //       to_evm_address
+        //       from_evm_address
+        //       amount
+        //       denom
+        //       token {
+        //         address
+        //         verified_contract {
+        //           contract_data
+        //         }
+        //       }
+        //       fee_amount
+        //       error_message
+        //       timestamp
+        //     }
+        //   }
+        // `,
         query: gql`
-          subscription transfer($accountId: String!) {
-            transfer(
-              order_by: { block_id: desc }
+          subscription transfers($accountId: String!) {
+            transfers(
+              orderBy: block_height_DESC
               where: {
-                _or: [
-                  { to_address: { _eq: $accountId } }
-                  { from_address: { _eq: $accountId } }
+                OR: [
+                  { to: { id_eq: $accountId } }
+                  { from: { id_eq: $accountId } }
                 ]
               }
             ) {
-              block_id
+              block {
+                height
+              }
               extrinsic {
                 index
                 section
@@ -211,20 +250,21 @@ export default {
                 hash
                 status
               }
-              to_address
-              from_address
-              to_evm_address
-              from_evm_address
+              to {
+                id
+                evmAddress
+              }
+              from {
+                id
+                evmAddress
+              }
               amount
               denom
               token {
-                address
-                verified_contract {
-                  contract_data
-                }
+                id
               }
-              fee_amount
-              error_message
+              feeAmount
+              errorMessage
               timestamp
             }
           }
@@ -238,14 +278,18 @@ export default {
           return !this.accountId
         },
         result({ data }) {
-          this.transfers = data.transfer.map((t) => ({
+          this.transfers = data.transfers.map((t) => ({
             ...t,
+            block_id: t.block.height,
             extrinsic_hash: t.extrinsic.hash,
             success: t.extrinsic.status === 'success',
-            to_address: t.to_address || t.to_evm_address,
-            from_address: t.from_address || t.from_evm_address,
-            symbol: t.token.verified_contract?.contract_data?.symbol,
-            decimals: t.token.verified_contract?.contract_data?.decimals,
+            to_address: t.to.id || t.to.evmAddress,
+            from_address: t.from.id || t.from.evmAddress,
+            token_address: t.token.id,
+            fee_amount: t.feeAmount,
+            error_message: t.errorMessage,
+            symbol: t.token.verified_contract?.contract_data?.symbol, // TODO: verified contract info isn't in the token table anymore, it's separate
+            decimals: t.token.verified_contract?.contract_data?.decimals, // TODO
           }))
           this.totalRows = this.transfers.length
           this.loading = false
