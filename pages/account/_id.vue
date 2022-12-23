@@ -201,8 +201,7 @@
           />
 
           <Activity v-if="tab === 'activity'" :account-id="accountId" />
-          <!-- TODO: add back once staking is implemented -->
-          <!-- <StakingRewards v-if="tab === 'rewards'" :account-id="accountId" /> -->
+          <StakingRewards v-if="tab === 'rewards'" :account-id="accountId" />
         </Card>
       </b-container>
     </section>

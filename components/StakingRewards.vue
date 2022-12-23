@@ -133,24 +133,28 @@ export default {
       event: {
         query: gql`
           subscription staking($accountId: String!) {
-            staking(
-              order_by: { id: desc }
-              where: { signer: { _eq: $accountId } }
+            stakings(
+              orderBy: id_DESC
+              where: { signer: { id_eq: $accountId } }
             ) {
               id
-              signer
               amount
+              timestamp
+              signer {
+                id
+              }
               event {
                 index
-                block_id
-                extrinsic_id
+                block {
+                  height
+                }
                 extrinsic {
+                  id
                   hash
                   index
-                  signed_data
+                  signedData
                 }
               }
-              timestamp
             }
           }
         `,
@@ -163,16 +167,17 @@ export default {
           return !this.accountId
         },
         result({ data }) {
-          this.stakingRewards = data.staking.map((stakeEv) => {
+          this.stakingRewards = data.stakings.map((stakeEv) => {
             const timestamp = new Date(stakeEv.timestamp).getTime() / 1000
+            stakeEv.event.extrinsic_id = stakeEv.event.extrinsic.id
             return {
               timestamp,
               timeago: timestamp,
               amount: stakeEv.amount,
-              address: stakeEv.signer,
-              block_id: stakeEv.event.block_id,
+              address: stakeEv.signer.id,
+              block_id: stakeEv.event.block.height,
               hash: stakeEv.event.extrinsic.hash,
-              fee: stakeEv.event.extrinsic.signed_data?.fee.partialFee || 0,
+              fee: stakeEv.event.extrinsic.signedData?.fee.partialFee || 0,
               extrinsicIndex: stakeEv.event.extrinsic.index,
             }
           })
