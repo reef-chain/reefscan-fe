@@ -38,22 +38,25 @@
 
       <Row>
         <Cell>{{ $t('details.block.extrinsic_root') }}</Cell>
-        <Cell>{{ parsedBlock.extrinsic_root }}</Cell>
+        <Cell>{{ parsedBlock.extrinsicRoot }}</Cell>
       </Row>
 
       <Row>
         <Cell>{{ $t('details.block.parent_hash') }}</Cell>
         <Cell>
-          <span v-if="parsedBlock.id === 0"> -- </span>
-          <nuxt-link v-else :to="`/block?blockNumber=${parsedBlock.id - 1}`">
-            {{ parsedBlock.parent_hash }}
+          <span v-if="parsedBlock.height === 0"> -- </span>
+          <nuxt-link
+            v-else
+            :to="`/block?blockNumber=${parsedBlock.height - 1}`"
+          >
+            {{ parsedBlock.parentHash }}
           </nuxt-link>
         </Cell>
       </Row>
 
       <Row>
         <Cell>{{ $t('details.block.state_root') }}</Cell>
-        <Cell>{{ parsedBlock.state_root }}</Cell>
+        <Cell>{{ parsedBlock.stateRoot }}</Cell>
       </Row>
     </Data>
 
