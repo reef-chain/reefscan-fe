@@ -86,24 +86,56 @@ export default {
   },
   apollo: {
     $subscribe: {
-      event: {
+      events: {
+        // query: gql`
+        //   subscription events(
+        //     $blockNumber: bigint_comparison_exp
+        //     $perPage: Int!
+        //     $offset: Int!
+        //   ) {
+        //     event(
+        //       limit: $perPage
+        //       offset: $offset
+        //       where: { block_id: $blockNumber }
+        //       order_by: { id: desc, index: desc }
+        //     ) {
+        //       id
+        //       block_id
+        //       extrinsic {
+        //         id
+        //         block_id
+        //         index
+        //       }
+        //       index
+        //       data
+        //       method
+        //       phase
+        //       section
+        //       timestamp
+        //     }
+        //   }
+        // `,
         query: gql`
           subscription events(
-            $blockNumber: bigint_comparison_exp
+            $blockNumber: BlockWhereInput!
             $perPage: Int!
             $offset: Int!
           ) {
-            event(
+            events(
               limit: $perPage
               offset: $offset
-              where: { block_id: $blockNumber }
-              order_by: { id: desc, index: desc }
+              where: { block: $blockNumber }
+              orderBy: id_DESC
             ) {
               id
-              block_id
+              block {
+                height
+              }
               extrinsic {
                 id
-                block_id
+                block {
+                  height
+                }
                 index
               }
               index
@@ -117,13 +149,19 @@ export default {
         `,
         variables() {
           return {
-            blockNumber: this.filter ? { _eq: parseInt(this.filter) } : {},
+            blockNumber: this.filter
+              ? { height_eq: parseInt(this.filter) }
+              : {},
             perPage: this.perPage,
             offset: (this.currentPage - 1) * this.perPage,
           }
         },
         result({ data }) {
-          this.events = data.event
+          this.events = data.events
+          this.events.forEach((event) => {
+            event.block_id = event.block.height
+            event.extrinsic.block_id = event.extrinsic.block.height
+          })
           this.totalRows = this.filter ? this.events.length : this.nEvents
           this.loading = false
         },
@@ -131,13 +169,13 @@ export default {
       totalEvents: {
         query: gql`
           subscription chain_info {
-            chain_info(where: { name: { _eq: "events" } }, limit: 1) {
+            chainInfos(where: { id_eq: "events" }, limit: 1) {
               count
             }
           }
         `,
         result({ data }) {
-          this.nEvents = data.chain_info[0].count
+          this.nEvents = data.chainInfos[0].count
           this.totalRows = this.nEvents
         },
       },
