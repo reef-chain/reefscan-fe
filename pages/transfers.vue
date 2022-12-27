@@ -142,52 +142,6 @@ export default {
   apollo: {
     $subscribe: {
       extrinsic: {
-        // query: gql`
-        //   subscription transfer(
-        //     $blockNumber: bigint_comparison_exp
-        //     $extrinsicHash: String_comparison_exp
-        //     $fromAddress: String_comparison_exp
-        //     $perPage: Int!
-        //     $offset: Int!
-        //   ) {
-        //     transfer(
-        //       limit: $perPage
-        //       offset: $offset
-        //       where: {
-        //         extrinsic: { block_id: $blockNumber, hash: $extrinsicHash }
-        //         from_address: $fromAddress
-        //       }
-        //       order_by: { extrinsic: { id: desc } }
-        //     ) {
-        //       extrinsic {
-        //         id
-        //         hash
-        //         index
-        //         block_id
-        //         args
-        //         status
-        //         error_message
-        //       }
-        //       from_account {
-        //         address
-        //       }
-        //       to_account {
-        //         address
-        //       }
-        //       token {
-        //         address
-        //         verified_contract {
-        //           contract_data
-        //         }
-        //       }
-        //       to_evm_address
-        //       from_evm_address
-        //       amount
-        //       timestamp
-        //       denom
-        //     }
-        //   }
-        // `,
         query: gql`
           subscription transfer(
             $perPage: Int!
@@ -303,22 +257,6 @@ export default {
           this.loading = false
         },
       },
-      // TODO: NEEDS TO BE IMPLEMENTED IN THE BACKEND
-      // totalTransfers: {
-      //   query: gql`
-      //     subscription total {
-      //       transfer_aggregate {
-      //         aggregate {
-      //           count
-      //         }
-      //       }
-      //     }
-      //   `,
-      //   result({ data }) {
-      //     this.nTransfers = data.transfer_aggregate.aggregate.count
-      //     this.totalRows = this.nTransfers
-      //   },
-      // },
       totalTransfers: {
         query: gql`
           subscription total {
