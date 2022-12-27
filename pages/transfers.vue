@@ -261,7 +261,6 @@ export default {
           }
         },
         async result({ data }) {
-          console.log(data)
           // const converted = data.transfers.map(
           //   ({
           //     timestamp,
@@ -287,9 +286,7 @@ export default {
           //   })
           // )\
 
-          // TODO: fix this
           const converted = data.transfers.map((transfer) => {
-            console.log(transfer)
             return {
               amount: transfer.amount,
               success: transfer.extrinsic.status === 'success',
@@ -298,10 +295,18 @@ export default {
               idx: transfer.extrinsic.index,
               extrinsicId: transfer.extrinsic.id,
               block_id: transfer.extrinsic.block.height,
-              // to: transfer.to === null ? transfer.toEvmAddress : transfer.to.evmAddress, // resolveAddress(toEvm, to, extrinsic.event.data[1]),
-              // from: transfer.from === null ? transfer.fromEvmAddress : transfer.from.evmAddress, // resolveAddress(toEvm, to, extrinsic.event.data[0]), // from === null ? fromEvm : from.address,
-              // symbol: transfer.token.verified_contract?.contract_data?.symbol || ' ',
-              // decimals: transfer.token.verified_contract?.contract_data?.decimals || 18,
+              to:
+                transfer.to.id === null
+                  ? transfer.to.evmAddress
+                  : transfer.to.id,
+              from:
+                transfer.from.id === null
+                  ? transfer.from.evmAddress
+                  : transfer.from.id,
+              symbol:
+                transfer.token.verified_contract?.contract_data?.symbol || ' ', // TODO: fix this
+              decimals:
+                transfer.token.verified_contract?.contract_data?.decimals || 18, // TODO: fix this
             }
           })
           const repared = converted.map(async (transfer) => {
