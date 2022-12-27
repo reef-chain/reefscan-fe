@@ -46,37 +46,74 @@ export default {
     },
   },
   apollo: {
-    transfer: {
+    transfers: {
+      // query: gql`
+      //   query transfer($hash: String!) {
+      //     transfer(where: { extrinsic: { hash: { _eq: $hash } } }) {
+      //       amount
+      //       denom
+      //       block_id
+      //       to_address
+      //       from_address
+      //       to_evm_address
+      //       from_evm_address
+      //       timestamp
+      //       extrinsic {
+      //         id
+      //         hash
+      //         index
+      //         error_message
+      //         status
+      //         events(where: { method: { _eq: "Transfer" } }) {
+      //           data
+      //           extrinsic_id
+      //         }
+      //       }
+      //       token {
+      //         address
+      //         verified_contract {
+      //           contract_data
+      //         }
+      //       }
+      //       token_address
+      //       fee_amount
+      //     }
+      //   }
+      // `,
       query: gql`
-        query transfer($hash: String!) {
-          transfer(where: { extrinsic: { hash: { _eq: $hash } } }) {
+        query transfers($hash: String!) {
+          transfers(where: { extrinsic: { hash_eq: $hash } }) {
             amount
             denom
-            block_id
-            to_address
-            from_address
-            to_evm_address
-            from_evm_address
+            block {
+              height
+            }
+            to {
+              id
+              evmAddress
+            }
+            from {
+              id
+              evmAddress
+            }
             timestamp
             extrinsic {
               id
               hash
               index
-              error_message
+              errorMessage
               status
-              events(where: { method: { _eq: "Transfer" } }) {
+              events(where: { method_eq: "Transfer" }) {
                 data
-                extrinsic_id
+                extrinsic {
+                  id
+                }
               }
             }
             token {
-              address
-              verified_contract {
-                contract_data
-              }
+              id
             }
-            token_address
-            fee_amount
+            feeAmount
           }
         }
       `,
@@ -89,26 +126,40 @@ export default {
         }
       },
       result({ data }) {
-        if (data && data.transfer) {
-          this.transfer = data.transfer[0]
+        if (data && data.transfers) {
+          this.transfer = data.transfers[0]
           this.transfer.to_address =
-            this.transfer.to_address || this.transfer.to_evm_address
+            this.transfer.to.id || this.transfer.to.evmAddress
+          this.transfer.block_id = this.transfer.block.height
+          this.transfer.extrinsic.error_message =
+            this.transfer.extrinsic.errorMessage
+
+          this.transfer.extrinsic.events = this.transfer.extrinsic.events.map(
+            (event) => {
+              event.extrinsic_id = event.extrinsic.id
+              return event
+            }
+          )
+
+          this.transfer.fee_amount = this.transfer.feeAmount
 
           this.transfer.success =
-            data.transfer[0].extrinsic.status === 'success'
+            data.transfers[0].extrinsic.status === 'success'
 
           if (this.transfer.to_address === 'deleted') {
             this.transfer.to_address =
-              data.transfer[0].extrinsic.events[0].data[1]
+              data.transfers[0].extrinsic.events[0].data[1]
           }
 
           this.transfer.from_address =
-            this.transfer.from_address || this.transfer.from_evm_address
+            this.transfer.from.id || this.transfer.from.evmAddress
           if (this.transfer.from_address === 'deleted') {
             this.transfer.from_address =
               data.transfer[0].extrinsic.events[0].data[0]
           }
 
+          // TODO: update when we have token data in the contract table
+          this.token_address = this.transfer.token.id
           if (
             this.transfer.token &&
             this.transfer.token.verified_contract &&
