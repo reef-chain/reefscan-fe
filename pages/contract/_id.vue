@@ -277,7 +277,7 @@ import { gql } from 'graphql-tag'
 import VueJsonPretty from 'vue-json-pretty'
 import { ethers, Contract } from 'ethers'
 // import cbor from 'cbor'
-import Hash from 'ipfs-only-hash'
+// import Hash from 'ipfs-only-hash'
 import { Promised } from 'vue-promised'
 import { Provider } from '@reef-defi/evm-provider'
 import { WsProvider } from '@polkadot/api'
@@ -420,31 +420,50 @@ export default {
   },
   apollo: {
     $subscribe: {
-      contract: {
+      contracts: {
+        // query: gql`
+        //   subscription contract($address: String!) {
+        //     contract(where: { address: { _ilike: $address } }) {
+        //       address
+        //       verified_contract {
+        //         name
+        //         args
+        //         source
+        //         compiler_version
+        //         compiled_data
+        //         contract_data
+        //         optimization
+        //         runs
+        //         target
+        //         type
+        //       }
+        //       bytecode
+        //       bytecode_context
+        //       bytecode_arguments
+        //       signer
+        //       extrinsic {
+        //         block_id
+        //       }
+        //       timestamp
+        //     }
+        //   }
+        // `,
         query: gql`
-          subscription contract($address: String!) {
-            contract(where: { address: { _ilike: $address } }) {
-              address
-              verified_contract {
-                name
-                args
-                source
-                compiler_version
-                compiled_data
-                contract_data
-                optimization
-                runs
-                target
-                type
-              }
-              bytecode
-              bytecode_context
-              bytecode_arguments
-              signer
+          subscription contracts($address: String!) {
+            contracts(where: { id_containsInsensitive: $address }) {
+              id
               extrinsic {
-                block_id
+                block {
+                  height
+                }
               }
               timestamp
+              bytecode
+              bytecodeContext
+              bytecodeArguments
+              signer {
+                id
+              }
             }
           }
         `,
@@ -454,20 +473,28 @@ export default {
           }
         },
         async result({ data }) {
-          if (data.contract[0]) {
-            this.contract = data.contract[0]
-            const name = data.contract[0].verified_contract?.name
+          if (data.contracts[0]) {
+            data.contracts[0].address = data.contracts[0].id
+            data.contracts[0].extrinsic.block_id =
+              data.contracts[0].extrinsic.block.height
+            data.contracts[0].bytecode_context =
+              data.contracts[0].bytecodeContext
+            data.contracts[0].bytecode_arguments =
+              data.contracts[0].bytecodeArguments
+            data.contracts[0].signer = data.contracts[0].signer.id
+            this.contract = data.contracts[0]
+            const name = data.contracts[0].verified_contract?.name
 
             this.contract.abi =
-              data.contract[0].verified_contract &&
-              data.contract[0].verified_contract.compiled_data &&
-              data.contract[0].verified_contract.compiled_data[name]
+              data.contracts[0].verified_contract &&
+              data.contracts[0].verified_contract.compiled_data &&
+              data.contracts[0].verified_contract.compiled_data[name]
                 ? data.contract[0].verified_contract.compiled_data[name]
                 : []
 
-            if (data.contract[0].verified_contract) {
+            if (data.contracts[0].verified_contract) {
               this.contract.source = Object.keys(
-                data.contract[0].verified_contract.source
+                data.contracts[0].verified_contract.source
               ).reduce(this.sourceCode(data), [])
             }
 
@@ -498,13 +525,16 @@ export default {
     },
   },
   methods: {
+    // TODO: fix this
     async getIpfsHash() {
       // decode hash from uint8 array
-      return await Hash.of(this.decodedMetadata?.ipfs)
+      // return await Hash.of(this.decodedMetadata?.ipfs)
+      return await null
     },
     async getBzzr1Hash() {
       // decode hash from uint8 array
-      return await Hash.of(this.decodedMetadata?.bzzr1)
+      // return await Hash.of(this.decodedMetadata?.bzzr1)
+      return await null
     },
   },
 }
