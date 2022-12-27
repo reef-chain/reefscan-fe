@@ -245,15 +245,6 @@ export default {
               }
             }
           }
-          // return {
-          //   blockNumber: this.isBlockNumber(this.filter)
-          //     ? { _eq: parseInt(this.filter) }
-          //     : {},
-          //   extrinsicHash: this.isHash(this.filter) ? { _eq: this.filter } : {},
-          //   fromAddress: {},
-          //   perPage: this.perPage,
-          //   offset: (this.currentPage - 1) * this.perPage,
-          // }
           return {
             where,
             perPage: this.perPage,
@@ -261,31 +252,6 @@ export default {
           }
         },
         async result({ data }) {
-          // const converted = data.transfers.map(
-          //   ({
-          //     timestamp,
-          //     from_account: from,
-          //     to_account: to,
-          //     amount,
-          //     extrinsic,
-          //     to_evm_address: toEvm,
-          //     from_evm_address: fromEvm,
-          //     token,
-          //   }) => ({
-          //     amount,
-          //     success: extrinsic.status === 'success',
-          //     timestamp,
-          //     hash: extrinsic.hash,
-          //     idx: extrinsic.index,
-          //     extrinsicId: extrinsic.id,
-          //     block_id: extrinsic.block_id,
-          //     to: to === null ? toEvm : to.address, // resolveAddress(toEvm, to, extrinsic.event.data[1]),
-          //     from: from === null ? fromEvm : from.address, // resolveAddress(toEvm, to, extrinsic.event.data[0]), // from === null ? fromEvm : from.address,
-          //     symbol: token.verified_contract?.contract_data?.symbol || ' ',
-          //     decimals: token.verified_contract?.contract_data?.decimals || 1,
-          //   })
-          // )\
-
           const converted = data.transfers.map((transfer) => {
             return {
               amount: transfer.amount,
@@ -337,6 +303,7 @@ export default {
           this.loading = false
         },
       },
+      // TODO: NEEDS TO BE IMPLEMENTED IN THE BACKEND
       // totalTransfers: {
       //   query: gql`
       //     subscription total {
@@ -352,6 +319,19 @@ export default {
       //     this.totalRows = this.nTransfers
       //   },
       // },
+      totalTransfers: {
+        query: gql`
+          subscription total {
+            chainInfos(where: { id_eq: "transfers" }) {
+              count
+            }
+          }
+        `,
+        result({ data }) {
+          this.nTransfers = data.chainInfos[0].count
+          this.totalRows = this.nTransfers
+        },
+      },
     },
   },
 }
