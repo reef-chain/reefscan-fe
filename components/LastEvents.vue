@@ -45,10 +45,12 @@ export default {
       event: {
         query: gql`
           subscription events {
-            event(order_by: { block_id: desc }, where: {}, limit: 10) {
+            events(orderBy: block_height_DESC, where: {}, limit: 10) {
               extrinsic {
                 id
-                block_id
+                block {
+                  height
+                }
                 index
               }
               index
@@ -60,7 +62,15 @@ export default {
           }
         `,
         result({ data }) {
-          this.events = data.event
+          this.events = data.events.map((event) => {
+            return {
+              ...event,
+              extrinsic: {
+                ...event.extrinsic,
+                block_id: event.extrinsic.block.height,
+              },
+            }
+          })
         },
       },
     },

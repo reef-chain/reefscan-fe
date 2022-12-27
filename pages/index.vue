@@ -30,20 +30,20 @@
 </template>
 <script>
 import LastBlocks from '@/components/LastBlocks.vue'
-import LastTransfers from '@/components/LastTransfers.vue'
 import LastExtrinsics from '@/components/LastExtrinsics.vue'
+import LastTransfers from '@/components/LastTransfers.vue'
+import LastAccounts from '@/components/LastAccounts'
 import LastEvents from '@/components/LastEvents.vue'
 import Search from '@/components/Search.vue'
 import { network } from '@/frontend.config.js'
 import commonMixin from '@/mixins/commonMixin.js'
-import LastAccounts from '@/components/LastAccounts'
 
 export default {
   components: {
-    LastAccounts,
     LastBlocks,
-    LastTransfers,
     LastExtrinsics,
+    LastTransfers,
+    LastAccounts,
     LastEvents,
     Search,
   },

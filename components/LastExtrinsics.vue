@@ -41,12 +41,14 @@ export default {
   },
   apollo: {
     $subscribe: {
-      extrinsic: {
+      extrinsics: {
         query: gql`
           subscription extrinsics {
-            extrinsic(order_by: { block_id: desc }, where: {}, limit: 10) {
+            extrinsics(orderBy: block_height_DESC, where: {}, limit: 10) {
               id
-              block_id
+              block {
+                height
+              }
               index
               type
               signer
@@ -58,7 +60,12 @@ export default {
           }
         `,
         result({ data }) {
-          this.extrinsics = data.extrinsic
+          this.extrinsics = data.extrinsics.map((item) => {
+            return {
+              ...item,
+              block_id: item.block.height,
+            }
+          })
         },
       },
     },

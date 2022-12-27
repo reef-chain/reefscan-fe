@@ -45,15 +45,23 @@ export default {
       account: {
         query: gql`
           subscription accounts {
-            account(order_by: { block_id: desc }, where: {}, limit: 10) {
-              address
-              block_id
-              free_balance
+            accounts(orderBy: block_height_DESC, where: {}, limit: 10) {
+              id
+              block {
+                height
+              }
+              freeBalance
             }
           }
         `,
         result({ data }) {
-          this.accounts = data.account
+          this.accounts = data.accounts.map((item) => {
+            return {
+              address: item.id,
+              block_id: item.block.height,
+              free_balance: item.freeBalance,
+            }
+          })
         },
       },
     },

@@ -151,13 +151,13 @@ export default {
         const client = this.$apollo.provider.defaultClient
         const query = gql`
           query block {
-            block(limit: 1, where: {hash: {_eq: "${input}"}}) {
+            blocks(limit: 1, where: {hash_eq: "${input}"}) {
               id
             }
           }
         `
         const response = await client.query({ query })
-        return response.data.block.length > 0
+        return response.data.blocks.length > 0
       }
       return false
     },
@@ -171,13 +171,15 @@ export default {
         const client = this.$apollo.provider.defaultClient
         const query = gql`
           query extrinsic {
-            extrinsic(limit: 1, where: {hash: {_eq: "${input}"}}) {
-              block_id
+            extrinsics(limit: 1, where: {hash_eq: "${input}"}) {
+              block {
+                height
+              }
             }
           }
         `
         const response = await client.query({ query })
-        return response.data.extrinsic.length > 0
+        return response.data.extrinsics.length > 0
       }
       return false
     },
@@ -218,8 +220,8 @@ export default {
       const client = this.$apollo.provider.defaultClient
       const query = gql`
           query contract {
-            contract(limit: 1, where: {address: {_eq: "${address}"}}) {
-              address
+            contracts(limit: 1, where: {id_eq: "${address}"}) {
+              id
             }
           }
         `
@@ -237,8 +239,8 @@ export default {
       const client = this.$apollo.provider.defaultClient
       const query = gql`
           query account {
-            account(limit: 1, where: {evm_address: {_eq: "${input}"}}) {
-              evm_address
+            accounts(limit: 1, where: {evmAddress_eq: "${input}"}) {
+              evmAddress
             }
           }
         `

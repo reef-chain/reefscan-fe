@@ -57,18 +57,23 @@ export default {
   },
   apollo: {
     $subscribe: {
-      block: {
+      blocks: {
         query: gql`
           subscription blocks {
-            block(order_by: { id: desc }, where: {}, limit: 10) {
-              id
+            blocks(orderBy: height_DESC, where: {}, limit: 10) {
+              height
               finalized
               hash
             }
           }
         `,
         result({ data }) {
-          this.blocks = data.block
+          this.blocks = data.blocks.map((item) => {
+            return {
+              ...item,
+              id: item.height,
+            }
+          })
         },
       },
     },

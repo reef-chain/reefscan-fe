@@ -109,30 +109,59 @@ export default {
   },
   apollo: {
     $subscribe: {
-      extrinsic: {
+      transfers: {
+        // query: gql`
+        //   subscription transfer {
+        //     transfer(limit: 10, order_by: { extrinsic: { id: desc } }) {
+        //       extrinsic {
+        //         id
+        //         hash
+        //         index
+        //         block_id
+        //       }
+        //       from_account {
+        //         address
+        //       }
+        //       to_account {
+        //         address
+        //       }
+        //       token {
+        //         address
+        //         verified_contract {
+        //           contract_data
+        //         }
+        //       }
+        //       to_evm_address
+        //       from_evm_address
+        //       success
+        //       amount
+        //       timestamp
+        //     }
+        //   }
+        // `,
+        // TODO: broken until we have a way to get the token info
         query: gql`
           subscription transfer {
-            transfer(limit: 10, order_by: { extrinsic: { id: desc } }) {
+            transfers(limit: 10, orderBy: extrinsic_id_DESC) {
               extrinsic {
                 id
                 hash
                 index
-                block_id
-              }
-              from_account {
-                address
-              }
-              to_account {
-                address
-              }
-              token {
-                address
-                verified_contract {
-                  contract_data
+                block {
+                  height
                 }
               }
-              to_evm_address
-              from_evm_address
+              from {
+                id
+                evmAddress
+              }
+              to {
+                id
+                evmAddress
+              }
+              token {
+                id
+              }
               success
               amount
               timestamp
@@ -140,24 +169,21 @@ export default {
           }
         `,
         async result({ data }) {
-          const processed = data.transfer.map((transfer) => ({
+          const processed = data.transfers.map((transfer) => ({
             amount: transfer.amount,
             success: transfer.success,
             hash: transfer.extrinsic.hash,
             timestamp: transfer.timestamp,
-            tokenAddress: transfer.token.address,
+            tokenAddress: transfer.token.id,
             symbol:
-              transfer.token.verified_contract.contract_data?.symbol || ' ',
+              transfer.token.verified_contract?.contract_data?.symbol || ' ',
             decimals:
-              transfer.token.verified_contract.contract_data?.decimals || 1,
-            to:
-              transfer.to_account !== null
-                ? transfer.to_account.address
-                : transfer.to_evm_address,
+              transfer.token.verified_contract?.contract_data?.decimals || 18,
+            to: transfer.to !== null ? transfer.to.id : transfer.to.evmAddress,
             from:
-              transfer.from_account !== null
-                ? transfer.from_account.address
-                : transfer.from_evm_address,
+              transfer.from !== null
+                ? transfer.from.id
+                : transfer.from.evmAddress,
             extrinsicId: transfer.extrinsic.id,
           }))
           const repaird = processed.map(async (transfer) => {

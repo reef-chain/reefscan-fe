@@ -127,87 +127,90 @@ export default {
       chainInfo: {
         query: gql`
           subscription chain_info {
-            chain_info {
-              name
+            chainInfos {
+              id
               count
             }
           }
         `,
         result({ data }) {
-          this.totalAccounts = this.findCount(data.chain_info, 'accounts')
-          this.totalContracts = this.findCount(data.chain_info, 'contracts')
+          this.totalAccounts = this.findCount(data.chainInfos, 'accounts')
+          this.totalContracts = this.findCount(data.chainInfos, 'contracts')
+          this.totalEvents = this.findCount(data.chainInfos, 'events')
+          this.totalExtrinsics = this.findCount(data.chainInfos, 'extrinsics')
+          this.totalTransfers = this.findCount(data.chainInfos, 'transfers')
         },
       },
       finalized: {
         query: gql`
           subscription blocks {
-            block(
+            blocks(
               limit: 1
-              order_by: { id: desc }
-              where: { finalized: { _eq: true } }
+              orderBy: height_DESC
+              where: { finalized_eq: true }
             ) {
-              id
+              height
             }
           }
         `,
         result({ data }) {
-          this.lastFinalizedBlock = data.block[0].id
+          this.lastFinalizedBlock = data.blocks[0].height
         },
       },
       lastBlock: {
         query: gql`
           subscription blocks {
-            block(limit: 1, order_by: { id: desc }) {
-              id
+            blocks(limit: 1, orderBy: height_DESC) {
+              height
             }
           }
         `,
         result({ data }) {
-          this.lastBlock = data.block[0].id
+          this.lastBlock = data.blocks[0].height
         },
       },
-      transfers: {
-        query: gql`
-          subscription transfer {
-            transfer_aggregate {
-              aggregate {
-                count
-              }
-            }
-          }
-        `,
-        result({ data }) {
-          this.totalTransfers = data.transfer_aggregate.aggregate.count // this.findCount(data.chain_info, 'transfers')
-        },
-      },
-      events: {
-        query: gql`
-          subscription event {
-            event_aggregate {
-              aggregate {
-                count
-              }
-            }
-          }
-        `,
-        result({ data }) {
-          this.totalEvents = data.event_aggregate.aggregate.count // this.findCount(data.chain_info, 'events')
-        },
-      },
-      extrinsics: {
-        query: gql`
-          subscription extrinsic {
-            extrinsic_aggregate {
-              aggregate {
-                count
-              }
-            }
-          }
-        `,
-        result({ data }) {
-          this.totalExtrinsics = data.extrinsic_aggregate.aggregate.count // this.findCount(data.chain_info, 'extrinsics')
-        },
-      },
+      // transfers: {
+      //   query: gql`
+      //     subscription transfer {
+      //       transfer_aggregate {
+      //         aggregate {
+      //           count
+      //         }
+      //       }
+      //     }
+      //   `,
+      //   result({ data }) {
+      //     this.totalTransfers = data.transfer_aggregate.aggregate.count // this.findCount(data.chain_info, 'transfers')
+      //   },
+      // },
+      // events: {
+      //   query: gql`
+      //     subscription event {
+      //       event_aggregate {
+      //         aggregate {
+      //           count
+      //         }
+      //       }
+      //     }
+      //   `,
+      //   result({ data }) {
+      //     this.totalEvents = data.event_aggregate.aggregate.count // this.findCount(data.chain_info, 'events')
+      //   },
+      // },
+      // extrinsics: {
+      //   query: gql`
+      //     subscription extrinsic {
+      //       extrinsic_aggregate {
+      //         aggregate {
+      //           count
+      //         }
+      //       }
+      //     }
+      //   `,
+      //   result({ data }) {
+      //     this.totalExtrinsics = data.extrinsic_aggregate.aggregate.count // this.findCount(data.chain_info, 'extrinsics')
+      //   },
+      // },
     },
   },
   methods: {
@@ -218,7 +221,7 @@ export default {
         .replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,')} ${network.tokenSymbol}`
     },
     findCount(counts, name) {
-      return counts.find((count) => count.name === name).count
+      return counts.find((count) => count.id === name).count
     },
   },
 }
