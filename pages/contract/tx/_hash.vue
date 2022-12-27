@@ -57,10 +57,10 @@ export default {
     },
   },
   apollo: {
-    extrinsic: {
+    extrinsics: {
       query: gql`
-        query extrinsic($hash: String!) {
-          extrinsics(where: { hash_eq: $hash } }) {
+        query extrinsics($hash: String!) {
+          extrinsics(where: { hash_eq: $hash }) {
             id
             block {
               height
@@ -89,6 +89,7 @@ export default {
       result({ data }) {
         this.extrinsic = data.extrinsics[0]
         this.extrinsic.block_id = this.extrinsic.block.height
+        this.extrinsic.error_message = this.extrinsic.errorMessage
         const extrinsicArgs = this.extrinsic.args[0]
         // if transfer is native Reef there is no contractAddress
         this.contractAddress = extrinsicArgs.toLowerCase
@@ -98,21 +99,29 @@ export default {
         this.loading = false
       },
     },
-    contract: {
+    contracts: {
+      // query: gql`
+      //   query contracts($contractAddress: String!) {
+      //     contracts(where: { id_eq: $contractAddress }) {
+      //       id
+      //       verified_contract {
+      //         type
+      //         name
+      //         contract_data
+      //       }
+      //     }
+      //   }
+      // `,
       query: gql`
-        query contract($contractAddress: String!) {
-          contracts(where: { id_eq: $contractAddress } }) {
+        query contracts($contractAddress: String!) {
+          contracts(where: { id_eq: $contractAddress }) {
             id
-            verified_contract {
-              type
-              name
-              contract_data
-            }
           }
         }
       `,
       skip() {
-        return !this.contractAddress
+        // return !this.contractAddress
+        return true
       },
       variables() {
         return {
