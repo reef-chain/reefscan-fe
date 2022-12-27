@@ -94,21 +94,48 @@ export default {
   },
   apollo: {
     $subscribe: {
-      extrinsic: {
+      extrinsics: {
+        // query: gql`
+        //   subscription extrinsics(
+        //     $blockNumber: bigint_comparison_exp
+        //     $perPage: Int!
+        //     $offset: Int!
+        //   ) {
+        //     extrinsic(
+        //       limit: $perPage
+        //       offset: $offset
+        //       where: { block_id: $blockNumber }
+        //       order_by: { block_id: desc, index: desc }
+        //     ) {
+        //       id
+        //       block_id
+        //       index
+        //       signer
+        //       section
+        //       method
+        //       hash
+        //       type
+        //       timestamp
+        //       error_message
+        //     }
+        //   }
+        // `,
         query: gql`
           subscription extrinsics(
-            $blockNumber: bigint_comparison_exp
+            $blockNumber: BlockWhereInput!
             $perPage: Int!
             $offset: Int!
           ) {
-            extrinsic(
+            extrinsics(
               limit: $perPage
               offset: $offset
-              where: { block_id: $blockNumber }
-              order_by: { block_id: desc, index: desc }
+              where: { block: $blockNumber }
+              orderBy: block_height_DESC
             ) {
               id
-              block_id
+              block {
+                height
+              }
               index
               signer
               section
@@ -116,19 +143,27 @@ export default {
               hash
               type
               timestamp
-              error_message
+              errorMessage
             }
           }
         `,
         variables() {
           return {
-            blockNumber: this.filter ? { _eq: parseInt(this.filter) } : {},
+            blockNumber: this.filter
+              ? { height_eq: parseInt(this.filter) }
+              : {},
             perPage: this.perPage,
             offset: (this.currentPage - 1) * this.perPage,
           }
         },
         result({ data }) {
-          this.extrinsics = data.extrinsic
+          // data.extrinsics.block_id = data.extrinsics.block.height
+          // data.extrinsics.error_message = data.extrinsics.errorMessage
+          data.extrinsics.forEach((item) => {
+            item.block_id = item.block.height
+            item.error_message = item.errorMessage
+          })
+          this.extrinsics = data.extrinsics
           this.totalRows = this.filter
             ? this.extrinsics.length
             : this.nExtrinsics
@@ -138,13 +173,13 @@ export default {
       totalExtrinsics: {
         query: gql`
           subscription total {
-            chain_info(where: { name: { _eq: "extrinsics" } }, limit: 1) {
+            chainInfos(where: { id_eq: "extrinsics" }, limit: 1) {
               count
             }
           }
         `,
         result({ data }) {
-          this.nExtrinsics = data.chain_info[0].count
+          this.nExtrinsics = data.chainInfos[0].count
           this.totalRows = this.nExtrinsics
         },
       },
