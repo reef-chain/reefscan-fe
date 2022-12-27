@@ -124,45 +124,54 @@ export default {
       contracts: {
         query: gql`
           subscription contract(
-            $blockHeight: extrinsic_bool_exp
-            $contractId: String_comparison_exp
+            $where: ContractWhereInput!
             $perPage: Int!
             $offset: Int!
           ) {
-            contract(
+            contracts(
               limit: $perPage
               offset: $offset
-              where: { extrinsic: $blockHeight, address: $contractId }
-              order_by: { extrinsic: { block_id: desc } }
+              where: $where
+              orderBy: extrinsic_timestamp_DESC
             ) {
-              address
+              id
               extrinsic {
-                block_id
+                block {
+                  height
+                }
               }
               timestamp
-              verified_contract {
-                address
-                name
-                type
-              }
             }
           }
         `,
         variables() {
+          let where = {}
+          if (this.isBlockNumber(this.filter)) {
+            where = {
+              extrinsic: {
+                block: {
+                  height_eq: parseInt(this.filter),
+                },
+              },
+            }
+          } else if (this.isContractId(this.filter)) {
+            where = {
+              id_containsInsensitive: this.toContractAddress(this.filter),
+            }
+          }
           const newVar = {
-            blockHeight: this.isBlockNumber(this.filter)
-              ? { block_id: { _eq: parseInt(this.filter) } }
-              : {},
-            contractId: this.isContractId(this.filter)
-              ? { _ilike: this.toContractAddress(this.filter) }
-              : {},
+            where,
             perPage: this.perPage,
             offset: (this.currentPage - 1) * this.perPage,
           }
           return newVar
         },
         result({ data }) {
-          this.contracts = data.contract
+          data.contracts.forEach((contract) => {
+            contract.address = contract.id
+            contract.extrinsic.block_id = contract.extrinsic.block.height
+          })
+          this.contracts = data.contracts
           this.totalRows = this.filter ? this.contracts.length : this.nContracts
           this.loading = false
         },
@@ -170,15 +179,13 @@ export default {
       totalContracts: {
         query: gql`
           subscription total {
-            contract_aggregate {
-              aggregate {
-                count
-              }
+            chainInfos(where: { id_eq: "contracts" }) {
+              count
             }
           }
         `,
         result({ data }) {
-          this.nContracts = data.contract_aggregate.aggregate.count
+          this.nContracts = data.chainInfos[0].count
           this.totalRows = this.nContracts
         },
       },
