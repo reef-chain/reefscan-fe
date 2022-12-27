@@ -47,39 +47,6 @@ export default {
   },
   apollo: {
     transfers: {
-      // query: gql`
-      //   query transfer($hash: String!) {
-      //     transfer(where: { extrinsic: { hash: { _eq: $hash } } }) {
-      //       amount
-      //       denom
-      //       block_id
-      //       to_address
-      //       from_address
-      //       to_evm_address
-      //       from_evm_address
-      //       timestamp
-      //       extrinsic {
-      //         id
-      //         hash
-      //         index
-      //         error_message
-      //         status
-      //         events(where: { method: { _eq: "Transfer" } }) {
-      //           data
-      //           extrinsic_id
-      //         }
-      //       }
-      //       token {
-      //         address
-      //         verified_contract {
-      //           contract_data
-      //         }
-      //       }
-      //       token_address
-      //       fee_amount
-      //     }
-      //   }
-      // `,
       query: gql`
         query transfers($hash: String!) {
           transfers(where: { extrinsic: { hash_eq: $hash } }) {
