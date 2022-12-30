@@ -5,10 +5,14 @@ import { getMainDefinition } from 'apollo-utilities'
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions'
 import { createClient } from 'graphql-ws'
 import { network } from '../frontend.config.js'
+import * as dotenv from 'dotenv'
+dotenv.config()
 
 export default (ctx) => {
   const httpLink = new HttpLink({ uri: network.backendHttp })
-
+console.log(
+  'WSSSSSSSSSSSSS=',network.backendWs, ' process.env=',process.env.GQL_WS_URI
+)
   // Create the subscription websocket link with graphql-ws
   const wsLink = new GraphQLWsLink(
     createClient({
