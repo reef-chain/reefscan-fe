@@ -1,6 +1,6 @@
 
 ifeq ($(env), prod)
-	ARGS=--build-arg GQL_WS_URI=wss://squid.subsquid.io/reef-explorer/graphql --build-arg GQL_HTTP_URI=http://localhost:4350/graphql --build-arg NODE_WS=wss://rpc.reefscan.com/ws --build-arg VERIFICATOR_API=http://localhost:8000/api/verificator/submit-verification
+	ARGS=--build-arg GQL_WS_URI=wss://squid.subsquid.io/reef-explorer/graphql --build-arg GQL_HTTP_URI=http://squid.subsquid.io/reef-explorer/graphql --build-arg NODE_WS=wss://rpc.reefscan.com/ws --build-arg VERIFICATOR_API=http://localhost:8000/api/verificator/submit-verification
 #	ARGS=$$(cat .env.mainnet | while read line; do out+="--build-arg $$line"; done; echo "$$out"; out="")
 
 else
