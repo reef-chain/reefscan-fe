@@ -1,4 +1,3 @@
-
 # Build Stage 1
 # This build created a staging docker image
 #
@@ -7,7 +6,6 @@ ARG GQL_WS_URI
 ARG GQL_HTTP_URI
 ARG NODE_WS
 ARG VERIFICATOR_API
-ARG VERIFICATOR_API1
 WORKDIR /usr/src/app
 COPY ./ ./
 RUN sed -i -r "s~&GQL_WS_URI~$GQL_WS_URI~g" ./frontend.config.js
@@ -15,8 +13,8 @@ RUN sed -i -r "s~&GQL_HTTP_URI~$GQL_HTTP_URI~g" ./frontend.config.js
 RUN sed -i -r "s~&NODE_WS~$NODE_WS~g" ./frontend.config.js
 RUN sed -i -r "s~&VERIFICATOR_API~$VERIFICATOR_API~g" ./frontend.config.js
 #RUN cat ./frontend.config.js
-RUN yarn install
-RUN yarn build
+#RUN yarn install
+#RUN yarn build
 
 # Build Stage 2
 # This creates static production server
