@@ -6,7 +6,7 @@
           <div class="col-lg-6">
             <ul class="list-inline">
               <li class="list-inline-item">
-                <nuxt-link to="/verifyContract">Verify Contract</nuxt-link>
+                <!--                <nuxt-link to="/verifyContract">Verify Contract</nuxt-link>-->
               </li>
             </ul>
           </div>
