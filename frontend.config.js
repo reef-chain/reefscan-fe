@@ -1,6 +1,6 @@
 export const network = {
-  id: 'reef-testnet',
-  name: 'Testnet',
+  id: '&NETWORK_ID',
+  name: '&NETWORK_LABEL',
   tokenSymbol: 'REEF',
   tokenDecimals: 18,
   ss58Format: 42,
@@ -12,4 +12,6 @@ export const network = {
   googleAnalytics: '',
   theme: '@/assets/scss/themes/reef.scss',
 }
+console.log('network config=', network)
+
 export const paginationOptions = [10, 20, 50, 100]

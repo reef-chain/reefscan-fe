@@ -46,7 +46,6 @@
     "cbor": "^8.0.2",
     "cookie-universal-nuxt": "^2.1.4",
     "core-js": "^3.8.2",
-    "dotenv": "^16.0.3",
     "ethereum-blockies-base64": "^1.0.2",
     "graphql-ws": "^5.11.2",
     "ipfs-only-hash": "^4.0.0",

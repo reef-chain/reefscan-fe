@@ -1,26 +1,44 @@
-
 # Build Stage 1
 # This build created a staging docker image
 #
 FROM node:fermium AS appbuild
-ARG GQL_WS_URI
-ARG GQL_HTTP_URI
-ARG NODE_WS
-ARG VERIFICATOR_API
-ARG VERIFICATOR_API1
+
 WORKDIR /usr/src/app
 COPY ./ ./
-RUN sed -i -r "s~&GQL_WS_URI~$GQL_WS_URI~g" ./frontend.config.js
-RUN sed -i -r "s~&GQL_HTTP_URI~$GQL_HTTP_URI~g" ./frontend.config.js
-RUN sed -i -r "s~&NODE_WS~$NODE_WS~g" ./frontend.config.js
-RUN sed -i -r "s~&VERIFICATOR_API~$VERIFICATOR_API~g" ./frontend.config.js
-#RUN cat ./frontend.config.js
+#RUN sed -i -r "s~&GQL_WS_URI~$GQL_WS_URI~g" ./frontend.config.js
+#RUN sed -i -r "s~&GQL_HTTP_URI~$GQL_HTTP_URI~g" ./frontend.config.js
+#RUN sed -i -r "s~&NODE_WS~$NODE_WS~g" ./frontend.config.js
+#RUN sed -i -r "s~&VERIFICATOR_API~$VERIFICATOR_API~g" ./frontend.config.js
 RUN yarn install
 RUN yarn build
 
 # Build Stage 2
 # This creates static production server
 #
-FROM nginx
+FROM nginx:alpine
 
+ARG GQL_WS_URI
+ARG GQL_HTTP_URI
+ARG NODE_WS
+ARG VERIFICATOR_API
+ARG NETWORK_ID
+ARG NETWORK_LABEL
+
+ENV GQL_WS_URI=$GQL_WS_URI
+ENV GQL_HTTP_URI=$GQL_HTTP_URI
+ENV NODE_WS=$NODE_WS
+ENV VERIFICATOR_API=$VERIFICATOR_API
+ENV NETWORK_ID=$NETWORK_ID
+ENV NETWORK_LABEL=$NETWORK_LABEL
+
+EXPOSE 443
+EXPOSE 80
+
+RUN apk update
+RUN apk upgrade
+RUN apk add bash
 COPY --from=appbuild /usr/src/app/dist /usr/share/nginx/html
+#COPY --from=appbuild /usr/src/app/test /usr/share/nginx/html/test
+COPY ["replaceInDir.sh", "/docker-entrypoint.d/replaceInDir.sh"]
+RUN chmod +x /docker-entrypoint.d/replaceInDir.sh
+#USER nginx
