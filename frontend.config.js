@@ -1,6 +1,6 @@
 export const network = {
-  id: 'reef-testnet',
-  name: 'Testnet',
+  id: '&NETWORK_ID',
+  name: '&NETWORK_LABEL',
   tokenSymbol: 'REEF',
   tokenDecimals: 18,
   ss58Format: 42,
