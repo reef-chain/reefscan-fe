@@ -1,8 +1,8 @@
 
 ifeq ($(net), testnet)
-	ARGS=--build-arg GQL_WS_URI=ws://localhost:4350/graphql\
-	--build-arg GQL_HTTP_URI=http://localhost:4350/graphql\
-	--build-arg NODE_WS=wss://rpc.reefscan.com/ws\
+	ARGS=--build-arg GQL_WS_URI=ws://squid.subsquid.io/reef-explorer-testnet/v/v1/graphql\
+	--build-arg GQL_HTTP_URI=http://squid.subsquid.io/reef-explorer-testnet/v/v1/graphql\
+	--build-arg NODE_WS=wss://rpc-testnet.reefscan.com/ws\
 	--build-arg VERIFICATOR_API=http://localhost:8000/api/verificator/submit-verification\
 	--build-arg NETWORK_ID=reef-testnet\
 	--build-arg NETWORK_LABEL=Testnet
