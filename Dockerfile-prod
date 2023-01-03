@@ -5,10 +5,6 @@ FROM node:fermium AS appbuild
 
 WORKDIR /usr/src/app
 COPY ./ ./
-#RUN sed -i -r "s~&GQL_WS_URI~$GQL_WS_URI~g" ./frontend.config.js
-#RUN sed -i -r "s~&GQL_HTTP_URI~$GQL_HTTP_URI~g" ./frontend.config.js
-#RUN sed -i -r "s~&NODE_WS~$NODE_WS~g" ./frontend.config.js
-#RUN sed -i -r "s~&VERIFICATOR_API~$VERIFICATOR_API~g" ./frontend.config.js
 RUN yarn install
 RUN yarn build
 
@@ -38,7 +34,5 @@ RUN apk update
 RUN apk upgrade
 RUN apk add bash
 COPY --from=appbuild /usr/src/app/dist /usr/share/nginx/html
-#COPY --from=appbuild /usr/src/app/test /usr/share/nginx/html/test
 COPY ["replaceInDir.sh", "/docker-entrypoint.d/replaceInDir.sh"]
 RUN chmod +x /docker-entrypoint.d/replaceInDir.sh
-#USER nginx
