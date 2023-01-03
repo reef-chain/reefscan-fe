@@ -23,17 +23,8 @@ endif
 build:
 	docker build -t reefscan-fe-$(net)-$(env) -f Dockerfile-${env} --no-cache $(ARGS) .
 
-# execute:
-# 	export $$(cat .env.$(net) | xargs) && docker-compose -p reef-explorer-$(net)-$(env) -f $(COMPOSE-MANIFEST) $(cmd) $(services)
-#
-# down:
-# 	export $$(cat .env.$(net) | xargs) && docker-compose -p reef-explorer-$(net)-$(env) -f $(COMPOSE-MANIFEST) down
-#
-# populate:
-# 	export $$(cat .env | xargs) && docker-compose -f resources/docker-compose-populate.yml run --rm populate
-#
-# purge:
-# 	$(foreach volume,$(VOLUMES),docker volume rm reef-explorer-$(net)-$(env)_$(volume);)
-#
-# hasura:
-# 	export $$(cat .env | xargs) && cd db/hasura && hasura console --admin-secret $$GQL_ADMIN_PW
+tag:
+	docker tag reefscan-fe-mainnet-prod us-central1-docker.pkg.dev/reef-chain/reef-dck/reefscan-fe
+
+push:
+	docker push us-central1-docker.pkg.dev/reef-chain/reef-dck/reefscan-fe
