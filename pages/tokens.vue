@@ -137,7 +137,7 @@ export default {
               offset: $offset
               where: {
                 type: { _neq: "other" }
-                address: $contractAddress
+                id: $contractAddress
                 contract: { extrinsic: $blockHeight }
               }
               order_by: { contract: { extrinsic: { block_id: desc } } }

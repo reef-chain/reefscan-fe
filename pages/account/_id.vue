@@ -9,7 +9,7 @@
           v-else-if="
             !parsedAccount || (parsedAccount && !parsedAccount.identity)
           "
-          text="Account not valid"
+          text="Accounts not valid"
         />
         <Card
           v-else-if="parsedAccount && parsedAccount.identity"
@@ -260,10 +260,10 @@ export default {
           subscription account($address: String!) {
             accounts(
               where: {
-                OR: [
-                  { evmAddress_containsInsensitive: $address }
-                  { id_containsInsensitive: $address }
-                ]
+                OR: {
+                  id_containsInsensitive: $address
+                  OR: { evmAddress_containsInsensitive: $address }
+                }
               }
             ) {
               id
@@ -290,6 +290,8 @@ export default {
           }
         },
         result({ data }) {
+          // logging the data in console ...TODO make changes in the frontend
+          console.log(data)
           if (data && data.accounts && data.accounts.length > 0) {
             this.parsedAccount = data.accounts[0]
             this.parsedAccount = {

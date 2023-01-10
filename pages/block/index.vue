@@ -58,7 +58,7 @@ export default {
       block: {
         query: gql`
           subscription blocks($id: Int!) {
-            blocks(where: { height_eq: $id }) {
+            blocks(where: { height_eq: $id }, limit: 1) {
               finalized
               hash
               height
@@ -86,7 +86,7 @@ export default {
       event: {
         query: gql`
           subscription event($block_height: Int!) {
-            events(where: { block: { height_eq: $block_height } }) {
+            events(where: { block: { height_eq: $block_height } }, limit: 1) {
               data
               block {
                 height
@@ -114,7 +114,10 @@ export default {
       extrinsic: {
         query: gql`
           subscription extrinsic($block_height: Int!) {
-            extrinsics(where: { block: { height_eq: $block_height } }) {
+            extrinsics(
+              where: { block: { height_eq: $block_height } }
+              limit: 10
+            ) {
               id
               block {
                 height
