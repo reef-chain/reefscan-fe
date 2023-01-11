@@ -273,7 +273,7 @@
   </div>
 </template>
 <script>
-import { gql } from 'graphql-tag'
+// import { gql } from 'graphql-tag'
 import VueJsonPretty from 'vue-json-pretty'
 import { ethers, Contract } from 'ethers'
 // import cbor from 'cbor'
@@ -448,25 +448,27 @@ export default {
         //     }
         //   }
         // `,
-        query: gql`
-          subscription contracts($address: String!) {
-            contracts(where: { id_containsInsensitive: $address }) {
-              id
-              extrinsic {
-                block {
-                  height
-                }
-              }
-              timestamp
-              bytecode
-              bytecodeContext
-              bytecodeArguments
-              signer {
-                id
-              }
-            }
-          }
-        `,
+
+        // ClickUp Task /contract/0xd4112Be340b43Fbb700C31C625c1Ae92C60599d4  -  success value missing - comment out for now
+        // query: gql`
+        //   subscription contracts($address: String!) {
+        //     contracts(where: { id_containsInsensitive: $address }) {
+        //       id
+        //       extrinsic {
+        //         block {
+        //           height
+        //         }
+        //       }
+        //       timestamp
+        //       bytecode
+        //       bytecodeContext
+        //       bytecodeArguments
+        //       signer {
+        //         id
+        //       }
+        //     }
+        //   }
+        // `,
         variables() {
           return {
             address: this.address,

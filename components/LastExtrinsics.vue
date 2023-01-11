@@ -44,7 +44,7 @@ export default {
       extrinsics: {
         query: gql`
           subscription extrinsics {
-            extrinsics(orderBy: block_height_DESC, where: {}, limit: 10) {
+            extrinsics(orderBy: block_height_DESC, limit: 10) {
               id
               block {
                 height
@@ -55,10 +55,26 @@ export default {
               section
               method
               hash
-              docs
             }
           }
         `,
+        // query: gql`
+        //   subscription extrinsics {
+        //     extrinsics(orderBy: block_height_DESC, where: {}, limit: 10) {
+        //       id
+        //       block {
+        //         height
+        //       }
+        //       index
+        //       type
+        //       signer
+        //       section
+        //       method
+        //       hash
+        //       docs
+        //     }
+        //   }
+        // `,
         result({ data }) {
           this.extrinsics = data.extrinsics.map((item) => {
             return {
