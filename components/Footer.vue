@@ -7,6 +7,7 @@
             <ul class="list-inline">
               <li class="list-inline-item">
                 <!--                <nuxt-link to="/verifyContract">Verify Contract</nuxt-link>-->
+                <p>subsquid.io beta 0.0.1</p>
               </li>
             </ul>
           </div>
