@@ -49,7 +49,7 @@ export default {
     transfers: {
       query: gql`
         query transfers($hash: String!) {
-          transfers(where: { extrinsic: { hash_eq: $hash } }) {
+          transfers(where: { extrinsic: { hash_eq: $hash } }, limit: 1) {
             amount
             denom
             block {
@@ -70,7 +70,7 @@ export default {
               index
               errorMessage
               status
-              events(where: { method_eq: "Transfer" }) {
+              events(where: { method_eq: "Transfer" }, limit: 50) {
                 data
                 extrinsic {
                   id
@@ -79,6 +79,7 @@ export default {
             }
             token {
               id
+              contractData
             }
             feeAmount
           }
@@ -126,18 +127,11 @@ export default {
           }
 
           // TODO: update when we have token data in the contract table
-          this.token_address = this.transfer.token.id
-          if (
-            this.transfer.token &&
-            this.transfer.token.verified_contract &&
-            this.transfer.token.verified_contract.contract_data
-          ) {
-            this.transfer.tokenName =
-              this.transfer.token.verified_contract.contract_data.name
-            this.transfer.symbol =
-              this.transfer.token.verified_contract.contract_data.symbol
-            this.transfer.decimals =
-              this.transfer.token.verified_contract.contract_data.decimals
+          this.transfer.token_address = this.transfer.token.id
+          if (this.transfer.token && this.transfer.token.contractData) {
+            this.transfer.tokenName = this.transfer.token.contractData.name
+            this.transfer.symbol = this.transfer.token.contractData.symbol
+            this.transfer.decimals = this.transfer.token.contractData.decimals
           }
         }
         this.loading = false
