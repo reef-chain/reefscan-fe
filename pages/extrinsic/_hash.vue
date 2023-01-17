@@ -49,7 +49,7 @@ export default {
     extrinsics: {
       query: gql`
         query extrinsics($hash: String!) {
-          extrinsics(where: { hash_eq: $hash }) {
+          extrinsics(where: { hash_eq: $hash }, limit: 1) {
             id
             block {
               height

@@ -55,6 +55,7 @@ export default {
         query extrinsics($block_height: Int!, $index: Int!) {
           extrinsics(
             where: { block: { height_eq: $block_height }, index_eq: $index }
+            limit: 1
           ) {
             id
             block {

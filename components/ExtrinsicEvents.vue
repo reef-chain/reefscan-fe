@@ -65,6 +65,7 @@ export default {
                   block: { height_eq: $block_height }
                 }
               }
+              limit: 50
             ) {
               extrinsic {
                 id
