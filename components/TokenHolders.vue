@@ -106,18 +106,38 @@ export default {
   apollo: {
     $subscribe: {
       transfer: {
+        // query: gql`
+        //   subscription token_holder($tokenId: String!) {
+        //     token_holder(
+        //       order_by: { token_address: desc }
+        //       where: { token_address: { _eq: $tokenId } }
+        //     ) {
+        //       token_address
+        //       signer
+        //       balance
+        //       account {
+        //         address
+        //         evm_address
+        //       }
+        //     }
+        //   }
+        // `,
         query: gql`
           subscription token_holder($tokenId: String!) {
-            token_holder(
-              order_by: { token_address: desc }
-              where: { token_address: { _eq: $tokenId } }
+            tokenHolders(
+              limit: 120
+              orderBy: token_id_DESC
+              where: { token: { id_eq: $tokenId } }
             ) {
-              token_address
-              signer
+              id
+              signer {
+                id
+                evmAddress
+              }
               balance
-              account {
-                address
-                evm_address
+              evmAddress
+              token {
+                id
               }
             }
           }
@@ -131,8 +151,17 @@ export default {
           return !this.tokenId
         },
         result({ data }) {
-          this.holders =
-            data.token_holder.filter((item) => !!item.account) || []
+          this.holders = data.tokenHolders.map((holder) => {
+            return {
+              ...holder,
+              token_address: holder.token.id,
+              balance: holder.balance,
+              account: {
+                address: holder.signer.id,
+                evm_address: holder.signer.evmAddress,
+              },
+            }
+          })
           this.totalRows = this.holders.length
           this.loading = false
         },

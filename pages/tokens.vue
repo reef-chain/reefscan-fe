@@ -228,7 +228,7 @@ export default {
                   },
                   token_holders_aggregate: {
                     aggregate: {
-                      count: 0,
+                      count: 0, // TODO: token holder amount won't work because aggregates don't exist the way they did
                     },
                   },
                 },
