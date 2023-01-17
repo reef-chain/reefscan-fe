@@ -125,57 +125,116 @@ export default {
   apollo: {
     $subscribe: {
       tokens: {
+        // query: gql`
+        //   subscription contract(
+        //     $blockHeight: extrinsic_bool_exp
+        //     $contractAddress: String_comparison_exp
+        //     $perPage: Int!
+        //     $offset: Int!
+        //   ) {
+        //     verified_contract(
+        //       limit: $perPage
+        //       offset: $offset
+        //       where: {
+        //         type: { _neq: "other" }
+        //         id: $contractAddress
+        //         contract: { extrinsic: $blockHeight }
+        //       }
+        //       order_by: { contract: { extrinsic: { block_id: desc } } }
+        //     ) {
+        //       address
+        //       contract_data
+        //       name
+        //       contract {
+        //         timestamp
+        //         token_holders_aggregate(where: { balance: { _gt: "0" } }) {
+        //           aggregate {
+        //             count(distinct: true)
+        //           }
+        //         }
+        //         extrinsic {
+        //           hash
+        //           block_id
+        //         }
+        //         signer
+        //       }
+        //     }
+        //   }
+        // `,
         query: gql`
-          subscription contract(
-            $blockHeight: extrinsic_bool_exp
-            $contractAddress: String_comparison_exp
-            $perPage: Int!
-            $offset: Int!
+          subscription tokens(
+            $offset: Int = 0
+            $perPage: Int = 10
+            $where: VerifiedContractWhereInput = {}
           ) {
-            verified_contract(
+            verifiedContracts(
               limit: $perPage
+              orderBy: contract_timestamp_DESC
               offset: $offset
-              where: {
-                type: { _neq: "other" }
-                id: $contractAddress
-                contract: { extrinsic: $blockHeight }
-              }
-              order_by: { contract: { extrinsic: { block_id: desc } } }
+              where: $where
             ) {
-              address
-              contract_data
+              id
+              contractData
               name
               contract {
                 timestamp
-                token_holders_aggregate(where: { balance: { _gt: "0" } }) {
-                  aggregate {
-                    count(distinct: true)
-                  }
-                }
                 extrinsic {
                   hash
-                  block_id
+                  block {
+                    height
+                  }
                 }
-                signer
+                signer {
+                  id
+                }
               }
             }
           }
         `,
         variables() {
+          const where = {
+            type_not_eq: 'other',
+          }
+          if (this.isContractId(this.filter))
+            where.id_containsInsensitive = this.toContractAddress(this.filter)
+
           return {
-            blockHeight: this.isBlockNumber(this.filter)
-              ? { block_id: { _eq: parseInt(this.filter) } }
-              : {},
-            contractAddress: this.isContractId(this.filter)
-              ? { _ilike: this.toContractAddress(this.filter) }
-              : {},
             perPage: this.perPage,
             offset: (this.currentPage - 1) * this.perPage,
+            where,
           }
+          // return {
+          //   blockHeight: this.isBlockNumber(this.filter)
+          //     ? { block_id: { _eq: parseInt(this.filter) } }
+          //     : {},
+          //   contractAddress: this.isContractId(this.filter)
+          //     ? { _ilike: this.toContractAddress(this.filter) }
+          //     : {},
+          //   perPage: this.perPage,
+          //   offset: (this.currentPage - 1) * this.perPage,
+          // }
         },
         result({ data }) {
-          if (data && data.verified_contract) {
-            this.tokens = data.verified_contract
+          if (data && data.verifiedContracts) {
+            this.tokens = data.verifiedContracts.map((token) => {
+              return {
+                ...token,
+                address: token.id,
+                contract: {
+                  ...token.contract,
+                  extrinsic: {
+                    ...token.contract.extrinsic,
+                    block_id: token.contract.extrinsic.block.height,
+                  },
+                  token_holders_aggregate: {
+                    aggregate: {
+                      count: 0,
+                    },
+                  },
+                },
+                contract_data: token.contractData,
+              }
+            })
             this.totalRows = this.filter ? this.tokens.length : this.nTokens
           }
           this.loading = false
@@ -184,15 +243,16 @@ export default {
       totaltokens: {
         query: gql`
           query contract_aggregate {
-            verified_contract_aggregate(where: { type: { _neq: "other" } }) {
-              aggregate {
-                count
-              }
+            verifiedContractsConnection(
+              orderBy: id_ASC
+              where: { type_not_eq: other }
+            ) {
+              totalCount
             }
           }
         `,
         result({ data }) {
-          this.nTokens = data.verified_contract_aggregate.aggregate.count
+          this.nTokens = data.verifiedContractsConnection.totalCount
           this.totalRows = this.nTokens
         },
       },
