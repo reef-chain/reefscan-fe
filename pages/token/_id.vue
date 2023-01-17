@@ -14,7 +14,7 @@
 
           <Headline>
             <img
-              v-if="contract.verified_contract.contract_data.icon_url"
+              v-if="contract.verified_contract.contractData.icon_url"
               :src="contract.verified_contract.token_icon_url"
               style="width: 32px; height: 32px"
             />
@@ -60,8 +60,8 @@
               <Cell>{{ $t('details.token.token_name') }}</Cell>
               <Cell>{{
                 contract.verified_contract &&
-                contract.verified_contract.contract_data
-                  ? contract.verified_contract.contract_data.name
+                contract.verified_contract.contractData
+                  ? contract.verified_contract.contractData.name
                   : ''
               }}</Cell>
             </Row>
@@ -69,8 +69,8 @@
             <Row>
               <Cell>{{ $t('details.token.token_symbol') }}</Cell>
               <Cell>{{
-                contract.verified_contract.contract_data
-                  ? contract.verified_contract.contract_data.symbol
+                contract.verified_contract.contractData
+                  ? contract.verified_contract.contractData.symbol
                   : ''
               }}</Cell>
             </Row>
@@ -78,8 +78,8 @@
             <Row>
               <Cell>{{ $t('details.token.token_decimals') }}</Cell>
               <Cell>{{
-                contract.verified_contract.contract_data
-                  ? contract.verified_contract.contract_data.decimals
+                contract.verified_contract.contractData
+                  ? contract.verified_contract.contractData.decimals
                   : ''
               }}</Cell>
             </Row>
@@ -198,7 +198,7 @@ export default {
       }
     },
     tokenData() {
-      const data = this.contract?.verified_contract?.contract_data || {}
+      const data = this.contract?.verified_contract?.contractData || {}
 
       return {
         ...data,
@@ -233,29 +233,62 @@ export default {
             count(columns: holder_account_id)
           }
         } */
+        // query: gql`
+        //   subscription contract($address: String!) {
+        //     contract(where: { address: { _ilike: $address } }) {
+        //       address
+        //       bytecode
+        //       extrinsic {
+        //         signer
+        //         block_id
+        //       }
+        //       verified_contract {
+        //         address
+        //         name
+        //         args
+        //         source
+        //         compiler_version
+        //         compiled_data
+        //         contract_data
+        //         optimization
+        //         runs
+        //         target
+        //         type
+        //       }
+        //       timestamp
+        //     }
+        //   }
+        // `,
         query: gql`
-          subscription contract($address: String!) {
-            contract(where: { address: { _ilike: $address } }) {
-              address
-              bytecode
-              extrinsic {
-                signer
-                block_id
+          subscription contract($address: String = "") {
+            verifiedContracts(
+              limit: 1
+              where: { id_containsInsensitive: $address }
+            ) {
+              id
+              contractData
+              name
+              contract {
+                extrinsic {
+                  block {
+                    height
+                  }
+                  signer
+                }
+                signer {
+                  id
+                }
+                bytecode
+                timestamp
               }
-              verified_contract {
-                address
-                name
-                args
-                source
-                compiler_version
-                compiled_data
-                contract_data
-                optimization
-                runs
-                target
-                type
-              }
-              timestamp
+              type
+              target
+              runs
+              optimization
+              source
+              args
+              compiledData
+              compilerVersion
             }
           }
         `,
@@ -265,25 +298,28 @@ export default {
           }
         },
         result({ data }) {
-          if (data.contract[0] && data.contract[0].verified_contract) {
-            const name = data.contract[0].verified_contract.name
+          if (data.verifiedContracts[0]) {
+            const name = data.verifiedContracts[0].name
 
-            this.contractType = data.contract[0].verified_contract.type.replace(
+            this.contractType = data.verifiedContracts[0].type.replace(
               'ERC',
               'ERC-'
             )
-            this.contractName = data.contract[0].verified_contract.name
+            this.contractName = data.verifiedContracts[0].name
 
-            this.contract = data.contract[0]
+            this.contract = data.verifiedContracts[0].contract
+            this.contract.extrinsic.block_id =
+              this.contract.extrinsic.block.height
+            this.contract.verified_contract = data.verifiedContracts[0]
             this.contract.abi =
-              data.contract[0].verified_contract &&
-              data.contract[0].verified_contract.compiled_data &&
-              data.contract[0].verified_contract.compiled_data[name]
-                ? data.contract[0].verified_contract.compiled_data[name]
+              data.verifiedContracts[0] &&
+              data.verifiedContracts[0].compiledData &&
+              data.verifiedContracts[0].compiledData[name]
+                ? data.verifiedContracts[0].compiledData[name]
                 : []
 
             this.contract.source = Object.keys(
-              data.contract[0].verified_contract.source
+              data.verifiedContracts[0].source
             ).reduce(this.sourceCode(data), [])
           }
           this.loading = false

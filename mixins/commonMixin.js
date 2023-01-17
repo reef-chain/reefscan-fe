@@ -318,7 +318,7 @@ export default {
     sourceCode(data) {
       return (acc, current) => [
         ...acc,
-        `\n// filename: ${current}\n---------------------------\n${data.contract[0].verified_contract.source[current]}`,
+        `\n// filename: ${current}\n---------------------------\n${data.verifiedContracts[0].source[current]}`,
       ]
     },
   },
