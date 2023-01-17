@@ -136,23 +136,52 @@ export default {
   apollo: {
     $subscribe: {
       transfer: {
+        // query: gql`
+        //   subscription transfer($tokenId: String!) {
+        //     transfer(
+        //       order_by: { timestamp: desc }
+        //       where: { token_address: { _eq: $tokenId } }
+        //     ) {
+        //       extrinsic {
+        //         hash
+        //         block_id
+        //         index
+        //         signer
+        //         status
+        //       }
+        //       to_address
+        //       from_address
+        //       to_evm_address
+        //       from_evm_address
+        //       amount
+        //       timestamp
+        //     }
+        //   }
+        // `,
         query: gql`
           subscription transfer($tokenId: String!) {
-            transfer(
-              order_by: { timestamp: desc }
-              where: { token_address: { _eq: $tokenId } }
+            transfers(
+              orderBy: timestamp_DESC
+              where: { token: { id_eq: $tokenId } }
+              limit: 60
             ) {
               extrinsic {
                 hash
-                block_id
+                block {
+                  height
+                }
                 index
                 signer
                 status
               }
-              to_address
-              from_address
-              to_evm_address
-              from_evm_address
+              to {
+                id
+                evmAddress
+              }
+              from {
+                id
+                evmAddress
+              }
               amount
               timestamp
             }
@@ -167,7 +196,19 @@ export default {
           return !this.tokenId
         },
         result({ data }) {
-          this.transfers = data.transfer
+          this.transfers = data.transfers.map((transfer) => {
+            return {
+              ...transfer,
+              to_address: transfer.to.id,
+              from_address: transfer.from.id,
+              to_evm_address: transfer.to.evmAddress,
+              from_evm_address: transfer.from.evmAddress,
+              extrinsic: {
+                ...transfer.extrinsic,
+                block_id: transfer.extrinsic.block.height,
+              },
+            }
+          })
           this.totalRows = this.transfers.length
           this.loading = false
         },
