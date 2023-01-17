@@ -229,6 +229,7 @@ export default {
         //     }
         //   }
         // `,
+        // TODO: can only grab the last 40 transfers
         query: gql`
           subscription transfers($accountId: String!) {
             transfers(
@@ -239,6 +240,7 @@ export default {
                   { from: { id_eq: $accountId } }
                 ]
               }
+              limit: 40
             ) {
               block {
                 height

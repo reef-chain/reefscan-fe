@@ -214,7 +214,7 @@ import Loading from '@/components/Loading.vue'
 import commonMixin from '@/mixins/commonMixin.js'
 import { network } from '@/frontend.config.js'
 // import Activity from '@/components/Activity.vue'
-// import AccountTransfers from '@/components/AccountTransfers.vue'
+import AccountTransfers from '@/components/AccountTransfers.vue'
 // import StakingRewards from '@/components/StakingRewards.vue'
 // import StakingSlashes from '@/components/StakingSlashes.vue'
 // import AccountTokenBalances from '@/components/AccountTokenBalances.vue'
@@ -224,7 +224,7 @@ export default {
     ReefIdenticon,
     Loading,
     // Activity,
-    // AccountTransfers,
+    AccountTransfers,
     // StakingRewards,
     // StakingSlashes,
     // AccountTokenBalances,
@@ -265,6 +265,7 @@ export default {
                   OR: { evmAddress_containsInsensitive: $address }
                 }
               }
+              limit: 1
             ) {
               id
               freeBalance
@@ -304,6 +305,7 @@ export default {
               vested_balance: this.parsedAccount.vestedBalance,
               voting_balance: this.parsedAccount.votingBalance,
               block_id: this.parsedAccount.block.height,
+              identity: '{}',
             }
           } else if (this.accountId.length === 42) {
             this.$router.push({
