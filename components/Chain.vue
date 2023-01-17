@@ -127,7 +127,7 @@ export default {
       chainInfo: {
         query: gql`
           subscription chain_info {
-            chainInfos {
+            chainInfos(limit: 10) {
               id
               count
             }
