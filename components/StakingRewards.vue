@@ -136,6 +136,7 @@ export default {
             stakings(
               orderBy: id_DESC
               where: { signer: { id_eq: $accountId } }
+              limit: 50
             ) {
               id
               amount

@@ -133,15 +133,16 @@ export default {
             tokenHolders(
               orderBy: balance_DESC
               where: { signer: { id_eq: $accountId } }
+              limit: 50
             ) {
               signer {
                 id
                 evmAddress
               }
               balance
-              info
               token {
                 id
+                contractData
               }
             }
           }
@@ -162,9 +163,9 @@ export default {
             balance: balance.balance.toLocaleString('fullwide', {
               useGrouping: false,
             }),
-            token_name: balance.info.name,
-            token_symbol: balance.info.symbol,
-            token_decimals: balance.info.decimals,
+            token_name: balance.token.contractData?.name,
+            token_symbol: balance.token.contractData?.symbol,
+            token_decimals: balance.token.contractData?.decimals,
           }))
           this.totalRows = this.balances.length
           this.loading = false

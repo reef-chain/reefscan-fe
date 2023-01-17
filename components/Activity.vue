@@ -152,6 +152,7 @@ export default {
             extrinsics(
               orderBy: block_height_DESC
               where: { signer_eq: $signer }
+              limit: 50
             ) {
               id
               block {
