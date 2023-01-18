@@ -12,34 +12,25 @@
           </div>
 
           <Headline>{{
-            contract.verified_contract
-              ? contract.verified_contract.name
-              : '' || shortHash(address)
+            verified ? verified.name : '' || shortHash(address)
           }}</Headline>
 
           <h4 class="text-center mb-4">
             <p class="mt-3">
               <b-badge
-                v-if="
-                  contract.verified_contract &&
-                  contract.verified_contract.type !== 'other'
-                "
+                v-if="verified && verified.type !== 'other'"
                 :to="`/token/${contract.address}`"
                 class="ml-2"
                 variant="info"
               >
-                {{ contract.verified_contract.type.replace('ERC', 'ERC-') }}
+                {{ verified.type.replace('ERC', 'ERC-') }}
               </b-badge>
-              <b-badge
-                v-if="contract.verified_contract"
-                class="ml-2"
-                variant="success"
-              >
+              <b-badge v-if="verified" class="ml-2" variant="success">
                 Verified source
                 <font-awesome-icon icon="check" />
               </b-badge>
             </p>
-            <div v-if="!contract.verified_contract" class="unverified-section">
+            <div v-if="!verified" class="unverified-section">
               <div class="unverified-badge">
                 <div class="unverified-badge__content">
                   <div class="unverified-badge__text">
@@ -75,10 +66,8 @@
               <Cell>{{ $t('details.contract.verified') }}</Cell>
               <Cell>
                 <font-awesome-icon
-                  :icon="contract.verified_contract ? 'check' : 'times'"
-                  :class="
-                    contract.verified_contract ? 'text-success' : 'text-danger'
-                  "
+                  :icon="verified ? 'check' : 'times'"
+                  :class="verified ? 'text-success' : 'text-danger'"
                 />
               </Cell>
             </Row>
@@ -193,35 +182,31 @@
           <!-- Developer -->
 
           <Data v-if="tab === 'developer'">
-            <Row v-if="contract.verified_contract">
+            <Row v-if="verified">
               <Cell>{{ $t('details.contract.compiler_version') }}</Cell>
-              <Cell>{{ contract.verified_contract.compiler_version }}</Cell>
+              <Cell>{{ verified.compiler_version }}</Cell>
             </Row>
 
-            <Row v-if="contract.verified_contract">
+            <Row v-if="verified">
               <Cell>{{ $t('details.contract.optimization') }}</Cell>
               <Cell>
                 <font-awesome-icon
-                  :icon="
-                    contract.verified_contract.optimization ? 'check' : 'times'
-                  "
+                  :icon="verified.optimization ? 'check' : 'times'"
                   :class="
-                    contract.verified_contract.optimization
-                      ? 'text-success'
-                      : 'text-danger'
+                    verified.optimization ? 'text-success' : 'text-danger'
                   "
                 />
               </Cell>
             </Row>
 
-            <Row v-if="contract.verified_contract">
+            <Row v-if="verified">
               <Cell>{{ $t('details.contract.runs') }}</Cell>
-              <Cell>{{ contract.verified_contract.runs }}</Cell>
+              <Cell>{{ verified.runs }}</Cell>
             </Row>
 
-            <Row v-if="contract.verified_contract">
+            <Row v-if="verified">
               <Cell>{{ $t('details.contract.target') }}</Cell>
-              <Cell>{{ contract.verified_contract.target }}</Cell>
+              <Cell>{{ verified.target }}</Cell>
             </Row>
 
             <Row>
@@ -249,18 +234,15 @@
           <ContractExecute
             v-if="tab === 'execute'"
             :contract-id="address"
-            :contract-name="contract.verified_contract.name"
-            :contract-abi="contract.abi"
+            :contract-name="verified.name"
+            :contract-abi="verified.abi"
           />
 
           <!-- Verified Source -->
-          <FileExplorer
-            v-if="tab === 'source'"
-            :data="contract.verified_contract.source"
-          />
+          <FileExplorer v-if="tab === 'source'" :data="verified.source" />
 
           <!-- ABI -->
-          <File v-if="tab === 'abi'" :data="contract.abi" />
+          <File v-if="tab === 'abi'" :data="verified.abi" />
 
           <!-- Transactions -->
           <ContractTransactions
@@ -273,7 +255,7 @@
   </div>
 </template>
 <script>
-// import { gql } from 'graphql-tag'
+import { gql } from 'graphql-tag'
 import VueJsonPretty from 'vue-json-pretty'
 import { ethers, Contract } from 'ethers'
 // import cbor from 'cbor'
@@ -310,13 +292,14 @@ export default {
       loading: true,
       address: this.toContractAddress(this.$route.params.id),
       contract: undefined,
+      verified: undefined,
       provider: undefined,
       tab: 'general',
     }
   },
   computed: {
     tabs() {
-      if (this.contract?.verified_contract) {
+      if (this.verified) {
         return {
           general: 'General',
           developer: 'Developer',
@@ -333,7 +316,7 @@ export default {
       }
     },
     tokenData() {
-      const data = this.contract?.verified_contract?.contract_data
+      const data = this.verified?.contractData
 
       if (!data) {
         return null
@@ -341,7 +324,7 @@ export default {
       const fullName =
         data.name && data.symbol
           ? `${data.name} (${data.symbol})`
-          : this.contract.verified_contract.name
+          : this.verified.name
 
       return {
         ...data,
@@ -351,13 +334,13 @@ export default {
     },
     decodedArguments() {
       if (
-        this.contract.abi &&
-        this.contract.abi.length > 0 &&
+        this.verified.abi &&
+        this.verified.abi.length > 0 &&
         this.contract.bytecode_arguments
       ) {
         try {
           // get constructor arguments types array
-          const constructor = this.contract.abi.find(
+          const constructor = this.verified.abi.find(
             ({ type }) => type === 'constructor'
           )
           if (!constructor) {
@@ -450,25 +433,25 @@ export default {
         // `,
 
         // ClickUp Task /contract/0xd4112Be340b43Fbb700C31C625c1Ae92C60599d4  -  success value missing - comment out for now
-        // query: gql`
-        //   subscription contracts($address: String!) {
-        //     contracts(where: { id_containsInsensitive: $address }) {
-        //       id
-        //       extrinsic {
-        //         block {
-        //           height
-        //         }
-        //       }
-        //       timestamp
-        //       bytecode
-        //       bytecodeContext
-        //       bytecodeArguments
-        //       signer {
-        //         id
-        //       }
-        //     }
-        //   }
-        // `,
+        query: gql`
+          subscription contracts($address: String!) {
+            contracts(where: { id_containsInsensitive: $address }, limit: 1) {
+              id
+              extrinsic {
+                block {
+                  height
+                }
+              }
+              timestamp
+              bytecode
+              bytecodeContext
+              bytecodeArguments
+              signer {
+                id
+              }
+            }
+          }
+        `,
         variables() {
           return {
             address: this.address,
@@ -522,6 +505,42 @@ export default {
           await provider.api.disconnect()
           this.balance = balance.toString()
           this.loading = false
+        },
+      },
+      verified: {
+        query: gql`
+          subscription verified_contract($address: String!) {
+            verifiedContracts(
+              where: { id_containsInsensitive: $address }
+              limit: 1
+            ) {
+              id
+              name
+              type
+              compilerVersion
+              compiledData
+              optimization
+              runs
+              target
+            }
+          }
+        `,
+        variables() {
+          return {
+            address: this.address,
+          }
+        },
+        result({ data }) {
+          if (data.verifiedContracts[0]) {
+            this.verified = data.verifiedContracts[0]
+            this.verified.compiler_version = this.verified.compilerVersion
+            this.verified.compiled_data = this.verified.compiledData
+            this.verified.abi =
+              this.verified.compiled_data &&
+              this.verified.compiled_data[this.verified.name]
+                ? this.verified.compiled_data[this.verified.name]
+                : []
+          }
         },
       },
     },
