@@ -5,7 +5,8 @@
       :placeholder="$t('pages.contracts.search_placeholder')"
       :label="`${$t('pages.contracts.title')} ${formatNumber(totalRows)}`"
     >
-      <template slot="bottom">
+      <!-- TODO: uncomment when verification api works -->
+      <!-- <template slot="bottom">
         <b-alert
           variant="info"
           class="contracts__alert text-center"
@@ -18,7 +19,7 @@
             <nuxt-link to="/verifyContract" class="alert-link">here</nuxt-link>.
           </p>
         </b-alert>
-      </template>
+      </template> -->
     </Search>
 
     <section>
@@ -174,6 +175,36 @@ export default {
           this.contracts = data.contracts
           this.totalRows = this.filter ? this.contracts.length : this.nContracts
           this.loading = false
+        },
+      },
+      verifiedContracts: {
+        query: gql`
+          subscription verifiedContracts($limit: Int!, $contracts: [String!]) {
+            verifiedContracts(limit: $limit, where: { id_in: $contracts }) {
+              id
+              name
+              type
+            }
+          }
+        `,
+        variables() {
+          const contracts = this.contracts.map((contract) => contract.address)
+          return {
+            limit: contracts.length,
+            contracts,
+          }
+        },
+        result({ data }) {
+          data.verifiedContracts.forEach((verifiedContract) => {
+            const contract = this.contracts.find(
+              (contract) => contract.address === verifiedContract.id
+            )
+            contract.verified_contract = verifiedContract
+          })
+          // TODO: this is probably hacky
+          if (data.verifiedContracts.length) {
+            this.$forceUpdate()
+          }
         },
       },
       totalContracts: {
