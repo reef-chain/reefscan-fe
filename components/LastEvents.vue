@@ -9,8 +9,10 @@
         Last Events
       </nuxt-link>
     </div>
-
-    <Table>
+    <div v-if="loading" class="text-center py-4">
+      <Loading />
+    </div>
+    <Table v-else>
       <THead>
         <Cell>Id</Cell>
         <Cell>Event</Cell>
@@ -32,11 +34,16 @@
 <script>
 import { gql } from 'graphql-tag'
 import commonMixin from '@/mixins/commonMixin.js'
+import Loading from '@/components/Loading.vue'
 
 export default {
+  components: {
+    Loading,
+  },
   mixins: [commonMixin],
   data: () => {
     return {
+      loading: true,
       events: [],
     }
   },
@@ -71,6 +78,7 @@ export default {
               },
             }
           })
+          this.loading = false
         },
       },
     },

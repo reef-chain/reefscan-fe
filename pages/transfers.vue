@@ -24,10 +24,13 @@
             </THead>
 
             <Row v-for="(item, index) in transfers" :key="index">
-              <Cell :link="`/transfer/${item.hash}`">{{
-                shortHash(item.hash)
-              }}</Cell>
-
+              <Cell
+                :link="`/transfer/${item.block_id}/${item.idx}/${item.index}`"
+                >{{ shortHash(item.hash) }}</Cell
+              >
+              <!-- <Cell :link="`/transfer/${item.hash}`">
+                {{ shortHash(item.hash) }}
+              </Cell> -->
               <Cell :link="`/extrinsic/${item.block_id}/${item.idx}`">
                 #{{ formatNumber(item.block_id) }}-{{ formatNumber(item.idx) }}
               </Cell>
@@ -176,6 +179,7 @@ export default {
                 status
                 errorMessage
               }
+              id
               amount
               timestamp
               denom
@@ -214,6 +218,7 @@ export default {
               hash: transfer.extrinsic.hash,
               idx: transfer.extrinsic.index,
               extrinsicId: transfer.extrinsic.id,
+              index: parseInt(transfer.id.split('-')[1]),
               block_id: transfer.extrinsic.block.height,
               to:
                 transfer.to.id === null

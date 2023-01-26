@@ -57,7 +57,7 @@ export default {
             where: {
               extrinsic: { index_eq: $index, block: { height_eq: $block } }
             }
-            limit: 10
+            limit: 1
           ) {
             amount
             denom
@@ -99,15 +99,13 @@ export default {
         return !this.blockHeight || !this.extrinsicIndex
       },
       variables() {
-        // return {
-        //   hash: this.hash,
-        // }
         return {
-          block: this.blockHeight,
-          index: this.extrinsicIndex,
+          block: parseInt(this.blockHeight),
+          index: parseInt(this.extrinsicIndex),
         }
       },
       result({ data }) {
+        console.log(data.transfers)
         if (data && data.transfers) {
           this.transfer = data.transfers.find(
             (transfer) => transfer.extrinsic.events[0].index === this.eventIndex

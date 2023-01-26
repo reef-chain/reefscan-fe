@@ -9,8 +9,10 @@
         Account Updates
       </nuxt-link>
     </div>
-
-    <Table>
+    <div v-if="loading" class="text-center py-4">
+      <Loading />
+    </div>
+    <Table v-else>
       <THead>
         <Cell>Address</Cell>
         <Cell>Block Id</Cell>
@@ -32,12 +34,17 @@
 <script>
 import { gql } from 'graphql-tag'
 import commonMixin from '@/mixins/commonMixin.js'
+import Loading from '@/components/Loading.vue'
 
 export default {
+  components: {
+    Loading,
+  },
   mixins: [commonMixin],
   data() {
     return {
       accounts: [],
+      loading: true,
     }
   },
   apollo: {
@@ -62,6 +69,7 @@ export default {
               free_balance: item.freeBalance,
             }
           })
+          this.loading = false
         },
       },
     },

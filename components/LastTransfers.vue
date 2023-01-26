@@ -9,8 +9,10 @@
         Last Transfers
       </nuxt-link>
     </div>
-
-    <Table>
+    <div v-if="loading" class="text-center py-4">
+      <Loading />
+    </div>
+    <Table v-else>
       <THead>
         <Cell>Transfer</Cell>
         <Cell>Token</Cell>
@@ -82,6 +84,7 @@ import { gql } from 'graphql-tag'
 import commonMixin from '@/mixins/commonMixin.js'
 import ReefIdenticon from '@/components/ReefIdenticon.vue'
 // import { network } from '@/frontend.config'
+import Loading from '@/components/Loading.vue'
 
 const GET_TRANSFER_EXTRINSIC_EVENTS = gql`
   query extrinsic($exId: bigint!) {
@@ -100,11 +103,13 @@ const GET_TRANSFER_EXTRINSIC_EVENTS = gql`
 export default {
   components: {
     ReefIdenticon,
+    Loading,
   },
   mixins: [commonMixin],
   data() {
     return {
       transfers: [],
+      loading: true,
     }
   },
   apollo: {
@@ -209,6 +214,7 @@ export default {
             return transfer
           })
           this.transfers = await Promise.all(repaird)
+          this.loading = false
         },
       },
     },
