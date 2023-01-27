@@ -146,50 +146,60 @@ export default {
         // `,
         // TODO: broken until we have a way to get the token info
         query: gql`
-          subscription transfer {
-            transfers(limit: 10, orderBy: extrinsic_id_DESC) {
-              extrinsic {
-                id
-                hash
-                index
-                block {
-                  height
+          {
+            transfersConnection(first: 10, orderBy: extrinsic_id_DESC) {
+              edges {
+                node {
+                  extrinsic {
+                    id
+                    hash
+                    index
+                    block {
+                      height
+                    }
+                  }
+                  from {
+                    id
+                    evmAddress
+                  }
+                  to {
+                    id
+                    evmAddress
+                  }
+                  token {
+                    id
+                  }
+                  success
+                  amount
+                  timestamp
                 }
               }
-              from {
-                id
-                evmAddress
-              }
-              to {
-                id
-                evmAddress
-              }
-              token {
-                id
-              }
-              success
-              amount
-              timestamp
             }
           }
         `,
         async result({ data }) {
-          const processed = data.transfers.map((transfer) => ({
-            amount: transfer.amount,
-            success: transfer.success,
-            hash: transfer.extrinsic.hash,
-            timestamp: transfer.timestamp,
-            tokenAddress: transfer.token.id,
+          const processed = data.transfersConnection.edges.map((transfer) => ({
+            amount: transfer.node.amount,
+            success: transfer.node.success,
+            hash: transfer.node.extrinsic.hash,
+            timestamp: transfer.node.timestamp,
+            tokenAddress: transfer.node.token.id,
             symbol:
-              transfer.token.verified_contract?.contract_data?.symbol || ' ',
+              transfer.node.token.verified_contract?.contract_data?.symbol ||
+              ' ',
+
             decimals:
-              transfer.token.verified_contract?.contract_data?.decimals || 18,
-            to: transfer.to !== null ? transfer.to.id : transfer.to.evmAddress,
+              transfer.node.token.verified_contract?.contract_data?.decimals ||
+              18,
+            to:
+              transfer.node.to !== null
+                ? transfer.node.to.id
+                : transfer.node.to.evmAddress,
             from:
-              transfer.from !== null
-                ? transfer.from.id
-                : transfer.from.evmAddress,
-            extrinsicId: transfer.extrinsic.id,
+              transfer.node.from !== null
+                ? transfer.node.from.id
+                : transfer.node.from.evmAddress,
+            extrinsicId: transfer.node.extrinsic.id,
           }))
           const repaird = processed.map(async (transfer) => {
             if (transfer.to !== 'deleted' && transfer.from !== 'deleted') {

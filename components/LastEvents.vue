@@ -51,30 +51,34 @@ export default {
     $subscribe: {
       event: {
         query: gql`
-          subscription events {
-            events(orderBy: block_height_DESC, where: {}, limit: 10) {
-              extrinsic {
-                id
-                block {
-                  height
+          {
+            eventsConnection(orderBy: block_height_DESC, first: 10) {
+              edges {
+                node {
+                  extrinsic {
+                    id
+                    block {
+                      height
+                    }
+                    index
+                  }
+                  index
+                  data
+                  method
+                  phase
+                  section
                 }
-                index
               }
-              index
-              data
-              method
-              phase
-              section
             }
           }
         `,
         result({ data }) {
-          this.events = data.events.map((event) => {
+          this.events = data.eventsConnection.edges.map((event) => {
             return {
-              ...event,
+              ...event.node,
               extrinsic: {
                 ...event.extrinsic,
-                block_id: event.extrinsic.block.height,
+                block_id: event.node.extrinsic.block.height,
               },
             }
           })

@@ -66,20 +66,24 @@ export default {
     $subscribe: {
       blocks: {
         query: gql`
-          subscription blocks {
-            blocks(orderBy: height_DESC, where: {}, limit: 10) {
-              height
-              finalized
-              hash
+          {
+            blocksConnection(orderBy: height_DESC, first: 10) {
+              edges {
+                node {
+                  height
+                  finalized
+                  hash
+                }
+              }
             }
           }
         `,
         result({ data }) {
-          this.blocks = data.blocks.map((item) => {
+          this.blocks = data.blocksConnection.edges.map((item) => {
             this.loading = false
             return {
-              ...item,
-              id: item.height,
+              ...item.node,
+              id: item.node.height,
             }
           })
           this.loading = false
