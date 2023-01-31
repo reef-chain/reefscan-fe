@@ -102,14 +102,16 @@ export default {
         return {
           block: parseInt(this.blockHeight),
           index: parseInt(this.extrinsicIndex),
+          eventIndex: parseInt(this.eventIndex),
         }
       },
       result({ data }) {
-        console.log(data.transfers)
         if (data && data.transfers) {
-          this.transfer = data.transfers.find(
-            (transfer) => transfer.extrinsic.events[0].index === this.eventIndex
-          )
+          this.transfer = data.transfers.find((transfer) => {
+            return (
+              transfer.extrinsic.events[0].index === parseInt(this.eventIndex)
+            )
+          })
           this.transfer.to_address =
             this.transfer.to.id || this.transfer.to.evmAddress
           this.transfer.block_id = this.transfer.block.height

@@ -77,7 +77,7 @@ export default {
             return {
               ...event.node,
               extrinsic: {
-                ...event.extrinsic,
+                ...event.node.extrinsic,
                 block_id: event.node.extrinsic.block.height,
               },
             }
