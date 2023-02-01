@@ -291,8 +291,6 @@ export default {
           }
         },
         result({ data }) {
-          // logging the data in console ...TODO make changes in the frontend
-          console.log(data)
           if (data && data.accounts && data.accounts.length > 0) {
             this.parsedAccount = data.accounts[0]
             this.parsedAccount = {

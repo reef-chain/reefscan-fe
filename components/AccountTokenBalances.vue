@@ -132,7 +132,10 @@ export default {
           subscription token_holder($accountId: String!) {
             tokenHolders(
               orderBy: balance_DESC
-              where: { signer: { id_eq: $accountId } }
+              where: {
+                signer: { id_eq: $accountId }
+                AND: { token: { type_eq: ERC20 } }
+              }
               limit: 50
             ) {
               signer {
