@@ -51,26 +51,22 @@ export default {
     $subscribe: {
       account: {
         query: gql`
-          {
-            accountsConnection(orderBy: timestamp_DESC, first: 10) {
-              edges {
-                node {
-                  id
-                  block {
-                    height
-                  }
-                  freeBalance
-                }
+          subscription accounts {
+            accounts(orderBy: timestamp_DESC, where: {}, limit: 10) {
+              id
+              block {
+                height
               }
+              freeBalance
             }
           }
         `,
         result({ data }) {
-          this.accounts = data.accountsConnection.edges.map((item) => {
+          this.accounts = data.accounts.map((item) => {
             return {
-              address: item.node.id,
-              block_id: item.node.block.height,
-              free_balance: item.node.freeBalance,
+              address: item.id,
+              block_id: item.block.height,
+              free_balance: item.freeBalance,
             }
           })
           this.loading = false

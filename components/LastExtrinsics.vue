@@ -50,22 +50,18 @@ export default {
     $subscribe: {
       extrinsics: {
         query: gql`
-          {
-            extrinsicsConnection(orderBy: timestamp_DESC, first: 10) {
-              edges {
-                node {
-                  id
-                  block {
-                    height
-                  }
-                  index
-                  type
-                  signer
-                  section
-                  method
-                  hash
-                }
+          subscription extrinsics {
+            extrinsics(orderBy: timestamp_DESC, limit: 10) {
+              id
+              block {
+                height
               }
+              index
+              type
+              signer
+              section
+              method
+              hash
             }
           }
         `,
@@ -87,10 +83,10 @@ export default {
         //   }
         // `,
         result({ data }) {
-          this.extrinsics = data.extrinsicsConnection.edges.map((item) => {
+          this.extrinsics = data.extrinsics.map((item) => {
             return {
-              ...item.node,
-              block_id: item.node.block.height,
+              ...item,
+              block_id: item.block.height,
             }
           })
           this.loading = false
