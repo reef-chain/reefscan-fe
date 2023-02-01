@@ -52,7 +52,7 @@ export default {
       event: {
         query: gql`
           {
-            eventsConnection(orderBy: block_height_DESC, first: 10) {
+            eventsConnection(orderBy: timestamp_DESC, first: 10) {
               edges {
                 node {
                   extrinsic {

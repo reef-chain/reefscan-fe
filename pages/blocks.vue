@@ -105,7 +105,7 @@ export default {
               offset: $offset
               limit: $perPage
               where: $where
-              orderBy: height_DESC
+              orderBy: timestamp_DESC
             ) {
               id
               hash

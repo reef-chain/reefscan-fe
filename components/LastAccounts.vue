@@ -52,7 +52,7 @@ export default {
       account: {
         query: gql`
           {
-            accountsConnection(orderBy: block_height_DESC, first: 10) {
+            accountsConnection(orderBy: timestamp_DESC, first: 10) {
               edges {
                 node {
                   id

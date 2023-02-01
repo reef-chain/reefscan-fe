@@ -51,7 +51,7 @@ export default {
       extrinsics: {
         query: gql`
           {
-            extrinsicsConnection(orderBy: block_height_DESC, first: 10) {
+            extrinsicsConnection(orderBy: timestamp_DESC, first: 10) {
               edges {
                 node {
                   id

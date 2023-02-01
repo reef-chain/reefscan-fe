@@ -130,7 +130,7 @@ export default {
               limit: $perPage
               offset: $offset
               where: { block: $blockNumber }
-              orderBy: block_height_DESC
+              orderBy: timestamp_DESC
             ) {
               id
               block {

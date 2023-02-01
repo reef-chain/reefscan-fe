@@ -67,7 +67,7 @@ export default {
       blocks: {
         query: gql`
           {
-            blocksConnection(orderBy: height_DESC, first: 10) {
+            blocksConnection(orderBy: timestamp_DESC, first: 10) {
               edges {
                 node {
                   height
