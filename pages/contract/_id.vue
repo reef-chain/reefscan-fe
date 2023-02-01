@@ -519,6 +519,7 @@ export default {
               type
               compilerVersion
               compiledData
+              source
               optimization
               runs
               target
