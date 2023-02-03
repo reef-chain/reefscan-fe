@@ -118,7 +118,7 @@ export default {
       filter: '',
       tokens: [],
       paginationOptions,
-      perPage: null,
+      perPage: 10,
       currentPage: 1,
       totalRows: 0,
       nTokens: 0,
