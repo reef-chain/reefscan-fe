@@ -29,8 +29,8 @@
         </THead>
 
         <Row v-for="(item, index) in list" :key="index">
-          <Cell :link="`/extrinsic/${item.hash}`">
-            {{ shortHash(item.hash) }}
+          <Cell :link="`/extrinsic/${item.block_id}/${item.index}`"
+            >{{ shortHash(item.hash) }}
           </Cell>
 
           <Cell
@@ -155,6 +155,7 @@ export default {
               limit: 50
             ) {
               id
+              index
               block {
                 height
               }
