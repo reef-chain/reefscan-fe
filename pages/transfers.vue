@@ -3,7 +3,9 @@
     <Search
       v-model="filter"
       :placeholder="$t('pages.transfers.search_placeholder')"
-      :label="`${$t('pages.transfers.title')} ${formatNumber(totalRows)}`"
+      :label="`${$t('pages.transfers.title')} ${
+        formatNumber(totalRows) <= 1 ? '' : formatNumber(totalRows)
+      }`"
     />
 
     <section>

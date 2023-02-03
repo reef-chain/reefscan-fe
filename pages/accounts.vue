@@ -3,9 +3,9 @@
     <Search
       v-model="filter"
       :placeholder="$t('pages.accounts.search_placeholder')"
-      :label="`${$t('pages.accounts.active_accounts')} ${formatNumber(
-        totalRows
-      )}`"
+      :label="`${$t('pages.accounts.active_accounts')} ${
+        formatNumber(totalRows) <= 1 ? '' : formatNumber(totalRows)
+      }`"
     >
       <template slot="label">
         <JsonCSV

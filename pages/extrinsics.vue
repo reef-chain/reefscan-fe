@@ -3,7 +3,9 @@
     <Search
       v-model="filter"
       :placeholder="$t('pages.blocks.search_placeholder')"
-      :label="`${$t('pages.extrinsics.title')} ${formatNumber(totalRows)}`"
+      :label="`${$t('pages.extrinsics.title')} ${
+        formatNumber(totalRows) <= 1 ? '' : formatNumber(totalRows)
+      }`"
     />
 
     <section>

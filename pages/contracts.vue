@@ -3,7 +3,9 @@
     <Search
       v-model="filter"
       :placeholder="$t('pages.contracts.search_placeholder')"
-      :label="`${$t('pages.contracts.title')} ${formatNumber(totalRows)}`"
+      :label="`${$t('pages.contracts.title')} ${
+        formatNumber(totalRows) <= 1 ? '' : formatNumber(totalRows)
+      }`"
     >
       <!-- TODO: uncomment when verification api works -->
       <!-- <template slot="bottom">
