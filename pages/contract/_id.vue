@@ -152,27 +152,7 @@
                 />
               </Cell>
             </Row>
-
-            <Promised :promise="getIpfsHash()">
-              <template #default="data">
-                <Row>
-                  <Cell>{{ $t('details.contract.ipfs_hash') }}</Cell>
-                  <Cell>
-                    {{ `https://ipfs.io/ipfs/${data}` }}
-                  </Cell>
-                </Row>
-              </template>
-            </Promised>
-
-            <Promised :promise="getBzzr1Hash()">
-              <template #default="data">
-                <Row>
-                  <Cell>{{ $t('details.contract.bzzr1_hash') }}</Cell>
-                  <Cell>{{ data }}</Cell>
-                </Row>
-              </template>
-            </Promised>
-
+            
             <Row v-if="decodedSolcVersion">
               <Cell>{{ $t('details.contract.deployment_solc_version') }}</Cell>
               <Cell wrap>{{ decodedSolcVersion }}</Cell>
@@ -258,9 +238,7 @@
 import { gql } from 'graphql-tag'
 import VueJsonPretty from 'vue-json-pretty'
 import { ethers, Contract } from 'ethers'
-// import cbor from 'cbor'
-// import Hash from 'ipfs-only-hash'
-import { Promised } from 'vue-promised'
+// import { Promised } from 'vue-promised'
 import { Provider } from '@reef-defi/evm-provider'
 import { WsProvider } from '@polkadot/api'
 import ERC20Abi from '../../assets/erc20Abi.json'
@@ -280,7 +258,6 @@ export default {
     Loading,
     VueJsonPretty,
     ContractExecute,
-    Promised,
     FileExplorer,
     File,
   },
