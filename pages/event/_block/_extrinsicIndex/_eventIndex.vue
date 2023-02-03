@@ -65,6 +65,7 @@ export default {
               index_eq: $event_index
               extrinsic: { index_eq: $extrinsic_index }
             }
+            limit: 1
           ) {
             id
             block {
