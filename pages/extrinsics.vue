@@ -88,7 +88,7 @@ export default {
       filter: '',
       extrinsics: [],
       paginationOptions,
-      perPage: null,
+      perPage: paginationOptions[1],
       currentPage: 1,
       totalRows: 1,
       nExtrinsics: 0,
@@ -132,7 +132,7 @@ export default {
               limit: $perPage
               offset: $offset
               where: { block: $blockNumber }
-              orderBy: timestamp_DESC
+              orderBy: id_DESC
             ) {
               id
               block {
@@ -150,12 +150,13 @@ export default {
           }
         `,
         variables() {
+          const offs = (this.currentPage - 1) * this.perPage
           return {
             blockNumber: this.filter
               ? { height_eq: parseInt(this.filter) }
               : {},
             perPage: this.perPage,
-            offset: (this.currentPage - 1) * this.perPage,
+            offset: offs + 1,
           }
         },
         result({ data }) {

@@ -52,7 +52,7 @@ export default {
       event: {
         query: gql`
           subscription events {
-            events(orderBy: timestamp_DESC, where: {}, limit: 10) {
+            events(orderBy: id_DESC, where: {}, limit: 10) {
               extrinsic {
                 id
                 block {

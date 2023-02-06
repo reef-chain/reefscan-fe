@@ -51,7 +51,7 @@ export default {
       extrinsics: {
         query: gql`
           subscription extrinsics {
-            extrinsics(orderBy: timestamp_DESC, limit: 10) {
+            extrinsics(orderBy: id_DESC, limit: 10, offset: 1) {
               id
               block {
                 height

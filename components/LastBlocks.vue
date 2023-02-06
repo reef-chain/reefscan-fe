@@ -67,7 +67,7 @@ export default {
       blocks: {
         query: gql`
           subscription blocks {
-            blocks(orderBy: timestamp_DESC, where: {}, limit: 10) {
+            blocks(orderBy: height_DESC, where: {}, limit: 10) {
               height
               finalized
               hash

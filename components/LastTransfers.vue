@@ -149,7 +149,7 @@ export default {
         // TODO: broken until we have a way to get the token info
         query: gql`
           subscription transfer {
-            transfers(limit: 10, orderBy: extrinsic_id_DESC) {
+            transfers(limit: 10, orderBy: timestamp_DESC) {
               extrinsic {
                 id
                 hash
