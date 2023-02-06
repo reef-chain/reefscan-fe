@@ -19,7 +19,9 @@
         </THead>
 
         <Row v-for="(item, index) in list" :key="index">
-          <Cell :link="`/contract/tx/${item.block_id}/${item.index}`">
+          <Cell
+            :link="`/contract/tx/${item.extrinsic.block_id}/${item.extrinsic.index}`"
+          >
             {{ shortHash(item.extrinsic.hash) }}
           </Cell>
 
