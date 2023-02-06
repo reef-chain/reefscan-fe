@@ -48,7 +48,7 @@
             <font-awesome-icon :icon="['fas', 'arrow-up']" />
           </Cell>
 
-          <Cell :link="`/transfer/${item.extrinsic.hash}`">{{
+          <Cell :link="`/transfer/${item.block_id}/${item.extrinsic_index}`">{{
             shortHash(item.extrinsic_hash)
           }}</Cell>
 
@@ -284,6 +284,7 @@ export default {
             ...t,
             block_id: t.block.height,
             extrinsic_hash: t.extrinsic.hash,
+            extrinsic_index: t.extrinsic.index,
             success: t.extrinsic.status === 'success',
             to_address: t.to.id || t.to.evmAddress,
             from_address: t.from.id || t.from.evmAddress,
