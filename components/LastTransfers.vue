@@ -22,7 +22,9 @@
         <Cell>Success</Cell>
       </THead>
       <Row v-for="(item, index) in transfers" :key="'item-' + index">
-        <Cell :link="`/transfer/${item.hash}`">{{ shortHash(item.hash) }}</Cell>
+        <Cell :link="`/transfer/${item.height}/${item.index}`">{{
+          shortHash(item.hash)
+        }}</Cell>
 
         <Cell
           :link="{ url: `/token/${item.tokenAddress}`, fill: false }"
@@ -178,6 +180,8 @@ export default {
             amount: transfer.amount,
             success: transfer.success,
             hash: transfer.extrinsic.hash,
+            height: transfer.extrinsic.block.height,
+            index: transfer.extrinsic.index,
             timestamp: transfer.timestamp,
             tokenAddress: transfer.token.id,
             symbol:
