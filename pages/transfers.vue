@@ -155,7 +155,7 @@ export default {
           ) {
             transfers(
               limit: $perPage
-              orderBy: extrinsic_id_DESC
+              orderBy: timestamp_DESC
               offset: $offset
               where: $where
             ) {
