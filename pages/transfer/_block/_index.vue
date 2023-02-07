@@ -85,10 +85,12 @@ export default {
         }
       },
       result({ data }) {
-        this.parsedExtrinsic = data.extrinsics[0]
-        this.parsedExtrinsic.block_id = this.parsedExtrinsic.block.height
-        this.parsedExtrinsic.error_message = this.parsedExtrinsic.errorMessage
-        this.parsedExtrinsic.signed_data = this.parsedExtrinsic.signedData
+        if (data && data.transfers) {
+          this.parsedExtrinsic = data.extrinsics[0]
+          this.parsedExtrinsic.block_id = this.parsedExtrinsic.block.height
+          this.parsedExtrinsic.error_message = this.parsedExtrinsic.errorMessage
+          this.parsedExtrinsic.signed_data = this.parsedExtrinsic.signedData
+        }
         this.loading = false
       },
     },
