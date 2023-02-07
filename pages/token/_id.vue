@@ -98,6 +98,12 @@
             </Row>-->
 
             <Row>
+              <Cell>Token Holders</Cell>
+              <Cell>
+                {{ formatNumber(holders) }}
+              </Cell>
+            </Row>
+            <Row>
               <Cell>Created at block</Cell>
               <Cell>
                 <nuxt-link
@@ -222,43 +228,6 @@ export default {
   apollo: {
     $subscribe: {
       contract: {
-        /* TODO Ziga - where can we get these in query
-        holders {
-          holder_account_id
-          holder_evm_address
-          balance
-        }
-        holders_aggregate {
-          aggregate {
-            count(columns: holder_account_id)
-          }
-        } */
-        // query: gql`
-        //   subscription contract($address: String!) {
-        //     contract(where: { address: { _ilike: $address } }) {
-        //       address
-        //       bytecode
-        //       extrinsic {
-        //         signer
-        //         block_id
-        //       }
-        //       verified_contract {
-        //         address
-        //         name
-        //         args
-        //         source
-        //         compiler_version
-        //         compiled_data
-        //         contract_data
-        //         optimization
-        //         runs
-        //         target
-        //         type
-        //       }
-        //       timestamp
-        //     }
-        //   }
-        // `,
         query: gql`
           subscription contract($address: String = "") {
             verifiedContracts(
@@ -299,30 +268,37 @@ export default {
         },
         result({ data }) {
           if (data.verifiedContracts[0]) {
-            const name = data.verifiedContracts[0].name
-
-            this.contractType = data.verifiedContracts[0].type.replace(
-              'ERC',
-              'ERC-'
-            )
-            this.contractName = data.verifiedContracts[0].name
-
-            this.contract = data.verifiedContracts[0].contract
-            this.contract.extrinsic.block_id =
-              this.contract.extrinsic.block.height
+            const { name, type, contract, compiledData, source } =
+              data.verifiedContracts[0]
+            this.contractType = type.replace('ERC', 'ERC-')
+            this.contractName = name
+            this.contract = contract
+            this.contract.extrinsic.block_id = contract.extrinsic.block.height
             this.contract.verified_contract = data.verifiedContracts[0]
-            this.contract.abi =
-              data.verifiedContracts[0] &&
-              data.verifiedContracts[0].compiledData &&
-              data.verifiedContracts[0].compiledData[name]
-                ? data.verifiedContracts[0].compiledData[name]
-                : []
-
-            this.contract.source = Object.keys(
-              data.verifiedContracts[0].source
-            ).reduce(this.sourceCode(data), [])
+            this.contract.abi = compiledData[name] || []
+            this.contract.source = Object.keys(source).reduce(
+              this.sourceCode(data),
+              []
+            )
           }
           this.loading = false
+        },
+      },
+      tokenHolders: {
+        query: gql`
+          query tokenHoldersAggregate($address: String!) {
+            tokenHoldersCount(tokenId: $address) {
+              count
+            }
+          }
+        `,
+        variables() {
+          return {
+            address: this.address,
+          }
+        },
+        result({ data }) {
+          this.holders = data.tokenHoldersCount.count
         },
       },
     },

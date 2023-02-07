@@ -22,7 +22,6 @@
               <Cell>Created at block</Cell>
               <!--              TODO Ziga
               <Cell align="right">Total supply</Cell>-->
-              <Cell>Holders</Cell>
             </THead>
 
             <Row v-for="(item, index) in tokens" :key="index">
@@ -78,10 +77,6 @@
               >
                 # {{ formatNumber(item.contract.extrinsic.block_id) }}
               </Cell>
-
-              <Cell>
-                {{ item.contract.token_holders_aggregate.aggregate.count }}
-              </Cell>
             </Row>
           </Table>
 
@@ -127,42 +122,6 @@ export default {
   apollo: {
     $subscribe: {
       tokens: {
-        // query: gql`
-        //   subscription contract(
-        //     $blockHeight: extrinsic_bool_exp
-        //     $contractAddress: String_comparison_exp
-        //     $perPage: Int!
-        //     $offset: Int!
-        //   ) {
-        //     verified_contract(
-        //       limit: $perPage
-        //       offset: $offset
-        //       where: {
-        //         type: { _neq: "other" }
-        //         id: $contractAddress
-        //         contract: { extrinsic: $blockHeight }
-        //       }
-        //       order_by: { contract: { extrinsic: { block_id: desc } } }
-        //     ) {
-        //       address
-        //       contract_data
-        //       name
-        //       contract {
-        //         timestamp
-        //         token_holders_aggregate(where: { balance: { _gt: "0" } }) {
-        //           aggregate {
-        //             count(distinct: true)
-        //           }
-        //         }
-        //         extrinsic {
-        //           hash
-        //           block_id
-        //         }
-        //         signer
-        //       }
-        //     }
-        //   }
-        // `,
         query: gql`
           subscription tokens(
             $offset: Int = 0
