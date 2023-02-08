@@ -190,7 +190,7 @@ export default {
   data() {
     return {
       loading: true,
-      perPage: null,
+      perPage: 10,
       currentPage: 1,
       sortBy: `favorite`,
       sortDesc: true,

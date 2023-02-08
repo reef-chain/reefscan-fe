@@ -80,7 +80,7 @@ export default {
       filter: '',
       events: [],
       paginationOptions,
-      perPage: null,
+      perPage: paginationOptions[1],
       currentPage: 1,
       totalRows: 1,
       nEvents: 0,

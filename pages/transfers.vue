@@ -138,7 +138,7 @@ export default {
       filter: null,
       transfers: [],
       paginationOptions,
-      perPage: null,
+      perPage: paginationOptions[1],
       currentPage: 1,
       totalRows: 1,
       nTransfers: 1,

@@ -89,7 +89,7 @@ export default {
       filter: '',
       blocks: [],
       paginationOptions,
-      perPage: null,
+      perPage: paginationOptions[1],
       currentPage: 1,
       totalRows: 1,
     }
