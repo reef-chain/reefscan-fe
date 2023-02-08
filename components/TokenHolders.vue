@@ -16,7 +16,11 @@
 
         <Row v-for="(item, index) in list" :key="index">
           <Cell
-            v-if="item.account && item.account.address"
+            v-if="
+              item.account &&
+              item.account.address &&
+              item.account.address[0] != 0
+            "
             :link="`/account/${item.account.address}`"
             :title="$t('pages.accounts.account_details')"
           >
@@ -27,17 +31,29 @@
             />
             <span>{{ shortAddress(item.account.address) }}</span>
           </Cell>
-          <Cell v-else />
-
+          <Cell v-else :title="$t('pages.accounts.account_details')">
+            <ReefIdenticon
+              :key="item.account.address"
+              :address="item.account.address"
+              :size="20"
+            />
+            <span>{{ shortAddress(item.account.address) }}</span>
+          </Cell>
           <Cell
-            v-if="item.account && item.account.evm_address"
+            v-if="
+              item.account &&
+              item.account.evm_address &&
+              item.account.address[0] != 0
+            "
             :link="{ fill: false, url: `/account/${item.account.address}` }"
           >
             <eth-identicon :address="item.account.evm_address" :size="20" />
             <span>{{ shortHash(item.account.evm_address) }}</span>
           </Cell>
-          <Cell v-else />
-
+          <Cell v-else>
+            <eth-identicon :address="item.account.evm_address" :size="20" />
+            <span>{{ shortHash(item.account.evm_address) }}</span>
+          </Cell>
           <Cell align="right">{{ getBalance(item) }}</Cell>
         </Row>
       </Table>
@@ -157,8 +173,10 @@ export default {
               token_address: holder.token.id,
               balance: holder.balance,
               account: {
-                address: holder.signer.id,
-                evm_address: holder.signer.evmAddress,
+                address: holder.signer ? holder.signer.id : holder.evmAddress,
+                evm_address: holder.signer
+                  ? holder.signer.evmAddress
+                  : holder.evmAddress,
               },
             }
           })
