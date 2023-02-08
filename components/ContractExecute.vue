@@ -9,7 +9,7 @@
     </b-alert>
     <div
       v-for="(message, index) in contractAbi.filter(
-        (item) => item.type === 'function'
+        (item) => item.stateMutability === 'view'
       )"
       :key="`message-${index}`"
       class="contract-execute__section"

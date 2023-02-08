@@ -152,7 +152,6 @@
                 />
               </Cell>
             </Row>
-            
             <Row v-if="decodedSolcVersion">
               <Cell>{{ $t('details.contract.deployment_solc_version') }}</Cell>
               <Cell wrap>{{ decodedSolcVersion }}</Cell>
