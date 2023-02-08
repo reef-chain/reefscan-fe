@@ -85,7 +85,7 @@ export default {
         }
       },
       result({ data }) {
-        if (data && data.transfers) {
+        if (data && data.extrinsics) {
           this.parsedExtrinsic = data.extrinsics[0]
           this.parsedExtrinsic.block_id = this.parsedExtrinsic.block.height
           this.parsedExtrinsic.error_message = this.parsedExtrinsic.errorMessage
