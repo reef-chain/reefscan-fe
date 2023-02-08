@@ -124,7 +124,9 @@
         <Cell>
           <div>
             {{
-              formatAmount(parseInt(extrinsic.signed_data.fee.partialFee, 16))
+              (
+                extrinsic.signed_data.fee.partialFee / 1000000000000000000
+              ).toFixed(18)
             }}
           </div>
         </Cell>
