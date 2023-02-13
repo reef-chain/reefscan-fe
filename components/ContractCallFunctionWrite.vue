@@ -235,14 +235,14 @@ export default {
       const client = this.$apolloProvider.defaultClient
       const query = gql`
         query account {
-          account(where: {address: {_eq: "${accountId}"}}) {
-            evm_address
+          accounts(where: {id_containsInsensitive: "${accountId}"}, limit: 1) {
+            evmAddress
           }
         }
       `
       const response = await client.query({ query })
-      if (response.data.account.length > 0) {
-        const evmAddress = response.data.account[0].evm_address
+      if (response.data.account && response.data.account.length > 0) {
+        const evmAddress = response.data.account[0].evmAddress
         if (evmAddress) {
           return evmAddress
         } else {

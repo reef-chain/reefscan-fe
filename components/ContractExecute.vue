@@ -9,7 +9,7 @@
     </b-alert>
     <div
       v-for="(message, index) in contractAbi.filter(
-        (item) => item.stateMutability === 'view'
+        (item) => item.type === 'function'
       )"
       :key="`message-${index}`"
       class="contract-execute__section"
@@ -24,10 +24,7 @@
         >
           <font-awesome-icon icon="database" />
         </div>
-        <div
-          v-if="message.outputs.length > 0"
-          class="contract-execute__section-output"
-        >
+        <div v-if="message.outputs" class="contract-execute__section-output">
           {{ getOutputs(message) }}
         </div>
       </div>
