@@ -1,12 +1,12 @@
 <template>
   <div>
     <section>
-      <b-container class="extrinsic-page main py-5">
+      <b-container class="transfer-page main py-5">
         <div v-if="loading" class="text-center py-4">
           <Loading />
         </div>
-        <NotFound v-else-if="!parsedExtrinsic" text="Extrinsic not found" />
-        <Extrinsic v-else :extrinsic="parsedExtrinsic" />
+        <NotFound v-else-if="!transfer" text="Transfer not found" />
+        <Transfer v-else :transfer="transfer" />
       </b-container>
     </section>
   </div>
@@ -14,21 +14,20 @@
 <script>
 import { gql } from 'graphql-tag'
 import Loading from '@/components/Loading.vue'
-import Extrinsic from '@/components/Extrinsic.vue'
 import commonMixin from '@/mixins/commonMixin.js'
 
 export default {
   components: {
     Loading,
-    Extrinsic,
   },
   mixins: [commonMixin],
   data() {
     return {
       loading: true,
-      blockNumber: Number(this.$route.params.block),
-      extrinsicIndex: Number(this.$route.params.index),
-      parsedExtrinsic: undefined,
+      blockHeight: this.$route.params.block,
+      extrinsicIndex: this.$route.params.index,
+      eventIndex: this.$route.params.event,
+      transfer: undefined,
     }
   },
   head() {
@@ -45,51 +44,107 @@ export default {
   },
   watch: {
     $route() {
-      this.blockNumber = Number(this.$route.params.block)
-      this.extrinsicIndex = Number(this.$route.params.index)
+      this.blockHeight = this.$route.params.block
+      this.extrinsicIndex = this.$route.params.index
+      this.eventIndex = this.$route.params.event
     },
   },
   apollo: {
-    extrinsics: {
+    transfers: {
       query: gql`
-        query extrinsics($block_height: Int!, $index: Int!) {
-          extrinsics(
-            where: { block: { height_eq: $block_height }, index_eq: $index }
+        query transfers($block: Int!, $index: Int!) {
+          transfers(
+            where: {
+              extrinsic: { index_eq: $index, block: { height_eq: $block } }
+            }
             limit: 1
           ) {
-            id
+            amount
+            denom
             block {
               height
             }
-            index
-            signer
-            section
-            method
-            args
-            hash
-            docs
-            type
+            to {
+              id
+              evmAddress
+            }
+            from {
+              id
+              evmAddress
+            }
             timestamp
-            errorMessage
-            signedData
+            extrinsic {
+              id
+              hash
+              index
+              errorMessage
+              status
+              events(where: { method_eq: "Transfer" }, limit: 50) {
+                data
+                extrinsic {
+                  id
+                }
+                index
+              }
+            }
+            token {
+              id
+              contractData
+            }
+            feeAmount
           }
         }
       `,
       skip() {
-        return !this.blockNumber
+        return !this.blockHeight || !this.extrinsicIndex
       },
       variables() {
         return {
-          block_height: this.blockNumber,
-          index: this.extrinsicIndex,
+          block: parseInt(this.blockHeight),
+          index: parseInt(this.extrinsicIndex),
+          eventIndex: parseInt(this.eventIndex),
         }
       },
       result({ data }) {
-        if (data && data.extrinsics) {
-          this.parsedExtrinsic = data.extrinsics[0]
-          this.parsedExtrinsic.block_id = this.parsedExtrinsic.block.height
-          this.parsedExtrinsic.error_message = this.parsedExtrinsic.errorMessage
-          this.parsedExtrinsic.signed_data = this.parsedExtrinsic.signedData
+        if (data && data.transfers) {
+          this.transfer = data.transfers[0]
+          this.transfer.to_address =
+            this.transfer.to.id || this.transfer.to.evmAddress
+          this.transfer.block_id = this.transfer.block.height
+          this.transfer.extrinsic.error_message =
+            this.transfer.extrinsic.errorMessage
+
+          this.transfer.extrinsic.events = this.transfer.extrinsic.events.map(
+            (event) => {
+              event.extrinsic_id = event.extrinsic.id
+              return event
+            }
+          )
+
+          this.transfer.fee_amount = this.transfer.feeAmount
+
+          this.transfer.success =
+            data.transfers[0].extrinsic.status === 'success'
+
+          if (this.transfer.to_address === 'deleted') {
+            this.transfer.to_address =
+              data.transfers[0].extrinsic.events[0].data[1]
+          }
+
+          this.transfer.from_address =
+            this.transfer.from.id || this.transfer.from.evmAddress
+          if (this.transfer.from_address === 'deleted') {
+            this.transfer.from_address =
+              data.transfer[0].extrinsic.events[0].data[0]
+          }
+
+          // TODO: update when we have token data in the contract table
+          this.transfer.token_address = this.transfer.token.id
+          if (this.transfer.token && this.transfer.token.contractData) {
+            this.transfer.tokenName = this.transfer.token.contractData.name
+            this.transfer.symbol = this.transfer.token.contractData.symbol
+            this.transfer.decimals = this.transfer.token.contractData.decimals
+          }
         }
         this.loading = false
       },
