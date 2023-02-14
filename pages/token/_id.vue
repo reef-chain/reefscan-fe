@@ -20,7 +20,6 @@
             />
             <span>{{ tokenName }}</span>
           </Headline>
-
           <h4 class="text-center mb-4">
             <p class="mt-3">
               <b-badge class="ml-2" variant="info">{{
@@ -40,7 +39,14 @@
               </b-badge>
             </p>
           </h4>
-
+          <div class="unverified-section">
+            <nuxt-link
+              :to="`/token/updateIcon/${address}`"
+              class="unverified-section__verify-btn"
+            >
+              Upload Icon
+            </nuxt-link>
+          </div>
           <Tabs v-model="tab" :options="tabs" />
 
           <!-- Info -->
@@ -146,9 +152,7 @@
             :decimals="tokenData.decimals"
             :symbol="tokenData.symbol"
           />
-
           <!-- Execute -->
-
           <contract-execute
             v-if="tab === 'execute'"
             :contract-id="address"
