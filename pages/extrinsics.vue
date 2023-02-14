@@ -97,31 +97,6 @@ export default {
   apollo: {
     $subscribe: {
       extrinsics: {
-        // query: gql`
-        //   subscription extrinsics(
-        //     $blockNumber: bigint_comparison_exp
-        //     $perPage: Int!
-        //     $offset: Int!
-        //   ) {
-        //     extrinsic(
-        //       limit: $perPage
-        //       offset: $offset
-        //       where: { block_id: $blockNumber }
-        //       order_by: { block_id: desc, index: desc }
-        //     ) {
-        //       id
-        //       block_id
-        //       index
-        //       signer
-        //       section
-        //       method
-        //       hash
-        //       type
-        //       timestamp
-        //       error_message
-        //     }
-        //   }
-        // `,
         query: gql`
           subscription extrinsics(
             $blockNumber: BlockWhereInput!
@@ -160,8 +135,6 @@ export default {
           }
         },
         result({ data }) {
-          // data.extrinsics.block_id = data.extrinsics.block.height
-          // data.extrinsics.error_message = data.extrinsics.errorMessage
           data.extrinsics.forEach((item) => {
             item.block_id = item.block.height
             item.error_message = item.errorMessage

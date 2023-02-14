@@ -192,44 +192,6 @@ export default {
   apollo: {
     $subscribe: {
       transfer: {
-        // query: gql`
-        //   subscription transfer($accountId: String!) {
-        //     transfer(
-        //       order_by: { block_id: desc }
-        //       where: {
-        //         _or: [
-        //           { to_address: { _eq: $accountId } }
-        //           { from_address: { _eq: $accountId } }
-        //         ]
-        //       }
-        //     ) {
-        //       block_id
-        //       extrinsic {
-        //         index
-        //         section
-        //         method
-        //         hash
-        //         status
-        //       }
-        //       to_address
-        //       from_address
-        //       to_evm_address
-        //       from_evm_address
-        //       amount
-        //       denom
-        //       token {
-        //         address
-        //         verified_contract {
-        //           contract_data
-        //         }
-        //       }
-        //       fee_amount
-        //       error_message
-        //       timestamp
-        //     }
-        //   }
-        // `,
-        // TODO: can only grab the last 40 transfers
         query: gql`
           subscription transfers($accountId: String!) {
             transfers(

@@ -101,24 +101,6 @@
         </Cell>
       </Row>
 
-      <!-- <Row>
-        <Cell>Weight</Cell>
-        <Cell>
-          <div v-if="extrinsic.fee_info">
-            {{ formatNumber(JSON.parse(extrinsic.fee_info).weight) }}
-          </div>
-        </Cell>
-      </Row>
-
-      <Row>
-        <Cell>Fee class</Cell>
-        <Cell>
-          <div v-if="extrinsic.fee_info">
-            {{ JSON.parse(extrinsic.fee_info).class }}
-          </div>
-        </Cell>
-      </Row> -->
-
       <Row v-if="extrinsic.signed_data !== null">
         <Cell>Fee</Cell>
         <Cell>

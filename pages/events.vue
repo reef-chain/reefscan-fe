@@ -89,34 +89,6 @@ export default {
   apollo: {
     $subscribe: {
       events: {
-        // query: gql`
-        //   subscription events(
-        //     $blockNumber: bigint_comparison_exp
-        //     $perPage: Int!
-        //     $offset: Int!
-        //   ) {
-        //     event(
-        //       limit: $perPage
-        //       offset: $offset
-        //       where: { block_id: $blockNumber }
-        //       order_by: { id: desc, index: desc }
-        //     ) {
-        //       id
-        //       block_id
-        //       extrinsic {
-        //         id
-        //         block_id
-        //         index
-        //       }
-        //       index
-        //       data
-        //       method
-        //       phase
-        //       section
-        //       timestamp
-        //     }
-        //   }
-        // `,
         query: gql`
           subscription events(
             $blockNumber: BlockWhereInput!

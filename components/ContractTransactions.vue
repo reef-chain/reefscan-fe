@@ -194,7 +194,6 @@ export default {
           // this.totalRows = data.evm_event_aggregate.aggregate.count
           // TODO: needs to be implemented in the backend
           this.totalRows = 1
-          // console.log(this.totalRows)
         },
       },
     },

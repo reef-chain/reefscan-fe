@@ -185,10 +185,6 @@ export default {
             // claim default account
             if (!(await wallet.isClaimed())) {
               // eslint-disable-next-line no-console
-              console.log(
-                'No claimed EVM account found -> claimed default EVM account: ',
-                await wallet.getAddress()
-              )
               await wallet.claimDefaultAccount()
             }
 
@@ -208,8 +204,6 @@ export default {
           } catch (error) {
             this.error = error
             // eslint-disable-next-line
-            console.log('Error: ', this.error)
-            // hide error alert after 20s
             setTimeout(() => {
               this.error = null
             }, 20000)
@@ -218,8 +212,6 @@ export default {
         .catch((error) => {
           this.error = error
           // eslint-disable-next-line
-          console.log('Error: ', this.error)
-          // hide error alert after 20s
           setTimeout(() => {
             this.error = null
           }, 20000)

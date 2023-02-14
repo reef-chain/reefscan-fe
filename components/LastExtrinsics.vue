@@ -65,23 +65,6 @@ export default {
             }
           }
         `,
-        // query: gql`
-        //   subscription extrinsics {
-        //     extrinsics(orderBy: block_height_DESC, where: {}, limit: 10) {
-        //       id
-        //       block {
-        //         height
-        //       }
-        //       index
-        //       type
-        //       signer
-        //       section
-        //       method
-        //       hash
-        //       docs
-        //     }
-        //   }
-        // `,
         result({ data }) {
           this.extrinsics = data.extrinsics.map((item) => {
             return {

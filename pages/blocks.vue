@@ -49,10 +49,6 @@
               </Cell>
 
               <Cell>{{ shortHash(item.hash) }}</Cell>
-
-              <!--              <Cell align="center">{{ item.total_extrinsics }}</Cell>
-
-              <Cell align="center">{{ item.total_events }}</Cell>-->
             </Row>
           </Table>
 

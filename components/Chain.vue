@@ -169,48 +169,6 @@ export default {
           this.lastBlock = data.blocks[0].height
         },
       },
-      // transfers: {
-      //   query: gql`
-      //     subscription transfer {
-      //       transfer_aggregate {
-      //         aggregate {
-      //           count
-      //         }
-      //       }
-      //     }
-      //   `,
-      //   result({ data }) {
-      //     this.totalTransfers = data.transfer_aggregate.aggregate.count // this.findCount(data.chain_info, 'transfers')
-      //   },
-      // },
-      // events: {
-      //   query: gql`
-      //     subscription event {
-      //       event_aggregate {
-      //         aggregate {
-      //           count
-      //         }
-      //       }
-      //     }
-      //   `,
-      //   result({ data }) {
-      //     this.totalEvents = data.event_aggregate.aggregate.count // this.findCount(data.chain_info, 'events')
-      //   },
-      // },
-      // extrinsics: {
-      //   query: gql`
-      //     subscription extrinsic {
-      //       extrinsic_aggregate {
-      //         aggregate {
-      //           count
-      //         }
-      //       }
-      //     }
-      //   `,
-      //   result({ data }) {
-      //     this.totalExtrinsics = data.extrinsic_aggregate.aggregate.count // this.findCount(data.chain_info, 'extrinsics')
-      //   },
-      // },
     },
   },
   methods: {

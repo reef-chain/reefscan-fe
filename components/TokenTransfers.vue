@@ -138,28 +138,6 @@ export default {
   apollo: {
     $subscribe: {
       transfer: {
-        // query: gql`
-        //   subscription transfer($tokenId: String!) {
-        //     transfer(
-        //       order_by: { timestamp: desc }
-        //       where: { token_address: { _eq: $tokenId } }
-        //     ) {
-        //       extrinsic {
-        //         hash
-        //         block_id
-        //         index
-        //         signer
-        //         status
-        //       }
-        //       to_address
-        //       from_address
-        //       to_evm_address
-        //       from_evm_address
-        //       amount
-        //       timestamp
-        //     }
-        //   }
-        // `,
         query: gql`
           subscription transfer($tokenId: String!) {
             transfers(

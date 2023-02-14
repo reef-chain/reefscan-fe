@@ -164,16 +164,6 @@ export default {
             offset: (this.currentPage - 1) * this.perPage,
             where,
           }
-          // return {
-          //   blockHeight: this.isBlockNumber(this.filter)
-          //     ? { block_id: { _eq: parseInt(this.filter) } }
-          //     : {},
-          //   contractAddress: this.isContractId(this.filter)
-          //     ? { _ilike: this.toContractAddress(this.filter) }
-          //     : {},
-          //   perPage: this.perPage,
-          //   offset: (this.currentPage - 1) * this.perPage,
-          // }
         },
         result({ data }) {
           if (data && data.verifiedContracts) {
