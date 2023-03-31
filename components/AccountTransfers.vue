@@ -213,6 +213,7 @@ export default {
                 method
                 hash
                 status
+                signedData
               }
               to {
                 id
@@ -251,7 +252,7 @@ export default {
             to_address: t.to.id || t.to.evmAddress,
             from_address: t.from.id || t.from.evmAddress,
             token_address: t.token.id,
-            fee_amount: t.feeAmount,
+            fee_amount: t.extrinsic.signedData.fee.partialFee,
             error_message: t.errorMessage,
             symbol: t.token.verified_contract?.contract_data?.symbol, // TODO: verified contract info isn't in the token table anymore, it's separate
             decimals: t.token.verified_contract?.contract_data?.decimals, // TODO

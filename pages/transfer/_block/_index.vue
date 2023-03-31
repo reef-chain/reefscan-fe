@@ -79,6 +79,7 @@ export default {
               index
               errorMessage
               status
+              signedData
               events(where: { method_eq: "Transfer" }, limit: 50) {
                 data
                 extrinsic {
@@ -120,8 +121,8 @@ export default {
               return event
             }
           )
-
-          this.transfer.fee_amount = this.transfer.feeAmount
+          this.transfer.fee_amount =
+            this.transfer.extrinsic.signedData.fee.partialFee
 
           this.transfer.success =
             data.transfers[0].extrinsic.status === 'success'

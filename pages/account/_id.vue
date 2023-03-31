@@ -36,7 +36,12 @@
             {{ parsedAccount.identity.display }}
           </Headline>
           <Headline v-else>
-            {{ shortAddress(parsedAccount.address) }}
+            <div>
+              {{ shortAddress(parsedAccount.address) }}
+            </div>
+            <div v-if="parsedAccount.evm_address">
+              {{ shortAddress(parsedAccount.evm_address) }}
+            </div>
           </Headline>
 
           <Data>
