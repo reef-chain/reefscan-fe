@@ -14,7 +14,7 @@
           <Cell>Transaction</Cell>
           <Cell>Block</Cell>
           <Cell>Extrinsic</Cell>
-          <Cell>Timestamp</Cell>
+          <Cell>Age</Cell>
           <Cell align="center">Success</Cell>
         </THead>
 

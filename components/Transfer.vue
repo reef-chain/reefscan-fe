@@ -13,7 +13,7 @@
       </Row>
 
       <Row>
-        <Cell>Timestamp</Cell>
+        <Cell>Age</Cell>
         <Cell>
           {{ fromNow(transfer.timestamp) }}
           ({{ formatTimestamp(transfer.timestamp) }})

@@ -14,7 +14,7 @@
           <Cell>From address</Cell>
           <Cell>To address</Cell>
           <Cell>Amount</Cell>
-          <Cell>Timestamp</Cell>
+          <Cell>Age</Cell>
           <Cell align="center">Success</Cell>
         </THead>
 

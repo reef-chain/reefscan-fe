@@ -279,7 +279,7 @@
       "gas_limit": "Gas limit",
       "storage_limit": "Storage limit",
       "deployment_bytecode": "Deployment bytecode",
-      "bytecode": "Runtime bytecode",
+      "bytecode": "Creation bytecode",
       "metadata": "Metadata",
       "arguments": "Constructor arguments",
       "decoded_arguments": "Decoded constructor arguments",

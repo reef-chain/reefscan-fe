@@ -279,7 +279,7 @@
       "gas_limit": "Límite de gas",
       "storage_limit": "Límite de almacenamiento",
       "deployment_bytecode": "Bytecode de despliegue",
-      "bytecode": "Bytecode de ejecución",
+      "bytecode": "Bytecode de creación",
       "metadata": "Metadatos",
       "arguments": "Argumentos",
       "decoded_arguments": "Argumentos decodificados",

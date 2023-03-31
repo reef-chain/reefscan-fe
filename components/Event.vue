@@ -35,7 +35,7 @@
       </Row>
 
       <Row>
-        <Cell>Timestamp</Cell>
+        <Cell>Age</Cell>
         <Cell>
           {{ formatTimestamp(event.timestamp) }}
         </Cell>
