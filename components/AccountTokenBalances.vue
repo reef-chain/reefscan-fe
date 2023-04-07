@@ -71,6 +71,7 @@ import Loading from '@/components/Loading.vue'
 import { paginationOptions } from '@/frontend.config.js'
 import Input from '@/components/Input'
 import tableUtils from '@/mixins/tableUtils'
+import BlockTimeout from '@/utils/polling.js'
 
 export default {
   components: {
@@ -95,6 +96,7 @@ export default {
       perPage: null,
       currentPage: 1,
       totalRows: 1,
+      callbackId: null,
     }
   },
   computed: {
@@ -119,60 +121,70 @@ export default {
       )
     },
   },
+  created() {
+    // force fetch the latest data
+    this.updateData()
+    BlockTimeout.addCallback(this.updateData)
+  },
+  destroyed() {
+    BlockTimeout.removeCallback(this.updateData)
+  },
   methods: {
     handleNumFields(num) {
       localStorage.paginationOptions = num
       this.perPage = parseInt(num)
     },
+    updateData() {
+      this.$apollo.queries.tokenHolders.refetch()
+    },
   },
   apollo: {
-    $subscribe: {
-      token_holder: {
-        query: gql`
-          subscription token_holder($accountId: String!) {
-            tokenHolders(
-              orderBy: balance_DESC
-              where: {
-                signer: { id_eq: $accountId }
-                AND: { token: { type_eq: ERC20 } }
-              }
-              limit: 50
-            ) {
-              signer {
-                id
-                evmAddress
-              }
-              balance
-              token {
-                id
-                contractData
-              }
+    tokenHolders: {
+      query: gql`
+        query token_holder($accountId: String!) {
+          tokenHolders(
+            orderBy: balance_DESC
+            where: {
+              signer: { id_eq: $accountId }
+              AND: { token: { type_eq: ERC20 } }
+            }
+            limit: 50
+          ) {
+            signer {
+              id
+              evmAddress
+            }
+            balance
+            token {
+              id
+              contractData
             }
           }
-        `,
-        variables() {
-          return {
-            accountId: this.accountId,
-          }
-        },
-        skip() {
-          return !this.accountId
-        },
-        result({ data }) {
-          this.balances = data.tokenHolders.map((balance) => ({
-            contract_id: balance.token.id,
-            holder_account_id: balance.signer.id,
-            holder_evm_address: balance.signer.evmAddress,
-            balance: balance.balance.toLocaleString('fullwide', {
-              useGrouping: false,
-            }),
-            token_name: balance.token.contractData?.name,
-            token_symbol: balance.token.contractData?.symbol,
-            token_decimals: balance.token.contractData?.decimals,
-          }))
-          this.totalRows = this.balances.length
-          this.loading = false
-        },
+        }
+      `,
+      variables() {
+        return {
+          accountId: this.accountId,
+        }
+      },
+      skip() {
+        return !this.accountId
+      },
+      fetchPolicy: 'network-only',
+      result({ data }) {
+        this.balances = data.tokenHolders.map((balance) => ({
+          contract_id: balance.token.id,
+          holder_account_id: balance.signer.id,
+          holder_evm_address: balance.signer.evmAddress,
+          balance: balance.balance.toLocaleString('fullwide', {
+            useGrouping: false,
+          }),
+          token_name: balance.token.contractData?.name,
+          token_symbol: balance.token.contractData?.symbol,
+          token_decimals: balance.token.contractData?.decimals,
+        }))
+        this.totalRows = this.balances.length
+        this.loading = false
       },
     },
   },

@@ -67,6 +67,7 @@ import commonMixin from '@/mixins/commonMixin.js'
 import Search from '@/components/Search'
 import Loading from '@/components/Loading.vue'
 import { paginationOptions } from '@/frontend.config.js'
+import BlockTimeout from '@/utils/polling.js'
 
 export default {
   components: {
@@ -84,74 +85,95 @@ export default {
       currentPage: 1,
       totalRows: 1,
       nEvents: 0,
+      callbackId: null,
+      previousPage: null,
+      forceLoad: false,
     }
   },
+  watch: {
+    currentPage() {
+      if (this.currentPage === 1) {
+        // if moving from any other page to page 1
+        if (this.previousPage !== 1) {
+          this.loading = true // set loading to true before refetching
+          this.forceLoad = true
+          setTimeout(() => {
+            this.$apollo.queries.events.refetch()
+            this.forceLoad = false
+          }, 100)
+        }
+        BlockTimeout.addCallback(this.updateData)
+      } else {
+        BlockTimeout.removeCallback(this.updateData)
+      }
+    },
+  },
+  created() {
+    BlockTimeout.addCallback(this.updateData)
+  },
+  destroyed() {
+    BlockTimeout.removeCallback(this.updateData)
+  },
+  methods: {
+    updateData() {
+      this.$apollo.queries.events.refetch()
+    },
+  },
   apollo: {
-    $subscribe: {
-      events: {
-        query: gql`
-          subscription events(
-            $blockNumber: BlockWhereInput!
-            $perPage: Int!
-            $offset: Int!
+    events: {
+      query: gql`
+        query events(
+          $blockNumber: BlockWhereInput!
+          $perPage: Int!
+          $offset: Int!
+        ) {
+          events(
+            limit: $perPage
+            offset: $offset
+            where: { block: $blockNumber }
+            orderBy: id_DESC
           ) {
-            events(
-              limit: $perPage
-              offset: $offset
-              where: { block: $blockNumber }
-              orderBy: id_DESC
-            ) {
+            id
+            block {
+              height
+            }
+            extrinsic {
               id
               block {
                 height
               }
-              extrinsic {
-                id
-                block {
-                  height
-                }
-                index
-              }
               index
-              data
-              method
-              phase
-              section
-              timestamp
             }
+            index
+            data
+            method
+            phase
+            section
+            timestamp
           }
-        `,
-        variables() {
-          return {
-            blockNumber: this.filter
-              ? { height_eq: parseInt(this.filter) }
-              : {},
-            perPage: this.perPage,
-            offset: (this.currentPage - 1) * this.perPage,
+          totalEvents: chainInfos(where: { id_eq: "events" }, limit: 1) {
+            count
           }
-        },
-        result({ data }) {
-          this.events = data.events
-          this.events.forEach((event) => {
-            event.block_id = event.block.height
-            event.extrinsic.block_id = event.extrinsic.block.height
-          })
-          this.totalRows = this.filter ? this.events.length : this.nEvents
-          this.loading = false
-        },
+        }
+      `,
+      variables() {
+        return {
+          blockNumber: this.filter ? { height_eq: parseInt(this.filter) } : {},
+          perPage: this.perPage,
+          offset: (this.currentPage - 1) * this.perPage,
+        }
       },
-      totalEvents: {
-        query: gql`
-          subscription chain_info {
-            chainInfos(where: { id_eq: "events" }, limit: 1) {
-              count
-            }
-          }
-        `,
-        result({ data }) {
-          this.nEvents = data.chainInfos[0].count
-          this.totalRows = this.nEvents
-        },
+      fetchPolicy: 'network-only',
+      result({ data }) {
+        this.events = data.events
+        this.events.forEach((event) => {
+          event.block_id = event.block.height
+          event.extrinsic.block_id = event.extrinsic.block.height
+        })
+        this.totalRows = this.filter ? this.events.length : this.nEvents
+        this.nEvents = data.totalEvents[0].count
+        this.totalRows = this.nEvents
+        this.loading = false
       },
     },
   },

@@ -223,6 +223,7 @@ import AccountTransfers from '@/components/AccountTransfers.vue'
 // import StakingRewards from '@/components/StakingRewards.vue'
 // import StakingSlashes from '@/components/StakingSlashes.vue'
 // import AccountTokenBalances from '@/components/AccountTokenBalances.vue'
+import BlockTimeout from '@/utils/polling.js'
 
 export default {
   components: {
@@ -251,6 +252,7 @@ export default {
       parsedAccount: undefined,
       transfers: [],
       tab: 'transfers',
+      callbackId: null,
     }
   },
   watch: {
@@ -258,65 +260,76 @@ export default {
       this.accountId = this.$route.params.id
     },
   },
+  created() {
+    this.updateData()
+    BlockTimeout.addCallback(this.updateData)
+  },
+  destroyed() {
+    BlockTimeout.removeCallback(this.updateData)
+  },
+  methods: {
+    updateData() {
+      this.$apollo.queries.accounts.refetch()
+    },
+  },
   apollo: {
-    $subscribe: {
-      account: {
-        query: gql`
-          subscription account($address: String!) {
-            accounts(
-              where: {
-                OR: {
-                  id_containsInsensitive: $address
-                  OR: { evmAddress_containsInsensitive: $address }
-                }
-              }
-              limit: 1
-            ) {
-              id
-              freeBalance
-              evmAddress
-              lockedBalance
-              availableBalance
-              timestamp
-              nonce
-              identity
-              evmNonce
-              vestedBalance
-              votingBalance
-              reservedBalance
-              block {
-                height
+    accounts: {
+      query: gql`
+        query account($address: String!) {
+          accounts(
+            where: {
+              OR: {
+                id_containsInsensitive: $address
+                OR: { evmAddress_containsInsensitive: $address }
               }
             }
-          }
-        `,
-        variables() {
-          return {
-            address: this.accountId,
-          }
-        },
-        result({ data }) {
-          if (data && data.accounts && data.accounts.length > 0) {
-            this.parsedAccount = data.accounts[0]
-            this.parsedAccount = {
-              ...this.parsedAccount,
-              address: this.parsedAccount.id,
-              available_balance: this.parsedAccount.availableBalance,
-              locked_balance: this.parsedAccount.lockedBalance,
-              free_balance: this.parsedAccount.freeBalance,
-              reserved_balance: this.parsedAccount.reservedBalance,
-              vested_balance: this.parsedAccount.vestedBalance,
-              voting_balance: this.parsedAccount.votingBalance,
-              block_id: this.parsedAccount.block.height,
-              identity: '{}',
+            limit: 1
+          ) {
+            id
+            freeBalance
+            evmAddress
+            lockedBalance
+            availableBalance
+            timestamp
+            nonce
+            identity
+            evmNonce
+            vestedBalance
+            votingBalance
+            reservedBalance
+            block {
+              height
             }
-          } else if (this.accountId.length === 42) {
-            this.$router.push({
-              path: `/contract/${this.accountId}`,
-            })
           }
-          this.loading = false
-        },
+        }
+      `,
+      variables() {
+        return {
+          address: this.accountId,
+        }
+      },
+      fetchPolicy: 'network-only',
+      result({ data }) {
+        if (data && data.accounts && data.accounts.length > 0) {
+          this.parsedAccount = data.accounts[0]
+          this.parsedAccount = {
+            ...this.parsedAccount,
+            address: this.parsedAccount.id,
+            available_balance: this.parsedAccount.availableBalance,
+            locked_balance: this.parsedAccount.lockedBalance,
+            free_balance: this.parsedAccount.freeBalance,
+            reserved_balance: this.parsedAccount.reservedBalance,
+            vested_balance: this.parsedAccount.vestedBalance,
+            voting_balance: this.parsedAccount.votingBalance,
+            block_id: this.parsedAccount.block.height,
+            identity: '{}',
+          }
+        } else if (this.accountId.length === 42) {
+          this.$router.push({
+            path: `/contract/${this.accountId}`,
+          })
+        }
+        this.loading = false
       },
     },
   },

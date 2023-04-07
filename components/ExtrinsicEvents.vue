@@ -29,6 +29,7 @@
 <script>
 import { gql } from 'graphql-tag'
 import commonMixin from '@/mixins/commonMixin.js'
+import BlockTimeout from '@/utils/polling.js'
 
 export default {
   mixins: [commonMixin],
@@ -50,52 +51,65 @@ export default {
     return {
       events: [],
       loading: true,
+      callbackId: null,
+      previousPage: null,
     }
   },
+  created() {
+    this.updateData()
+    BlockTimeout.addCallback(this.updateData)
+  },
+  destroyed() {
+    BlockTimeout.removeCallback(this.updateData)
+  },
+  methods: {
+    updateData() {
+      this.$apollo.queries.events.refetch()
+    },
+  },
   apollo: {
-    $subscribe: {
-      events: {
-        query: gql`
-          subscription events($extrinsic_index: Int!, $block_height: Int!) {
-            events(
-              orderBy: index_ASC
-              where: {
-                extrinsic: {
-                  index_eq: $extrinsic_index
-                  block: { height_eq: $block_height }
-                }
+    events: {
+      query: gql`
+        query events($extrinsic_index: Int!, $block_height: Int!) {
+          events(
+            orderBy: index_ASC
+            where: {
+              extrinsic: {
+                index_eq: $extrinsic_index
+                block: { height_eq: $block_height }
               }
-              limit: 50
-            ) {
-              extrinsic {
-                id
-                index
-                block {
-                  height
-                }
-              }
-              index
-              data
-              method
-              section
             }
+            limit: 50
+          ) {
+            extrinsic {
+              id
+              index
+              block {
+                height
+              }
+            }
+            index
+            data
+            method
+            section
           }
-        `,
-        variables() {
-          return {
-            // extrinsic_id: this.extrinsicId.toString (),
-            block_height: this.extrinsicBlockHeight,
-            extrinsic_index: this.extrinsicIndex,
-          }
-        },
-        result({ data }) {
-          data.events = data.events.map((item) => {
-            item.extrinsic.block_id = item.extrinsic.block.height
-            return item
-          })
-          this.events = data.events
-          this.loading = false
-        },
+        }
+      `,
+      variables() {
+        return {
+          // extrinsic_id: this.extrinsicId.toString (),
+          block_height: this.extrinsicBlockHeight,
+          extrinsic_index: this.extrinsicIndex,
+        }
+      },
+      fetchPolicy: 'network-only',
+      result({ data }) {
+        data.events = data.events.map((item) => {
+          item.extrinsic.block_id = item.extrinsic.block.height
+          return item
+        })
+        this.events = data.events
+        this.loading = false
       },
     },
   },

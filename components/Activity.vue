@@ -95,6 +95,7 @@ import ReefIdenticon from '@/components/ReefIdenticon.vue'
 import Loading from '@/components/Loading.vue'
 import { paginationOptions } from '@/frontend.config.js'
 import tableUtils from '@/mixins/tableUtils'
+import BlockTimeout from '@/utils/polling.js'
 
 export default {
   components: {
@@ -119,6 +120,7 @@ export default {
       perPage: null,
       currentPage: 1,
       totalRows: 1,
+      callbackId: null,
     }
   },
   computed: {
@@ -130,7 +132,18 @@ export default {
       )
     },
   },
+  created() {
+    // force fetch the latest data
+    this.updateData()
+    BlockTimeout.addCallback(this.updateData)
+  },
+  destroyed() {
+    BlockTimeout.removeCallback(this.updateData)
+  },
   methods: {
+    updateData() {
+      this.$apollo.queries.extrinsics.refetch()
+    },
     handleNumFields(num) {
       localStorage.paginationOptions = num
       this.perPage = parseInt(num)
@@ -145,48 +158,47 @@ export default {
     },
   },
   apollo: {
-    $subscribe: {
-      extrinsic: {
-        query: gql`
-          subscription extrinsic($signer: String!) {
-            extrinsics(
-              orderBy: block_height_DESC
-              where: { signer_eq: $signer }
-              limit: 50
-            ) {
-              id
-              index
-              block {
-                height
-              }
-              signer
-              hash
-              section
-              method
-              status
-              timestamp
+    extrinsics: {
+      query: gql`
+        query extrinsic($signer: String!) {
+          extrinsics(
+            orderBy: block_height_DESC
+            where: { signer_eq: $signer }
+            limit: 50
+          ) {
+            id
+            index
+            block {
+              height
             }
+            signer
+            hash
+            section
+            method
+            status
+            timestamp
           }
-        `,
-        variables() {
+        }
+      `,
+      variables() {
+        return {
+          signer: this.accountId,
+        }
+      },
+      skip() {
+        return !this.accountId
+      },
+      fetchPolicy: 'network-only',
+      result({ data }) {
+        data.extrinsics = data.extrinsics.map((item) => {
           return {
-            signer: this.accountId,
+            ...item,
+            block_id: item.block.height,
           }
-        },
-        skip() {
-          return !this.accountId
-        },
-        result({ data }) {
-          data.extrinsics = data.extrinsics.map((item) => {
-            return {
-              ...item,
-              block_id: item.block.height,
-            }
-          })
-          this.activities = data.extrinsics
-          this.totalRows = this.activities.length
-          this.loading = false
-        },
+        })
+        this.activities = data.extrinsics
+        this.totalRows = this.activities.length
+        this.loading = false
       },
     },
   },

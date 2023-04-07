@@ -76,6 +76,7 @@ export default {
           hash: this.blockHash,
         }
       },
+      fetchPolicy: 'network-only',
       result({ data }) {
         this.parsedExtrinsic = data.extrinsics[0]
         this.parsedExtrinsic.block_id = this.parsedExtrinsic.block.height

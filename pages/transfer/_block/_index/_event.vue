@@ -105,6 +105,7 @@ export default {
           eventIndex: parseInt(this.eventIndex),
         }
       },
+      fetchPolicy: 'network-only',
       result({ data }) {
         if (data && data.transfers) {
           this.transfer = data.transfers.find((transfer) => {

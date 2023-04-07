@@ -35,6 +35,7 @@
 import { gql } from 'graphql-tag'
 import commonMixin from '@/mixins/commonMixin.js'
 import Loading from '@/components/Loading.vue'
+import BlockTimeout from '@/utils/polling.js'
 
 export default {
   components: {
@@ -45,32 +46,44 @@ export default {
     return {
       accounts: [],
       loading: true,
+      callbackId: null,
     }
   },
+  created() {
+    this.updateData()
+    BlockTimeout.addCallback(this.updateData)
+  },
+  destroyed() {
+    BlockTimeout.removeCallback(this.updateData)
+  },
+  methods: {
+    updateData() {
+      this.$apollo.queries.accounts.refetch()
+    },
+  },
   apollo: {
-    $subscribe: {
-      account: {
-        query: gql`
-          subscription accounts {
-            accounts(orderBy: timestamp_DESC, where: {}, limit: 10) {
-              id
-              block {
-                height
-              }
-              freeBalance
+    accounts: {
+      query: gql`
+        query accounts {
+          accounts(orderBy: timestamp_DESC, where: {}, limit: 10) {
+            id
+            block {
+              height
             }
+            freeBalance
           }
-        `,
-        result({ data }) {
-          this.accounts = data.accounts.map((item) => {
-            return {
-              address: item.id,
-              block_id: item.block.height,
-              free_balance: item.freeBalance,
-            }
-          })
-          this.loading = false
-        },
+        }
+      `,
+      fetchPolicy: 'network-only',
+      result({ data }) {
+        this.accounts = data.accounts.map((item) => {
+          return {
+            address: item.id,
+            block_id: item.block.height,
+            free_balance: item.freeBalance,
+          }
+        })
+        this.loading = false
       },
     },
   },

@@ -34,6 +34,7 @@
 import { gql } from 'graphql-tag'
 import commonMixin from '@/mixins/commonMixin.js'
 import Loading from '@/components/Loading.vue'
+import BlockTimeout from '@/utils/polling.js'
 
 export default {
   components: {
@@ -44,36 +45,48 @@ export default {
     return {
       loading: true,
       extrinsics: [],
+      callbackId: null,
     }
   },
+  created() {
+    this.updateData()
+    BlockTimeout.addCallback(this.updateData)
+  },
+  destroyed() {
+    BlockTimeout.removeCallback(this.updateData)
+  },
+  methods: {
+    updateData() {
+      this.$apollo.queries.extrinsics.refetch()
+    },
+  },
   apollo: {
-    $subscribe: {
-      extrinsics: {
-        query: gql`
-          subscription extrinsics {
-            extrinsics(orderBy: id_DESC, limit: 10, offset: 1) {
-              id
-              block {
-                height
-              }
-              index
-              type
-              signer
-              section
-              method
-              hash
+    extrinsics: {
+      query: gql`
+        query extrinsics {
+          extrinsics(orderBy: id_DESC, limit: 10, offset: 1) {
+            id
+            block {
+              height
             }
+            index
+            type
+            signer
+            section
+            method
+            hash
           }
-        `,
-        result({ data }) {
-          this.extrinsics = data.extrinsics.map((item) => {
-            return {
-              ...item,
-              block_id: item.block.height,
-            }
-          })
-          this.loading = false
-        },
+        }
+      `,
+      fetchPolicy: 'network-only',
+      result({ data }) {
+        this.extrinsics = data.extrinsics.map((item) => {
+          return {
+            ...item,
+            block_id: item.block.height,
+          }
+        })
+        this.loading = false
       },
     },
   },

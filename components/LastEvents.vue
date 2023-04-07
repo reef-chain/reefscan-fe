@@ -35,6 +35,7 @@
 import { gql } from 'graphql-tag'
 import commonMixin from '@/mixins/commonMixin.js'
 import Loading from '@/components/Loading.vue'
+import BlockTimeout from '@/utils/polling.js'
 
 export default {
   components: {
@@ -45,41 +46,52 @@ export default {
     return {
       loading: true,
       events: [],
+      callbackId: null,
     }
   },
+  created() {
+    this.updateData()
+    BlockTimeout.addCallback(this.updateData)
+  },
+  destroyed() {
+    BlockTimeout.removeCallback(this.updateData)
+  },
+  methods: {
+    updateData() {
+      this.$apollo.queries.events.refetch()
+    },
+  },
   apollo: {
-    $subscribe: {
-      event: {
-        query: gql`
-          subscription events {
-            events(orderBy: id_DESC, where: {}, limit: 10) {
-              extrinsic {
-                id
-                block {
-                  height
-                }
-                index
+    events: {
+      query: gql`
+        query events {
+          events(orderBy: id_DESC, where: {}, limit: 10) {
+            extrinsic {
+              id
+              block {
+                height
               }
               index
-              data
-              method
-              phase
-              section
             }
+            index
+            data
+            method
+            phase
+            section
           }
-        `,
-        result({ data }) {
-          this.events = data.events.map((event) => {
-            return {
-              ...event,
-              extrinsic: {
-                ...event.extrinsic,
-                block_id: event.extrinsic.block.height,
-              },
-            }
-          })
-          this.loading = false
-        },
+        }
+      `,
+      result({ data }) {
+        this.events = data.events.map((event) => {
+          return {
+            ...event,
+            extrinsic: {
+              ...event.extrinsic,
+              block_id: event.extrinsic.block.height,
+            },
+          }
+        })
+        this.loading = false
       },
     },
   },

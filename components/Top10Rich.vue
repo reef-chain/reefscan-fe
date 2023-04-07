@@ -38,6 +38,7 @@
 import { gql } from 'graphql-tag'
 import commonMixin from '@/mixins/commonMixin.js'
 import ReefIdenticon from '@/components/ReefIdenticon.vue'
+import BlockTimeout from '@/utils/polling.js'
 
 export default {
   components: {
@@ -65,24 +66,35 @@ export default {
           sortable: true,
         },
       ],
+      callbackId: null,
     }
   },
+  created() {
+    BlockTimeout.addCallback(this.updateData)
+  },
+  destroyed() {
+    BlockTimeout.removeCallback(this.updateData)
+  },
+  methods: {
+    updateData() {
+      this.$apollo.queries.account.refetch()
+    },
+  },
   apollo: {
-    $subscribe: {
-      account: {
-        query: gql`
-          subscription accounts {
-            account(order_by: { free_balance: desc }, where: {}, limit: 10) {
-              account_id
-              identity_display
-              free_balance
-              nonce
-            }
+    account: {
+      query: gql`
+        query accounts {
+          account(order_by: { free_balance: desc }, where: {}, limit: 10) {
+            account_id
+            identity_display
+            free_balance
+            nonce
           }
-        `,
-        result({ data }) {
-          this.richList = data.account
-        },
+        }
+      `,
+      fetchPolicy: 'network-only',
+      result({ data }) {
+        this.richList = data.account
       },
     },
   },

@@ -103,6 +103,7 @@ import commonMixin from '@/mixins/commonMixin.js'
 import Loading from '@/components/Loading.vue'
 import Search from '@/components/Search'
 import { paginationOptions } from '@/frontend.config.js'
+import BlockTimeout from '@/utils/polling.js'
 
 export default {
   components: {
@@ -120,107 +121,144 @@ export default {
       currentPage: 1,
       totalRows: 1,
       nContracts: 0,
+      callbackId: null,
+      previousPage: null,
+      forceLoad: false,
     }
   },
+  watch: {
+    currentPage() {
+      if (this.currentPage === 1) {
+        // if moving from any other page to page 1
+        if (this.previousPage !== 1) {
+          this.loading = true // set loading to true before refetching
+          this.forceLoad = true
+          setTimeout(() => {
+            this.$apollo.queries.contracts.refetch()
+            this.$apollo.queries.verifiedContracts.refetch()
+            this.$apollo.queries.totalContracts.refetch()
+            this.forceLoad = false
+          }, 100)
+        }
+        BlockTimeout.addCallback(this.updateData)
+      } else {
+        BlockTimeout.removeCallback(this.updateData)
+      }
+    },
+  },
+  created() {
+    BlockTimeout.addCallback(this.updateData)
+  },
+  destroyed() {
+    BlockTimeout.removeCallback(this.updateData)
+  },
+  methods: {
+    updateData() {
+      this.$apollo.queries.contracts.refetch()
+      this.$apollo.queries.verifiedContracts.refetch()
+      this.$apollo.queries.totalContracts.refetch()
+    },
+  },
   apollo: {
-    $subscribe: {
-      contracts: {
-        query: gql`
-          subscription contract(
-            $where: ContractWhereInput!
-            $perPage: Int!
-            $offset: Int!
+    contracts: {
+      query: gql`
+        query contract(
+          $where: ContractWhereInput!
+          $perPage: Int!
+          $offset: Int!
+        ) {
+          contracts(
+            limit: $perPage
+            offset: $offset
+            where: $where
+            orderBy: extrinsic_timestamp_DESC
           ) {
-            contracts(
-              limit: $perPage
-              offset: $offset
-              where: $where
-              orderBy: extrinsic_timestamp_DESC
-            ) {
-              id
-              extrinsic {
-                block {
-                  height
-                }
+            id
+            extrinsic {
+              block {
+                height
               }
-              timestamp
             }
+            timestamp
           }
-        `,
-        variables() {
-          let where = {}
-          if (this.isBlockNumber(this.filter)) {
-            where = {
-              extrinsic: {
-                block: {
-                  height_eq: parseInt(this.filter),
-                },
+        }
+      `,
+      variables() {
+        let where = {}
+        if (this.isBlockNumber(this.filter)) {
+          where = {
+            extrinsic: {
+              block: {
+                height_eq: parseInt(this.filter),
               },
-            }
-          } else if (this.isContractId(this.filter)) {
-            where = {
-              id_containsInsensitive: this.toContractAddress(this.filter),
-            }
+            },
           }
-          const newVar = {
-            where,
-            perPage: this.perPage,
-            offset: (this.currentPage - 1) * this.perPage,
+        } else if (this.isContractId(this.filter)) {
+          where = {
+            id_containsInsensitive: this.toContractAddress(this.filter),
           }
-          return newVar
-        },
-        result({ data }) {
-          data.contracts.forEach((contract) => {
-            contract.address = contract.id
-            contract.extrinsic.block_id = contract.extrinsic.block.height
-          })
-          this.contracts = data.contracts
-          this.totalRows = this.filter ? this.contracts.length : this.nContracts
-          this.loading = false
-        },
+        }
+        const newVar = {
+          where,
+          perPage: this.perPage,
+          offset: (this.currentPage - 1) * this.perPage,
+        }
+        return newVar
       },
-      verifiedContracts: {
-        query: gql`
-          subscription verifiedContracts($limit: Int!, $contracts: [String!]) {
-            verifiedContracts(limit: $limit, where: { id_in: $contracts }) {
-              id
-              name
-              type
-            }
-          }
-        `,
-        variables() {
-          const contracts = this.contracts.map((contract) => contract.address)
-          return {
-            limit: contracts.length,
-            contracts,
-          }
-        },
-        result({ data }) {
-          data.verifiedContracts.forEach((verifiedContract) => {
-            const contract = this.contracts.find(
-              (contract) => contract.address === verifiedContract.id
-            )
-            contract.verified_contract = verifiedContract
-          })
-          // TODO: this is probably hacky
-          if (data.verifiedContracts.length) {
-            this.$forceUpdate()
-          }
-        },
+      fetchPolicy: 'network-only',
+      result({ data }) {
+        data.contracts.forEach((contract) => {
+          contract.address = contract.id
+          contract.extrinsic.block_id = contract.extrinsic.block.height
+        })
+        this.contracts = data.contracts
+        this.totalRows = this.filter ? this.contracts.length : this.nContracts
+        if (!this.forceLoad) this.loading = false
       },
-      totalContracts: {
-        query: gql`
-          subscription total {
-            chainInfos(where: { id_eq: "contracts" }) {
-              count
-            }
+    },
+    verifiedContracts: {
+      query: gql`
+        query verifiedContracts($limit: Int!, $contracts: [String!]) {
+          verifiedContracts(limit: $limit, where: { id_in: $contracts }) {
+            id
+            name
+            type
           }
-        `,
-        result({ data }) {
-          this.nContracts = data.chainInfos[0].count
-          this.totalRows = this.nContracts
-        },
+        }
+      `,
+      variables() {
+        const contracts = this.contracts.map((contract) => contract.address)
+        return {
+          limit: contracts.length,
+          contracts,
+        }
+      },
+      fetchPolicy: 'network-only',
+      result({ data }) {
+        data.verifiedContracts.forEach((verifiedContract) => {
+          const contract = this.contracts.find(
+            (contract) => contract.address === verifiedContract.id
+          )
+          contract.verified_contract = verifiedContract
+        })
+        // TODO: this is probably hacky
+        if (data.verifiedContracts.length) {
+          this.$forceUpdate()
+        }
+      },
+    },
+    totalContracts: {
+      query: gql`
+        query total {
+          totalContracts: chainInfos(where: { id_eq: "contracts" }) {
+            count
+          }
+        }
+      `,
+      fetchPolicy: 'network-only',
+      result({ data }) {
+        this.nContracts = data.totalContracts[0].count
+        this.totalRows = this.nContracts
       },
     },
   },

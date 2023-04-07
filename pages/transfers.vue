@@ -111,6 +111,7 @@ import commonMixin from '@/mixins/commonMixin.js'
 import Loading from '@/components/Loading.vue'
 import ReefIdenticon from '@/components/ReefIdenticon.vue'
 import { paginationOptions } from '@/frontend.config.js'
+import BlockTimeout from '@/utils/polling.js'
 
 const GET_TRANSFER_EXTRINSIC_EVENTS = gql`
   query extrinsic($exId: bigint!) {
@@ -142,140 +143,172 @@ export default {
       currentPage: 1,
       totalRows: 1,
       nTransfers: 1,
+      callbackId: null,
+      previousPage: null,
+      forceLoad: false,
     }
   },
+  watch: {
+    currentPage() {
+      if (this.currentPage === 1) {
+        // if moving from any other page to page 1
+        if (this.previousPage !== 1) {
+          this.loading = true // set loading to true before refetching
+          this.forceLoad = true
+          setTimeout(() => {
+            this.$apollo.queries.extrinsic.refetch()
+            this.$apollo.queries.totalTransfers.refetch()
+            this.forceLoad = false
+          }, 100)
+        }
+        BlockTimeout.addCallback(this.updateData)
+      } else {
+        BlockTimeout.removeCallback(this.updateData)
+      }
+    },
+  },
+  created() {
+    BlockTimeout.addCallback(this.updateData)
+  },
+  destroyed() {
+    BlockTimeout.removeCallback(this.updateData)
+  },
+  methods: {
+    updateData() {
+      this.$apollo.queries.extrinsic.refetch()
+      this.$apollo.queries.totalTransfers.refetch()
+    },
+  },
   apollo: {
-    $subscribe: {
-      extrinsic: {
-        query: gql`
-          subscription transfer(
-            $perPage: Int!
-            $offset: Int!
-            $where: TransferWhereInput
+    extrinsic: {
+      query: gql`
+        query transfer(
+          $perPage: Int!
+          $offset: Int!
+          $where: TransferWhereInput
+        ) {
+          extrinsic: transfers(
+            limit: $perPage
+            orderBy: timestamp_DESC
+            offset: $offset
+            where: $where
           ) {
-            transfers(
-              limit: $perPage
-              orderBy: timestamp_DESC
-              offset: $offset
-              where: $where
-            ) {
-              to {
-                id
-                evmAddress
-              }
-              token {
-                id
-              }
-              from {
-                id
-                evmAddress
-              }
-              extrinsic {
-                id
-                hash
-                index
-                block {
-                  height
-                }
-                args
-                status
-                errorMessage
-              }
+            to {
               id
-              amount
-              timestamp
-              denom
+              evmAddress
             }
-          }
-        `,
-        variables() {
-          let where = {}
-          if (this.filter) {
-            if (this.isBlockNumber(this.filter)) {
-              where = {
-                extrinsic: {
-                  block: { height_eq: parseInt(this.filter) },
-                },
+            token {
+              id
+            }
+            from {
+              id
+              evmAddress
+            }
+            extrinsic {
+              id
+              hash
+              index
+              block {
+                height
               }
-            } else if (this.isHash(this.filter)) {
-              where = {
-                extrinsic: {
-                  hash_eq: this.filter,
-                },
-              }
+              args
+              status
+              errorMessage
             }
+            id
+            amount
+            timestamp
+            denom
           }
-          return {
-            where,
-            perPage: this.perPage,
-            offset: (this.currentPage - 1) * this.perPage,
-          }
-        },
-        async result({ data }) {
-          const converted = data.transfers.map((transfer) => {
-            return {
-              amount: transfer.amount,
-              success: transfer.extrinsic.status === 'success',
-              timestamp: transfer.timestamp,
-              hash: transfer.extrinsic.hash,
-              idx: transfer.extrinsic.index,
-              extrinsicId: transfer.extrinsic.id,
-              index: parseInt(transfer.id.split('-')[1]),
-              block_id: transfer.extrinsic.block.height,
-              to:
-                transfer.to.id === null
-                  ? transfer.to.evmAddress
-                  : transfer.to.id,
-              from:
-                transfer.from.id === null
-                  ? transfer.from.evmAddress
-                  : transfer.from.id,
-              symbol:
-                transfer.token.verified_contract?.contract_data?.symbol || ' ', // TODO: fix this
-              decimals:
-                transfer.token.verified_contract?.contract_data?.decimals || 18, // TODO: fix this
-            }
-          })
-          const repared = converted.map(async (transfer) => {
-            if (transfer.to !== 'deleted' && transfer.from !== 'deleted') {
-              return transfer
-            }
-            const res = await this.$apollo.provider.defaultClient.query({
-              query: GET_TRANSFER_EXTRINSIC_EVENTS,
-              variables: {
-                exId: transfer.extrinsicId,
+        }
+      `,
+      variables() {
+        let where = {}
+        if (this.filter) {
+          if (this.isBlockNumber(this.filter)) {
+            where = {
+              extrinsic: {
+                block: { height_eq: parseInt(this.filter) },
               },
-            })
-            if (
-              res.data &&
-              res.data.extrinsic.length > 0 &&
-              res.data.extrinsic[0].events &&
-              res.data.extrinsic[0].events.length > 0 &&
-              res.data.extrinsic[0].events[0].data
-            ) {
-              const [to, from] = res.data.extrinsic[0].events[0].data
-              return { ...transfer, to, from }
             }
-            return transfer
-          })
-
-          this.transfers = await Promise.all(repared)
-          this.totalRows = this.filter ? this.transfers.length : this.nTransfers
-          this.loading = false
-        },
-      },
-      totalTransfers: {
-        query: gql`
-          subscription total {
-            chainInfos(where: { id_eq: "transfers" }) {
-              count
+          } else if (this.isHash(this.filter)) {
+            where = {
+              extrinsic: {
+                hash_eq: this.filter,
+              },
             }
           }
-        `,
-        result({ data }) {
-          this.nTransfers = data.chainInfos[0].count
-          this.totalRows = this.nTransfers
-        },
+        }
+        return {
+          where,
+          perPage: this.perPage,
+          offset: (this.currentPage - 1) * this.perPage,
+        }
+      },
+      fetchPolicy: 'network-only',
+      async result({ data }) {
+        const converted = data.extrinsic.map((transfer) => {
+          return {
+            amount: transfer.amount,
+            success: transfer.extrinsic.status === 'success',
+            timestamp: transfer.timestamp,
+            hash: transfer.extrinsic.hash,
+            idx: transfer.extrinsic.index,
+            extrinsicId: transfer.extrinsic.id,
+            index: parseInt(transfer.id.split('-')[1]),
+            block_id: transfer.extrinsic.block.height,
+            to:
+              transfer.to.id === null ? transfer.to.evmAddress : transfer.to.id,
+            from:
+              transfer.from.id === null
+                ? transfer.from.evmAddress
+                : transfer.from.id,
+            symbol:
+              transfer.token.verified_contract?.contract_data?.symbol || ' ', // TODO: fix this
+            decimals:
+              transfer.token.verified_contract?.contract_data?.decimals || 18, // TODO: fix this
+          }
+        })
+        const repared = converted.map(async (transfer) => {
+          if (transfer.to !== 'deleted' && transfer.from !== 'deleted') {
+            return transfer
+          }
+          const res = await this.$apollo.provider.defaultClient.query({
+            query: GET_TRANSFER_EXTRINSIC_EVENTS,
+            variables: {
+              exId: transfer.extrinsicId,
+            },
+          })
+          if (
+            res.data &&
+            res.data.extrinsic.length > 0 &&
+            res.data.extrinsic[0].events &&
+            res.data.extrinsic[0].events.length > 0 &&
+            res.data.extrinsic[0].events[0].data
+          ) {
+            const [to, from] = res.data.extrinsic[0].events[0].data
+            return { ...transfer, to, from }
+          }
+          return transfer
+        })
+
+        this.transfers = await Promise.all(repared)
+        this.totalRows = this.filter ? this.transfers.length : this.nTransfers
+        if (!this.forceLoad) this.loading = false
+      },
+    },
+    totalTransfers: {
+      query: gql`
+        query total {
+          totalTransfers: chainInfos(where: { id_eq: "transfers" }) {
+            count
+          }
+        }
+      `,
+      fetchPolicy: 'network-only',
+      result({ data }) {
+        this.nTransfers = data.totalTransfers[0].count
+        this.totalRows = this.nTransfers
       },
     },
   },

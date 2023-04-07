@@ -87,6 +87,7 @@ import commonMixin from '@/mixins/commonMixin.js'
 import ReefIdenticon from '@/components/ReefIdenticon.vue'
 // import { network } from '@/frontend.config'
 import Loading from '@/components/Loading.vue'
+import BlockTimeout from '@/utils/polling.js'
 
 const GET_TRANSFER_EXTRINSIC_EVENTS = gql`
   query extrinsic($exId: bigint!) {
@@ -112,85 +113,97 @@ export default {
     return {
       transfers: [],
       loading: true,
+      callbackId: null,
     }
   },
+  created() {
+    this.updateData()
+    BlockTimeout.addCallback(this.updateData)
+  },
+  destroyed() {
+    BlockTimeout.removeCallback(this.updateData)
+  },
+  methods: {
+    updateData() {
+      this.$apollo.queries.lastTransfers.refetch()
+    },
+  },
   apollo: {
-    $subscribe: {
-      transfers: {
-        // TODO: broken until we have a way to get the token info
-        query: gql`
-          subscription transfer {
-            transfers(limit: 10, orderBy: timestamp_DESC) {
-              extrinsic {
-                id
-                hash
-                index
-                block {
-                  height
-                }
+    lastTransfers: {
+      // TODO: broken until we have a way to get the token info
+      query: gql`
+        query transfer {
+          lastTransfers: transfers(limit: 10, orderBy: timestamp_DESC) {
+            extrinsic {
+              id
+              hash
+              index
+              block {
+                height
               }
-              from {
-                id
-                evmAddress
-              }
-              to {
-                id
-                evmAddress
-              }
-              token {
-                id
-              }
-              success
-              amount
-              timestamp
             }
+            from {
+              id
+              evmAddress
+            }
+            to {
+              id
+              evmAddress
+            }
+            token {
+              id
+            }
+            success
+            amount
+            timestamp
           }
-        `,
-        async result({ data }) {
-          const processed = data.transfers.map((transfer) => ({
-            amount: transfer.amount,
-            success: transfer.success,
-            hash: transfer.extrinsic.hash,
-            height: transfer.extrinsic.block.height,
-            index: transfer.extrinsic.index,
-            timestamp: transfer.timestamp,
-            tokenAddress: transfer.token.id,
-            symbol:
-              transfer.token.verified_contract?.contract_data?.symbol || ' ',
-            decimals:
-              transfer.token.verified_contract?.contract_data?.decimals || 18,
-            to: transfer.to !== null ? transfer.to.id : transfer.to.evmAddress,
-            from:
-              transfer.from !== null
-                ? transfer.from.id
-                : transfer.from.evmAddress,
-            extrinsicId: transfer.extrinsic.id,
-          }))
-          const repaird = processed.map(async (transfer) => {
-            if (transfer.to !== 'deleted' && transfer.from !== 'deleted') {
-              return transfer
-            }
-            const res = await this.$apollo.provider.defaultClient.query({
-              query: GET_TRANSFER_EXTRINSIC_EVENTS,
-              variables: {
-                exId: transfer.extrinsicId,
-              },
-            })
-            if (
-              res.data &&
-              res.data.extrinsic.length > 0 &&
-              res.data.extrinsic[0].events &&
-              res.data.extrinsic[0].events.length > 0 &&
-              res.data.extrinsic[0].events[0].data
-            ) {
-              const [to, from] = res.data.extrinsic[0].events[0].data
-              return { ...transfer, to, from }
-            }
+        }
+      `,
+      fetchPolicy: 'network-only',
+      async result({ data }) {
+        const processed = data.lastTransfers.map((transfer) => ({
+          amount: transfer.amount,
+          success: transfer.success,
+          hash: transfer.extrinsic.hash,
+          height: transfer.extrinsic.block.height,
+          index: transfer.extrinsic.index,
+          timestamp: transfer.timestamp,
+          tokenAddress: transfer.token.id,
+          symbol:
+            transfer.token.verified_contract?.contract_data?.symbol || ' ',
+          decimals:
+            transfer.token.verified_contract?.contract_data?.decimals || 18,
+          to: transfer.to !== null ? transfer.to.id : transfer.to.evmAddress,
+          from:
+            transfer.from !== null
+              ? transfer.from.id
+              : transfer.from.evmAddress,
+          extrinsicId: transfer.extrinsic.id,
+        }))
+        const repaird = processed.map(async (transfer) => {
+          if (transfer.to !== 'deleted' && transfer.from !== 'deleted') {
             return transfer
+          }
+          const res = await this.$apollo.provider.defaultClient.query({
+            query: GET_TRANSFER_EXTRINSIC_EVENTS,
+            variables: {
+              exId: transfer.extrinsicId,
+            },
           })
-          this.transfers = await Promise.all(repaird)
-          this.loading = false
-        },
+          if (
+            res.data &&
+            res.data.extrinsic.length > 0 &&
+            res.data.extrinsic[0].events &&
+            res.data.extrinsic[0].events.length > 0 &&
+            res.data.extrinsic[0].events[0].data
+          ) {
+            const [to, from] = res.data.extrinsic[0].events[0].data
+            return { ...transfer, to, from }
+          }
+          return transfer
+        })
+        this.transfers = await Promise.all(repaird)
+        this.loading = false
       },
     },
   },

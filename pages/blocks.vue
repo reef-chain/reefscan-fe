@@ -72,6 +72,7 @@ import commonMixin from '@/mixins/commonMixin.js'
 import Search from '@/components/Search'
 import Loading from '@/components/Loading.vue'
 import { paginationOptions } from '@/frontend.config.js'
+import BlockTimeout from '@/utils/polling.js'
 
 export default {
   components: {
@@ -88,65 +89,83 @@ export default {
       perPage: paginationOptions[1],
       currentPage: 1,
       totalRows: 1,
+      callbackId: null,
+      previousPage: null,
+      forceLoad: false,
     }
   },
+  watch: {
+    currentPage() {
+      if (this.currentPage === 1) {
+        // if moving from any other page to page 1
+        if (this.previousPage !== 1) {
+          this.loading = true // set loading to true before refetching
+          this.forceLoad = true
+          setTimeout(() => {
+            this.$apollo.queries.blocks.refetch()
+            this.forceLoad = false
+          }, 100)
+        }
+        BlockTimeout.addCallback(this.updateData)
+      } else {
+        BlockTimeout.removeCallback(this.updateData)
+      }
+    },
+  },
+  created() {
+    BlockTimeout.addCallback(this.updateData)
+  },
+  destroyed() {
+    BlockTimeout.removeCallback(this.updateData)
+  },
+  methods: {
+    updateData() {
+      this.$apollo.queries.blocks.refetch()
+    },
+  },
   apollo: {
-    $subscribe: {
-      block: {
-        query: gql`
-          subscription blocks(
-            $where: BlockWhereInput
-            $perPage: Int!
-            $offset: Int!
+    blocks: {
+      query: gql`
+        query blocks($where: BlockWhereInput, $perPage: Int!, $offset: Int!) {
+          blocks(
+            offset: $offset
+            limit: $perPage
+            where: $where
+            orderBy: height_DESC
           ) {
-            blocks(
-              offset: $offset
-              limit: $perPage
-              where: $where
-              orderBy: height_DESC
-            ) {
-              id
-              hash
-              finalized
-              timestamp
-              height
-            }
+            id
+            hash
+            finalized
+            timestamp
+            height
           }
-        `,
-        variables() {
-          return {
-            where: this.isBlockNumber(this.filter)
-              ? { height_eq: parseInt(this.filter) }
-              : {},
-            perPage: this.perPage,
-            offset: (this.currentPage - 1) * this.perPage,
+          totalBlocks: chainInfos(where: { id_eq: "blocks" }, limit: 1) {
+            count
           }
-        },
-        result({ data }) {
-          this.blocks = data.blocks
-          this.blocks = this.blocks.map((block) => {
-            block.id = block.height
-            return block
-          })
-          if (this.filter) {
-            this.totalRows = this.blocks.length
-          }
-          this.loading = false
-        },
+        }
+      `,
+      variables() {
+        return {
+          where: this.isBlockNumber(this.filter)
+            ? { height_eq: parseInt(this.filter) }
+            : {},
+          perPage: this.perPage,
+          offset: (this.currentPage - 1) * this.perPage,
+        }
       },
-      totalBlocks: {
-        query: gql`
-          subscription chain_info {
-            chainInfos(where: { id_eq: "blocks" }, limit: 1) {
-              count
-            }
-          }
-        `,
-        result({ data }) {
-          if (!this.filter) {
-            this.totalRows = data.chainInfos[0].count
-          }
-        },
+      fetchPolicy: 'network-only', // force fetch data from the server
+      result({ data }) {
+        this.blocks = data.blocks
+        this.blocks = this.blocks.map((block) => {
+          block.id = block.height
+          return block
+        })
+        if (this.filter) {
+          this.totalRows = this.blocks.length
+        } else {
+          this.totalRows = data.totalBlocks[0].count
+        }
+        if (!this.forceLoad) this.loading = false
       },
     },
   },

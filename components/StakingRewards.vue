@@ -70,6 +70,7 @@ import Loading from '@/components/Loading.vue'
 import { paginationOptions } from '@/frontend.config.js'
 import Input from '@/components/Input'
 import tableUtils from '@/mixins/tableUtils'
+import BlockTimeout from '@/utils/polling.js'
 
 export default {
   components: {
@@ -94,6 +95,7 @@ export default {
       perPage: null,
       currentPage: 1,
       totalRows: 1,
+      callbackId: null,
     }
   },
   computed: {
@@ -117,7 +119,16 @@ export default {
       )
     },
   },
+  created() {
+    BlockTimeout.addCallback(this.updateData)
+  },
+  destroyed() {
+    BlockTimeout.removeCallback(this.updateData)
+  },
   methods: {
+    updateData() {
+      this.$apollo.queries.event.refetch()
+    },
     handleNumFields(num) {
       localStorage.paginationOptions = num
       this.perPage = parseInt(num)
@@ -129,62 +140,61 @@ export default {
     },
   },
   apollo: {
-    $subscribe: {
-      event: {
-        query: gql`
-          subscription staking($accountId: String!) {
-            stakings(
-              orderBy: id_DESC
-              where: { signer: { id_eq: $accountId } }
-              limit: 50
-            ) {
+    event: {
+      query: gql`
+        query staking($accountId: String!) {
+          event: stakings(
+            orderBy: id_DESC
+            where: { signer: { id_eq: $accountId } }
+            limit: 50
+          ) {
+            id
+            amount
+            timestamp
+            signer {
               id
-              amount
-              timestamp
-              signer {
+            }
+            event {
+              index
+              block {
+                height
+              }
+              extrinsic {
                 id
-              }
-              event {
+                hash
                 index
-                block {
-                  height
-                }
-                extrinsic {
-                  id
-                  hash
-                  index
-                  signedData
-                }
+                signedData
               }
             }
           }
-        `,
-        variables() {
+        }
+      `,
+      variables() {
+        return {
+          accountId: this.accountId,
+        }
+      },
+      skip() {
+        return !this.accountId
+      },
+      fetchPolicy: 'network-only',
+      result({ data }) {
+        this.stakingRewards = data.event.map((stakeEv) => {
+          const timestamp = new Date(stakeEv.timestamp).getTime() / 1000
+          stakeEv.event.extrinsic_id = stakeEv.event.extrinsic.id
           return {
-            accountId: this.accountId,
+            timestamp,
+            timeago: timestamp,
+            amount: stakeEv.amount,
+            address: stakeEv.signer.id,
+            block_id: stakeEv.event.block.height,
+            hash: stakeEv.event.extrinsic.hash,
+            fee: stakeEv.event.extrinsic.signedData?.fee.partialFee || 0,
+            extrinsicIndex: stakeEv.event.extrinsic.index,
           }
-        },
-        skip() {
-          return !this.accountId
-        },
-        result({ data }) {
-          this.stakingRewards = data.stakings.map((stakeEv) => {
-            const timestamp = new Date(stakeEv.timestamp).getTime() / 1000
-            stakeEv.event.extrinsic_id = stakeEv.event.extrinsic.id
-            return {
-              timestamp,
-              timeago: timestamp,
-              amount: stakeEv.amount,
-              address: stakeEv.signer.id,
-              block_id: stakeEv.event.block.height,
-              hash: stakeEv.event.extrinsic.hash,
-              fee: stakeEv.event.extrinsic.signedData?.fee.partialFee || 0,
-              extrinsicIndex: stakeEv.event.extrinsic.index,
-            }
-          })
-          this.totalRows = this.stakingRewards.length
-          this.loading = false
-        },
+        })
+        this.totalRows = this.stakingRewards.length
+        this.loading = false
       },
     },
   },

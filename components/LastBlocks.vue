@@ -50,6 +50,7 @@
 import { gql } from 'graphql-tag'
 import commonMixin from '@/mixins/commonMixin.js'
 import Loading from '@/components/Loading.vue'
+import BlockTimeout from '@/utils/polling.js'
 
 export default {
   components: {
@@ -60,30 +61,42 @@ export default {
     return {
       loading: true,
       blocks: [],
+      callbackId: null,
     }
   },
+  created() {
+    this.updateData()
+    BlockTimeout.addCallback(this.updateData)
+  },
+  destroyed() {
+    BlockTimeout.removeCallback(this.updateData)
+  },
+  methods: {
+    updateData() {
+      this.$apollo.queries.blocks.refetch()
+    },
+  },
   apollo: {
-    $subscribe: {
-      blocks: {
-        query: gql`
-          subscription blocks {
-            blocks(orderBy: height_DESC, where: {}, limit: 10) {
-              height
-              finalized
-              hash
-            }
+    blocks: {
+      query: gql`
+        query blocks {
+          blocks(orderBy: height_DESC, where: {}, limit: 10) {
+            height
+            finalized
+            hash
           }
-        `,
-        result({ data }) {
-          this.blocks = data.blocks.map((item) => {
-            this.loading = false
-            return {
-              ...item,
-              id: item.height,
-            }
-          })
+        }
+      `,
+      fetchPolicy: 'network-only',
+      result({ data }) {
+        this.blocks = data.blocks.map((item) => {
           this.loading = false
-        },
+          return {
+            ...item,
+            id: item.height,
+          }
+        })
+        this.loading = false
       },
     },
   },

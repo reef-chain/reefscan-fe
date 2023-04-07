@@ -75,6 +75,7 @@ import commonMixin from '@/mixins/commonMixin.js'
 import Search from '@/components/Search'
 import Loading from '@/components/Loading.vue'
 import { paginationOptions } from '@/frontend.config.js'
+import BlockTimeout from '@/utils/polling.js'
 
 export default {
   components: {
@@ -92,72 +93,105 @@ export default {
       currentPage: 1,
       totalRows: 1,
       nExtrinsics: 0,
+      callbackId: null,
+      previousPage: null,
+      forceLoad: false,
     }
   },
+  watch: {
+    currentPage() {
+      if (this.currentPage === 1) {
+        // if moving from any other page to page 1
+        if (this.previousPage !== 1) {
+          this.loading = true // set loading to true before refetching
+          this.forceLoad = true
+          setTimeout(() => {
+            this.$apollo.queries.extrinsics.refetch()
+            this.$apollo.queries.totalExtrinsics.refetch()
+            this.forceLoad = false
+          }, 100)
+        }
+        BlockTimeout.addCallback(this.updateData)
+      } else {
+        BlockTimeout.removeCallback(this.updateData)
+      }
+    },
+  },
+  created() {
+    BlockTimeout.addCallback(this.updateData)
+  },
+  destroyed() {
+    BlockTimeout.removeCallback(this.updateData)
+  },
+  methods: {
+    updateData() {
+      this.$apollo.queries.extrinsics.refetch()
+      this.$apollo.queries.totalExtrinsics.refetch()
+    },
+  },
   apollo: {
-    $subscribe: {
-      extrinsics: {
-        query: gql`
-          subscription extrinsics(
-            $blockNumber: BlockWhereInput!
-            $perPage: Int!
-            $offset: Int!
+    extrinsics: {
+      query: gql`
+        query extrinsics(
+          $blockNumber: BlockWhereInput!
+          $perPage: Int!
+          $offset: Int!
+        ) {
+          extrinsics(
+            limit: $perPage
+            offset: $offset
+            where: { block: $blockNumber }
+            orderBy: id_DESC
           ) {
-            extrinsics(
-              limit: $perPage
-              offset: $offset
-              where: { block: $blockNumber }
-              orderBy: id_DESC
-            ) {
-              id
-              block {
-                height
-              }
-              index
-              signer
-              section
-              method
-              hash
-              type
-              timestamp
-              errorMessage
+            id
+            block {
+              height
             }
+            index
+            signer
+            section
+            method
+            hash
+            type
+            timestamp
+            errorMessage
           }
-        `,
-        variables() {
-          const offs = (this.currentPage - 1) * this.perPage
-          return {
-            blockNumber: this.filter
-              ? { height_eq: parseInt(this.filter) }
-              : {},
-            perPage: this.perPage,
-            offset: offs + 1,
-          }
-        },
-        result({ data }) {
-          data.extrinsics.forEach((item) => {
-            item.block_id = item.block.height
-            item.error_message = item.errorMessage
-          })
-          this.extrinsics = data.extrinsics
-          this.totalRows = this.filter
-            ? this.extrinsics.length
-            : this.nExtrinsics
-          this.loading = false
-        },
+        }
+      `,
+      variables() {
+        const offs = (this.currentPage - 1) * this.perPage
+        return {
+          blockNumber: this.filter ? { height_eq: parseInt(this.filter) } : {},
+          perPage: this.perPage,
+          offset: offs + 1,
+        }
       },
-      totalExtrinsics: {
-        query: gql`
-          subscription total {
-            chainInfos(where: { id_eq: "extrinsics" }, limit: 1) {
-              count
-            }
+      fetchPolicy: 'network-only',
+      result({ data }) {
+        data.extrinsics.forEach((item) => {
+          item.block_id = item.block.height
+          item.error_message = item.errorMessage
+        })
+        this.extrinsics = data.extrinsics
+        this.totalRows = this.filter ? this.extrinsics.length : this.nExtrinsics
+        if (!this.forceLoad) this.loading = false
+      },
+    },
+    totalExtrinsics: {
+      query: gql`
+        query total {
+          totalExtrinsics: chainInfos(
+            where: { id_eq: "extrinsics" }
+            limit: 1
+          ) {
+            count
           }
-        `,
-        result({ data }) {
-          this.nExtrinsics = data.chainInfos[0].count
-          this.totalRows = this.nExtrinsics
-        },
+        }
+      `,
+      fetchPolicy: 'network-only',
+      result({ data }) {
+        this.nExtrinsics = data.totalExtrinsics[0].count
+        this.totalRows = this.nExtrinsics
       },
     },
   },

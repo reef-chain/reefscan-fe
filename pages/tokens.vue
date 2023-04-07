@@ -100,6 +100,7 @@ import commonMixin from '@/mixins/commonMixin.js'
 import Loading from '@/components/Loading.vue'
 import Search from '@/components/Search'
 import { paginationOptions } from '@/frontend.config.js'
+import BlockTimeout from '@/utils/polling.js'
 
 export default {
   components: {
@@ -117,99 +118,120 @@ export default {
       currentPage: 1,
       totalRows: 0,
       nTokens: 0,
+      callbackId: null,
+      previousPage: null,
+      forceLoad: false,
     }
   },
+  watch: {
+    currentPage() {
+      if (this.currentPage === 1) {
+        // if moving from any other page to page 1
+        if (this.previousPage !== 1) {
+          this.loading = true // set loading to true before refetching
+          this.forceLoad = true
+          setTimeout(() => {
+            this.$apollo.queries.verifiedContracts.refetch()
+            this.forceLoad = false
+          }, 100)
+        }
+        BlockTimeout.addCallback(this.updateData)
+      } else {
+        BlockTimeout.removeCallback(this.updateData)
+      }
+    },
+  },
+  created() {
+    BlockTimeout.addCallback(this.updateData)
+  },
+  destroyed() {
+    BlockTimeout.removeCallback(this.updateData)
+  },
   apollo: {
-    $subscribe: {
-      tokens: {
-        query: gql`
-          subscription tokens(
-            $offset: Int = 0
-            $perPage: Int = 10
-            $where: VerifiedContractWhereInput = {}
+    verifiedContracts: {
+      query: gql`
+        query tokens(
+          $offset: Int = 0
+          $perPage: Int = 10
+          $where: VerifiedContractWhereInput = {}
+        ) {
+          verifiedContracts(
+            limit: $perPage
+            orderBy: contract_timestamp_DESC
+            offset: $offset
+            where: $where
           ) {
-            verifiedContracts(
-              limit: $perPage
-              orderBy: contract_timestamp_DESC
-              offset: $offset
-              where: $where
-            ) {
-              id
-              contractData
-              name
-              contract {
-                timestamp
-                extrinsic {
-                  hash
-                  block {
-                    height
-                  }
+            id
+            contractData
+            name
+            contract {
+              timestamp
+              extrinsic {
+                hash
+                block {
+                  height
                 }
-                signer {
-                  id
-                }
+              }
+              signer {
+                id
               }
             }
           }
-        `,
-        variables() {
-          const where = {
-            type_not_eq: 'other',
+          totalTokens: verifiedContractsConnection(
+            orderBy: id_ASC
+            where: { type_not_eq: other }
+          ) {
+            totalCount
           }
-          if (this.isContractId(this.filter))
-            where.id_containsInsensitive = this.toContractAddress(this.filter)
+        }
+      `,
+      variables() {
+        const where = {
+          type_not_eq: 'other',
+        }
+        if (this.isContractId(this.filter))
+          where.id_containsInsensitive = this.toContractAddress(this.filter)
 
-          return {
-            perPage: this.perPage,
-            offset: (this.currentPage - 1) * this.perPage,
-            where,
-          }
-        },
-        result({ data }) {
-          if (data && data.verifiedContracts) {
-            this.tokens = data.verifiedContracts.map((token) => {
-              return {
-                ...token,
-                address: token.id,
-                contract: {
-                  ...token.contract,
-                  extrinsic: {
-                    ...token.contract.extrinsic,
-                    block_id: token.contract.extrinsic.block.height,
-                  },
-                  token_holders_aggregate: {
-                    aggregate: {
-                      count: 0, // TODO: token holder amount won't work because aggregates don't exist the way they did
-                    },
+        return {
+          perPage: this.perPage,
+          offset: (this.currentPage - 1) * this.perPage,
+          where,
+        }
+      },
+      fetchPolicy: 'network-only',
+      result({ data }) {
+        if (data && data.verifiedContracts) {
+          this.tokens = data.verifiedContracts.map((token) => {
+            return {
+              ...token,
+              address: token.id,
+              contract: {
+                ...token.contract,
+                extrinsic: {
+                  ...token.contract.extrinsic,
+                  block_id: token.contract.extrinsic.block.height,
+                },
+                token_holders_aggregate: {
+                  aggregate: {
+                    count: 0, // TODO: token holder amount won't work because aggregates don't exist the way they did
                   },
                 },
-                contract_data: token.contractData,
-              }
-            })
-            this.totalRows = this.filter ? this.tokens.length : this.nTokens
-          }
-          this.loading = false
-        },
-      },
-      totaltokens: {
-        query: gql`
-          query contract_aggregate {
-            verifiedContractsConnection(
-              orderBy: id_ASC
-              where: { type_not_eq: other }
-            ) {
-              totalCount
+              },
+              contract_data: token.contractData,
             }
-          }
-        `,
-        result({ data }) {
-          this.nTokens = data.verifiedContractsConnection.totalCount
+          })
+          this.totalRows = this.filter ? this.tokens.length : this.nTokens
+          this.nTokens = data.totalTokens.totalCount
           this.totalRows = this.nTokens
-        },
+        }
+        this.loading = false
       },
     },
   },
   methods: {
+    updateData() {
+      this.$apollo.queries.verifiedContracts.refetch()
+    },
     getItemSupply(item) {
       const supply = this.formatTokenAmount(
         item.token_total_supply || 0,

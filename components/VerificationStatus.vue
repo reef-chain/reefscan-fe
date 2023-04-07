@@ -37,6 +37,8 @@
 </template>
 <script>
 import { gql } from 'graphql-tag'
+import BlockTimeout from '@/utils/polling.js'
+
 export default {
   props: {
     id: {
@@ -47,30 +49,44 @@ export default {
   data() {
     return {
       request: null,
+      callbackId: null,
+      previousPage: null,
     }
   },
+  created() {
+    // force fetch the latest data
+    this.updateData()
+    BlockTimeout.addCallback(this.updateData)
+  },
+  destroyed() {
+    BlockTimeout.removeCallback(this.updateData)
+  },
+  methods: {
+    updateData() {
+      this.$apollo.queries.contract_verification_request.refetch()
+    },
+  },
   apollo: {
-    $subscribe: {
-      request: {
-        query: gql`
-          subscription contract_verification_request($id: String!) {
-            contract_verification_request(where: { id: { _eq: $id } }) {
-              contract_id
-              status
-              error_type
-            }
+    contract_verification_request: {
+      query: gql`
+        query contract_verification_request($id: String!) {
+          contract_verification_request(where: { id: { _eq: $id } }) {
+            contract_id
+            status
+            error_type
           }
-        `,
-        variables() {
-          return {
-            id: this.id ? this.id : '',
-          }
-        },
-        result({ data }) {
-          if (data.contract_verification_request[0]) {
-            this.request = data.contract_verification_request[0]
-          }
-        },
+        }
+      `,
+      variables() {
+        return {
+          id: this.id ? this.id : '',
+        }
+      },
+      fetchPolicy: 'network-only',
+      result({ data }) {
+        if (data.contract_verification_request[0]) {
+          this.request = data.contract_verification_request[0]
+        }
       },
     },
   },

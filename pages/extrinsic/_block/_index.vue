@@ -84,6 +84,7 @@ export default {
           index: this.extrinsicIndex,
         }
       },
+      fetchPolicy: 'network-only',
       result({ data }) {
         this.parsedExtrinsic = data.extrinsics[0]
         this.parsedExtrinsic.block_id = this.parsedExtrinsic.block.height

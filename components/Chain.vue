@@ -106,6 +106,7 @@ import { BigNumber } from 'bignumber.js'
 import { gql } from 'graphql-tag'
 import commonMixin from '../mixins/commonMixin.js'
 import { network } from '../frontend.config.js'
+import BlockTimeout from '@/utils/polling.js'
 
 export default {
   mixins: [commonMixin],
@@ -120,58 +121,73 @@ export default {
       totalContracts: 0,
       totalIssuance: 0,
       totalTransfers: 0,
+      callbackId: null,
     }
   },
   apollo: {
-    $subscribe: {
-      chainInfo: {
-        query: gql`
-          subscription chain_info {
-            chainInfos(limit: 10) {
-              id
-              count
-            }
+    chainInfo: {
+      query: gql`
+        query chain_info {
+          chainInfo: chainInfos(limit: 10) {
+            id
+            count
           }
-        `,
-        result({ data }) {
-          this.totalAccounts = this.findCount(data.chainInfos, 'accounts')
-          this.totalContracts = this.findCount(data.chainInfos, 'contracts')
-          this.totalEvents = this.findCount(data.chainInfos, 'events')
-          this.totalExtrinsics = this.findCount(data.chainInfos, 'extrinsics')
-          this.totalTransfers = this.findCount(data.chainInfos, 'transfers')
-        },
+        }
+      `,
+      fetchPolicy: 'network-only',
+      result({ data }) {
+        this.totalAccounts = this.findCount(data.chainInfo, 'accounts')
+        this.totalContracts = this.findCount(data.chainInfo, 'contracts')
+        this.totalEvents = this.findCount(data.chainInfo, 'events')
+        this.totalExtrinsics = this.findCount(data.chainInfo, 'extrinsics')
+        this.totalTransfers = this.findCount(data.chainInfo, 'transfers')
       },
-      finalized: {
-        query: gql`
-          subscription blocks {
-            blocks(
-              limit: 1
-              orderBy: height_DESC
-              where: { finalized_eq: true }
-            ) {
-              height
-            }
+    },
+    finalized: {
+      query: gql`
+        query blocks {
+          finalized: blocks(
+            limit: 1
+            orderBy: height_DESC
+            where: { finalized_eq: true }
+          ) {
+            height
           }
-        `,
-        result({ data }) {
-          this.lastFinalizedBlock = data.blocks[0].height
-        },
+        }
+      `,
+      fetchPolicy: 'network-only',
+      result({ data }) {
+        this.lastFinalizedBlock = data.finalized[0].height
       },
-      lastBlock: {
-        query: gql`
-          subscription blocks {
-            blocks(limit: 1, orderBy: height_DESC) {
-              height
-            }
+    },
+    lastBlock: {
+      query: gql`
+        query blocks {
+          lastBlock: blocks(limit: 1, orderBy: height_DESC) {
+            height
           }
-        `,
-        result({ data }) {
-          this.lastBlock = data.blocks[0].height
-        },
+        }
+      `,
+      fetchPolicy: 'network-only',
+      result({ data }) {
+        this.lastBlock = data.lastBlock[0].height
       },
     },
   },
+  created() {
+    // force fetch the latest data
+    this.updateData()
+    BlockTimeout.addCallback(this.updateData)
+  },
+  destroyed() {
+    BlockTimeout.removeCallback(this.updateData)
+  },
   methods: {
+    updateData() {
+      this.$apollo.queries.chainInfo.refetch()
+      this.$apollo.queries.finalized.refetch()
+      this.$apollo.queries.lastBlock.refetch()
+    },
     formatAmount(amount) {
       return `${new BigNumber(amount)
         .div(new BigNumber(10).pow(network.tokenDecimals))

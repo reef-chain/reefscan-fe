@@ -249,6 +249,7 @@ import commonMixin from '@/mixins/commonMixin.js'
 import { network } from '@/frontend.config.js'
 import FileExplorer from '@/components/FileExplorer'
 import File from '@/components/FileExplorer/File'
+import BlockTimeout from '@/utils/polling.js'
 
 export default {
   components: {
@@ -271,6 +272,7 @@ export default {
       verified: undefined,
       provider: undefined,
       tab: 'general',
+      callbackId: null,
     }
   },
   computed: {
@@ -377,152 +379,160 @@ export default {
       this.address = this.$route.params.id
     },
   },
+  created() {
+    this.updateData()
+    BlockTimeout.addCallback(this.updateData)
+  },
+  destroyed() {
+    BlockTimeout.removeCallback(this.updateData)
+  },
   apollo: {
-    $subscribe: {
-      contracts: {
-        // query: gql`
-        //   subscription contract($address: String!) {
-        //     contract(where: { address: { _ilike: $address } }) {
-        //       address
-        //       verified_contract {
-        //         name
-        //         args
-        //         source
-        //         compiler_version
-        //         compiled_data
-        //         contract_data
-        //         optimization
-        //         runs
-        //         target
-        //         type
-        //       }
-        //       bytecode
-        //       bytecode_context
-        //       bytecode_arguments
-        //       signer
-        //       extrinsic {
-        //         block_id
-        //       }
-        //       timestamp
-        //     }
-        //   }
-        // `,
+    contracts: {
+      // query: gql`
+      //   subscription contract($address: String!) {
+      //     contract(where: { address: { _ilike: $address } }) {
+      //       address
+      //       verified_contract {
+      //         name
+      //         args
+      //         source
+      //         compiler_version
+      //         compiled_data
+      //         contract_data
+      //         optimization
+      //         runs
+      //         target
+      //         type
+      //       }
+      //       bytecode
+      //       bytecode_context
+      //       bytecode_arguments
+      //       signer
+      //       extrinsic {
+      //         block_id
+      //       }
+      //       timestamp
+      //     }
+      //   }
+      // `,
 
-        // ClickUp Task /contract/0xd4112Be340b43Fbb700C31C625c1Ae92C60599d4  -  success value missing - comment out for now
-        query: gql`
-          subscription contracts($address: String!) {
-            contracts(where: { id_containsInsensitive: $address }, limit: 1) {
+      // ClickUp Task /contract/0xd4112Be340b43Fbb700C31C625c1Ae92C60599d4  -  success value missing - comment out for now
+      query: gql`
+        query contracts($address: String!) {
+          contracts(where: { id_containsInsensitive: $address }, limit: 1) {
+            id
+            extrinsic {
+              block {
+                height
+              }
+            }
+            timestamp
+            bytecode
+            bytecodeContext
+            bytecodeArguments
+            signer {
               id
-              extrinsic {
-                block {
-                  height
-                }
-              }
-              timestamp
-              bytecode
-              bytecodeContext
-              bytecodeArguments
-              signer {
-                id
-              }
             }
           }
-        `,
-        variables() {
-          return {
-            address: this.address,
-          }
-        },
-        async result({ data }) {
-          if (data.contracts[0]) {
-            data.contracts[0].address = data.contracts[0].id
-            data.contracts[0].extrinsic.block_id =
-              data.contracts[0].extrinsic.block.height
-            data.contracts[0].bytecode_context =
-              data.contracts[0].bytecodeContext
-            data.contracts[0].bytecode_arguments =
-              data.contracts[0].bytecodeArguments
-            data.contracts[0].signer = data.contracts[0].signer.id
-            this.contract = data.contracts[0]
-            const name = data.contracts[0].verified_contract?.name
-
-            this.contract.abi =
-              data.contracts[0].verified_contract &&
-              data.contracts[0].verified_contract.compiled_data &&
-              data.contracts[0].verified_contract.compiled_data[name]
-                ? data.contract[0].verified_contract.compiled_data[name]
-                : []
-
-            if (data.contracts[0].verified_contract) {
-              this.contract.source = Object.keys(
-                data.contracts[0].verified_contract.source
-              ).reduce(this.sourceCode(data), [])
-            }
-
-            if (
-              this.contract.bytecode_context &&
-              !this.contract.bytecode_context.startsWith('0x')
-            ) {
-              this.contract.bytecode_context =
-                '0x' + this.contract.bytecode_context
-            }
-          }
-
-          const provider = new Provider({
-            provider: new WsProvider(network.nodeWs),
-          })
-          await provider.api.isReady
-          const contract = new Contract(
-            '0x0000000000000000000000000000000001000000',
-            ERC20Abi,
-            provider
-          )
-          const balance = await contract.balanceOf(this.address)
-          await provider.api.disconnect()
-          this.balance = balance.toString()
-          this.loading = false
-        },
+        }
+      `,
+      variables() {
+        return {
+          address: this.address,
+        }
       },
-      verified: {
-        query: gql`
-          subscription verified_contract($address: String!) {
-            verifiedContracts(
-              where: { id_containsInsensitive: $address }
-              limit: 1
-            ) {
-              id
-              name
-              type
-              compilerVersion
-              compiledData
-              source
-              optimization
-              runs
-              target
-            }
+      async result({ data }) {
+        if (data.contracts[0]) {
+          data.contracts[0].address = data.contracts[0].id
+          data.contracts[0].extrinsic.block_id =
+            data.contracts[0].extrinsic.block.height
+          data.contracts[0].bytecode_context = data.contracts[0].bytecodeContext
+          data.contracts[0].bytecode_arguments =
+            data.contracts[0].bytecodeArguments
+          data.contracts[0].signer = data.contracts[0].signer?.id
+          this.contract = data.contracts[0]
+          const name = data.contracts[0].verified_contract?.name
+
+          this.contract.abi =
+            data.contracts[0].verified_contract &&
+            data.contracts[0].verified_contract.compiled_data &&
+            data.contracts[0].verified_contract.compiled_data[name]
+              ? data.contract[0].verified_contract.compiled_data[name]
+              : []
+
+          if (data.contracts[0].verified_contract) {
+            this.contract.source = Object.keys(
+              data.contracts[0].verified_contract.source
+            ).reduce(this.sourceCode(data), [])
           }
-        `,
-        variables() {
-          return {
-            address: this.address,
+
+          if (
+            this.contract.bytecode_context &&
+            !this.contract.bytecode_context.startsWith('0x')
+          ) {
+            this.contract.bytecode_context =
+              '0x' + this.contract.bytecode_context
           }
-        },
-        result({ data }) {
-          if (data.verifiedContracts[0]) {
-            this.verified = data.verifiedContracts[0]
-            this.verified.compiler_version = this.verified.compilerVersion
-            this.verified.compiled_data = this.verified.compiledData
-            this.verified.abi =
-              this.verified.compiled_data &&
-              this.verified.compiled_data[this.verified.name]
-                ? this.verified.compiled_data[this.verified.name]
-                : []
+        }
+
+        const provider = new Provider({
+          provider: new WsProvider(network.nodeWs),
+        })
+        await provider.api.isReady
+        const contract = new Contract(
+          '0x0000000000000000000000000000000001000000',
+          ERC20Abi,
+          provider
+        )
+        const balance = await contract.balanceOf(this.address)
+        await provider.api.disconnect()
+        this.balance = balance.toString()
+        this.loading = false
+      },
+    },
+    verifiedContracts: {
+      query: gql`
+        query verified_contract($address: String!) {
+          verifiedContracts(
+            where: { id_containsInsensitive: $address }
+            limit: 1
+          ) {
+            id
+            name
+            type
+            compilerVersion
+            compiledData
+            source
+            optimization
+            runs
+            target
           }
-        },
+        }
+      `,
+      variables() {
+        return {
+          address: this.address,
+        }
+      },
+      result({ data }) {
+        if (data.verifiedContracts[0]) {
+          this.verified = data.verifiedContracts[0]
+          this.verified.compiler_version = this.verified.compilerVersion
+          this.verified.compiled_data = this.verified.compiledData
+          this.verified.abi =
+            this.verified.compiled_data &&
+            this.verified.compiled_data[this.verified.name]
+              ? this.verified.compiled_data[this.verified.name]
+              : []
+        }
       },
     },
   },
   methods: {
+    updateData() {
+      this.$apollo.queries.contracts.refetch()
+      this.$apollo.queries.verifiedContracts.refetch()
+    },
     // TODO: fix this
     async getIpfsHash() {
       // decode hash from uint8 array

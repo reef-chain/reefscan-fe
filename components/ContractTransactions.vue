@@ -66,6 +66,7 @@
 <script>
 import { gql } from 'graphql-tag'
 import commonMixin from '@/mixins/commonMixin.js'
+import BlockTimeout from '@/utils/polling.js'
 
 export default {
   mixins: [commonMixin],
@@ -82,119 +83,94 @@ export default {
       currentPage: 1,
       totalRows: 1,
       perPage: 20,
+      callbackId: null,
     }
   },
+  created() {
+    // force fetch
+    this.updateData()
+    BlockTimeout.addCallback(this.updateData)
+  },
+  destroyed() {
+    BlockTimeout.removeCallback(this.updateData)
+  },
+  methods: {
+    updateData() {
+      this.$apollo.queries.transactions.refetch()
+      this.$apollo.queries.total_transactions.refetch()
+    },
+  },
   apollo: {
-    $subscribe: {
-      transactions: {
-        // query: gql`
-        //   subscription evm_event_qry(
-        //     $contractAddress: String_comparison_exp = {}
-        //     $perPage: Int!
-        //     $offset: Int!
-        //   ) {
-        //     evm_event(
-        //       limit: $perPage
-        //       offset: $offset
-        //       where: { contract_address: $contractAddress }
-        //       order_by: [
-        //         { block_id: desc }
-        //         { extrinsic_index: desc }
-        //         { event_index: desc }
-        //       ]
-        //     ) {
-        //       event {
-        //         extrinsic {
-        //           id
-        //           hash
-        //           block_id
-        //           index
-        //           timestamp
-        //           status
-        //         }
-        //       }
-        //     }
-        //   }
-        // `,
-        query: gql`
-          subscription evm_event_qry(
-            $contractAddress: String!
-            $perPage: Int!
-            $offset: Int!
+    transactions: {
+      query: gql`
+        query evm_event_qry(
+          $contractAddress: String!
+          $perPage: Int!
+          $offset: Int!
+        ) {
+          transactions: evmEvents(
+            limit: $perPage
+            offset: $offset
+            where: { contractAddress_containsInsensitive: $contractAddress }
+            orderBy: block_id_DESC
           ) {
-            evmEvents(
-              limit: $perPage
-              offset: $offset
-              where: { contractAddress_containsInsensitive: $contractAddress }
-              orderBy: block_id_DESC
-            ) {
-              event {
-                extrinsic {
-                  id
-                  hash
-                  block {
-                    height
-                  }
-                  index
-                  timestamp
-                  status
+            event {
+              extrinsic {
+                id
+                hash
+                block {
+                  height
                 }
+                index
+                timestamp
+                status
               }
             }
           }
-        `,
-        variables() {
-          return {
-            contractAddress: this.toContractAddress(this.contractId),
-            perPage: this.perPage,
-            offset: (this.currentPage - 1) * this.perPage,
-          }
-        },
-        result({ data }) {
-          if (data) {
-            this.transactions = data.evmEvents.reduce((state, curr) => {
-              curr.event.extrinsic.block_id = curr.event.extrinsic.block.height
-              state.push(curr.event.extrinsic)
-              return state
-            }, [])
-          }
-          this.loading = false
-        },
+        }
+      `,
+      variables() {
+        return {
+          contractAddress: this.toContractAddress(this.contractId),
+          perPage: this.perPage,
+          offset: (this.currentPage - 1) * this.perPage,
+        }
       },
-      // TODO: needs to be implemented in the backend
-      total_transactions: {
-        // query: gql`
-        //   subscription evm_event_count_aggregation(
-        //     $contractAddress: String_comparison_exp = {}
-        //   ) {
-        //     evm_event_aggregate(where: { contract_address: $contractAddress }) {
-        //       aggregate {
-        //         count
-        //       }
-        //     }
-        //   }
-        // `,
-        // this is purely for having some kind of call
-        query: gql`
-          subscription evm_event_count_aggregation {
-            chainInfos(where: { id_eq: "contracts" }) {
-              count
-            }
+      fetchPolicy: 'network-only',
+      result({ data }) {
+        if (data) {
+          this.transactions = data.transactions.reduce((state, curr) => {
+            curr.event.extrinsic.block_id = curr.event.extrinsic.block.height
+            state.push(curr.event.extrinsic)
+            return state
+          }, [])
+        }
+        this.loading = false
+      },
+    },
+    // TODO: needs to be implemented in the backend
+    total_transactions: {
+      // this is purely for having some kind of call
+      query: gql`
+        query evm_event_count_aggregation {
+          total_transactions: chainInfos(where: { id_eq: "contracts" }) {
+            count
           }
-        `,
-        variables() {
-          // return {
-          //   contractAddress: {
-          //     _ilike: this.toContractAddress(this.contractId),
-          //   },
-          // }
-          return {}
-        },
-        result({ data }) {
-          // this.totalRows = data.evm_event_aggregate.aggregate.count
-          // TODO: needs to be implemented in the backend
-          this.totalRows = 1
-        },
+        }
+      `,
+      variables() {
+        // return {
+        //   contractAddress: {
+        //     _ilike: this.toContractAddress(this.contractId),
+        //   },
+        // }
+        return {}
+      },
+      fetchPolicy: 'network-only',
+      result({ data }) {
+        // this.totalRows = data.evm_event_aggregate.aggregate.count
+        // TODO: needs to be implemented in the backend
+        this.totalRows = 1
       },
     },
   },

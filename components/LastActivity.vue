@@ -35,6 +35,7 @@
 <script>
 import { gql } from 'graphql-tag'
 import commonMixin from '@/mixins/commonMixin.js'
+import BlockTimeout from '@/utils/polling.js'
 
 export default {
   mixins: [commonMixin],
@@ -59,33 +60,45 @@ export default {
           sortable: true,
         },
       ],
+      callbackId: null,
     }
   },
+  created() {
+    this.updateData()
+    BlockTimeout.addCallback(this.updateData)
+  },
+  destroyed() {
+    BlockTimeout.removeCallback(this.updateData)
+  },
+  methods: {
+    updateData() {
+      this.$apollo.queries.extrinsic.refetch()
+    },
+  },
   apollo: {
-    $subscribe: {
-      extrinsic: {
-        query: gql`
-          subscription extrinsics {
-            extrinsic(
-              order_by: { block_id: desc }
-              where: { type: { _eq: "signed" } }
-              limit: 10
-            ) {
-              id
-              block_id
-              index
-              type
-              signer
-              section
-              method
-              hash
-              docs
-            }
+    extrinsic: {
+      query: gql`
+        query extrinsics {
+          extrinsic(
+            order_by: { block_id: desc }
+            where: { type: { _eq: "signed" } }
+            limit: 10
+          ) {
+            id
+            block_id
+            index
+            type
+            signer
+            section
+            method
+            hash
+            docs
           }
-        `,
-        result({ data }) {
-          this.extrinsics = data.extrinsic
-        },
+        }
+      `,
+      fetchPolicy: 'network-only',
+      result({ data }) {
+        this.extrinsics = data.extrinsic
       },
     },
   },

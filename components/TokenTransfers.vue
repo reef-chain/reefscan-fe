@@ -101,6 +101,7 @@ import commonMixin from '@/mixins/commonMixin.js'
 import Loading from '@/components/Loading.vue'
 import { paginationOptions } from '@/frontend.config.js'
 import tableUtils from '@/mixins/tableUtils'
+import BlockTimeout from '@/utils/polling.js'
 
 export default {
   components: {
@@ -124,6 +125,7 @@ export default {
         property: 'timestamp',
         descending: true,
       },
+      callbackId: null,
     }
   },
   computed: {
@@ -135,63 +137,73 @@ export default {
       )
     },
   },
+  created() {
+    BlockTimeout.addCallback(this.updateData)
+  },
+  destroyed() {
+    BlockTimeout.removeCallback(this.updateData)
+  },
+  methods: {
+    updateData() {
+      this.$apollo.queries.transfers.refetch()
+    },
+  },
   apollo: {
-    $subscribe: {
-      transfer: {
-        query: gql`
-          subscription transfer($tokenId: String!) {
-            transfers(
-              orderBy: timestamp_DESC
-              where: { token: { id_eq: $tokenId } }
-              limit: 60
-            ) {
-              extrinsic {
-                hash
-                block {
-                  height
-                }
-                index
-                signer
-                status
+    transfers: {
+      query: gql`
+        query transfer($tokenId: String!) {
+          transfers(
+            orderBy: timestamp_DESC
+            where: { token: { id_eq: $tokenId } }
+            limit: 60
+          ) {
+            extrinsic {
+              hash
+              block {
+                height
               }
-              to {
-                id
-                evmAddress
-              }
-              from {
-                id
-                evmAddress
-              }
-              amount
-              timestamp
+              index
+              signer
+              status
             }
+            to {
+              id
+              evmAddress
+            }
+            from {
+              id
+              evmAddress
+            }
+            amount
+            timestamp
           }
-        `,
-        variables() {
+        }
+      `,
+      variables() {
+        return {
+          tokenId: this.tokenId,
+        }
+      },
+      skip() {
+        return !this.tokenId
+      },
+      fetchPolicy: 'network-only',
+      result({ data }) {
+        this.transfers = data.transfers.map((transfer) => {
           return {
-            tokenId: this.tokenId,
+            ...transfer,
+            to_address: transfer.to.id,
+            from_address: transfer.from.id,
+            to_evm_address: transfer.to.evmAddress,
+            from_evm_address: transfer.from.evmAddress,
+            extrinsic: {
+              ...transfer.extrinsic,
+              block_id: transfer.extrinsic.block.height,
+            },
           }
-        },
-        skip() {
-          return !this.tokenId
-        },
-        result({ data }) {
-          this.transfers = data.transfers.map((transfer) => {
-            return {
-              ...transfer,
-              to_address: transfer.to.id,
-              from_address: transfer.from.id,
-              to_evm_address: transfer.to.evmAddress,
-              from_evm_address: transfer.from.evmAddress,
-              extrinsic: {
-                ...transfer.extrinsic,
-                block_id: transfer.extrinsic.block.height,
-              },
-            }
-          })
-          this.totalRows = this.transfers.length
-          this.loading = false
-        },
+        })
+        this.totalRows = this.transfers.length
+        this.loading = false
       },
     },
   },

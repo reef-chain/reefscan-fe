@@ -62,6 +62,7 @@ import Loading from '@/components/Loading.vue'
 import { paginationOptions } from '@/frontend.config.js'
 import Input from '@/components/Input'
 import tableUtils from '@/mixins/tableUtils'
+import BlockTimeout from '@/utils/polling.js'
 
 export default {
   components: {
@@ -86,6 +87,8 @@ export default {
       perPage: null,
       currentPage: 1,
       totalRows: 1,
+      callbackId: null,
+      previousPage: null,
     }
   },
   computed: {
@@ -108,42 +111,52 @@ export default {
       )
     },
   },
+  created() {
+    BlockTimeout.addCallback(this.updateData)
+  },
+  destroyed() {
+    BlockTimeout.removeCallback(this.updateData)
+  },
+  methods: {
+    updateData() {
+      this.$apollo.queries.staking_slash.refetch()
+    },
+  },
   apollo: {
-    $subscribe: {
-      event: {
-        query: gql`
-          subscription staking_slash($accountId: String!) {
-            staking_slash(
-              order_by: { block_id: desc }
-              where: { account_id: { _eq: $accountId } }
-            ) {
-              block_id
-              event_index
-              amount
-              timestamp
-            }
+    staking_slash: {
+      query: gql`
+        query staking_slash($accountId: String!) {
+          staking_slash(
+            order_by: { block_id: desc }
+            where: { account_id: { _eq: $accountId } }
+          ) {
+            block_id
+            event_index
+            amount
+            timestamp
           }
-        `,
-        variables() {
+        }
+      `,
+      variables() {
+        return {
+          accountId: this.accountId,
+        }
+      },
+      skip() {
+        return !this.accountId
+      },
+      fetchPolicy: 'network-only',
+      result({ data }) {
+        this.stakingSlashes = data.staking_slash.map((event) => {
           return {
-            accountId: this.accountId,
+            block_id: event.block_id,
+            timestamp: event.timestamp,
+            timeago: event.timestamp,
+            amount: event.amount,
           }
-        },
-        skip() {
-          return !this.accountId
-        },
-        result({ data }) {
-          this.stakingSlashes = data.staking_slash.map((event) => {
-            return {
-              block_id: event.block_id,
-              timestamp: event.timestamp,
-              timeago: event.timestamp,
-              amount: event.amount,
-            }
-          })
-          this.totalRows = this.stakingSlashes.length
-          this.loading = false
-        },
+        })
+        this.totalRows = this.stakingSlashes.length
+        this.loading = false
       },
     },
   },

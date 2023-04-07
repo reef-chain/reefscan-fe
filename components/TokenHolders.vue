@@ -51,8 +51,7 @@
             <span>{{ shortHash(item.account.evm_address) }}</span>
           </Cell>
           <Cell v-else>
-            <eth-identicon :address="item.account.evm_address" :size="20" />
-            <span>{{ shortHash(item.account.evm_address) }}</span>
+            <span></span>
           </Cell>
           <Cell align="right">{{ getBalance(item) }}</Cell>
         </Row>
@@ -76,6 +75,7 @@ import commonMixin from '@/mixins/commonMixin.js'
 import Loading from '@/components/Loading.vue'
 import { paginationOptions } from '@/frontend.config.js'
 import tableUtils from '@/mixins/tableUtils'
+import BlockTimeout from '@/utils/polling.js'
 
 export default {
   components: {
@@ -99,6 +99,7 @@ export default {
         property: 'balance',
         descending: true,
       },
+      callbackId: null,
     }
   },
   computed: {
@@ -110,7 +111,16 @@ export default {
       )
     },
   },
+  created() {
+    BlockTimeout.addCallback(this.updateData)
+  },
+  destroyed() {
+    BlockTimeout.removeCallback(this.updateData)
+  },
   methods: {
+    updateData() {
+      this.$apollo.queries.tokenHolders.refetch()
+    },
     handleNumFields(num) {
       localStorage.paginationOptions = num
       this.perPage = parseInt(num)
@@ -120,69 +130,68 @@ export default {
     },
   },
   apollo: {
-    $subscribe: {
-      transfer: {
-        // query: gql`
-        //   subscription token_holder($tokenId: String!) {
-        //     token_holder(
-        //       order_by: { token_address: desc }
-        //       where: { token_address: { _eq: $tokenId } }
-        //     ) {
-        //       token_address
-        //       signer
-        //       balance
-        //       account {
-        //         address
-        //         evm_address
-        //       }
-        //     }
-        //   }
-        // `,
-        query: gql`
-          subscription token_holder($tokenId: String!) {
-            tokenHolders(
-              limit: 120
-              orderBy: token_id_DESC
-              where: { token: { id_eq: $tokenId } }
-            ) {
+    tokenHolders: {
+      // query: gql`
+      //   subscription token_holder($tokenId: String!) {
+      //     token_holder(
+      //       order_by: { token_address: desc }
+      //       where: { token_address: { _eq: $tokenId } }
+      //     ) {
+      //       token_address
+      //       signer
+      //       balance
+      //       account {
+      //         address
+      //         evm_address
+      //       }
+      //     }
+      //   }
+      // `,
+      query: gql`
+        query token_holder($tokenId: String!) {
+          tokenHolders(
+            limit: 120
+            orderBy: token_id_DESC
+            where: { token: { id_eq: $tokenId } }
+          ) {
+            id
+            signer {
               id
-              signer {
-                id
-                evmAddress
-              }
-              balance
               evmAddress
-              token {
-                id
-              }
+            }
+            balance
+            evmAddress
+            token {
+              id
             }
           }
-        `,
-        variables() {
+        }
+      `,
+      variables() {
+        return {
+          tokenId: this.tokenId,
+        }
+      },
+      skip() {
+        return !this.tokenId
+      },
+      fetchPolicy: 'network-only',
+      result({ data }) {
+        this.holders = data.tokenHolders.map((holder) => {
           return {
-            tokenId: this.tokenId,
+            ...holder,
+            token_address: holder.token.id,
+            balance: holder.balance,
+            account: {
+              address: holder.signer ? holder.signer.id : holder.evmAddress,
+              evm_address: holder.signer
+                ? holder.signer.evmAddress
+                : holder.evmAddress,
+            },
           }
-        },
-        skip() {
-          return !this.tokenId
-        },
-        result({ data }) {
-          this.holders = data.tokenHolders.map((holder) => {
-            return {
-              ...holder,
-              token_address: holder.token.id,
-              balance: holder.balance,
-              account: {
-                address: holder.signer ? holder.signer.id : holder.evmAddress,
-                evm_address: holder.signer
-                  ? holder.signer.evmAddress
-                  : holder.evmAddress,
-              },
-            }
-          })
-          this.totalRows = this.holders.length
-          this.loading = false
-        },
+        })
+        this.totalRows = this.holders.length
+        this.loading = false
       },
     },
   },

@@ -127,6 +127,7 @@ import Loading from '@/components/Loading.vue'
 import { paginationOptions } from '@/frontend.config.js'
 import Input from '@/components/Input'
 import tableUtils from '@/mixins/tableUtils'
+import BlockTimeout from '@/utils/polling.js'
 
 export default {
   components: {
@@ -152,6 +153,8 @@ export default {
       perPage: null,
       currentPage: 1,
       totalRows: 1,
+      callbackId: null,
+      previousPage: null,
     }
   },
   computed: {
@@ -183,83 +186,93 @@ export default {
       )
     },
   },
+  created() {
+    // force fetch the latest data
+    this.updateData()
+    BlockTimeout.addCallback(this.updateData)
+  },
+  destroyed() {
+    BlockTimeout.removeCallback(this.updateData)
+  },
   methods: {
     handleNumFields(num) {
       localStorage.paginationOptions = num
       this.perPage = parseInt(num)
     },
+    updateData() {
+      this.$apollo.queries.transfers.refetch()
+    },
   },
   apollo: {
-    $subscribe: {
-      transfer: {
-        query: gql`
-          subscription transfers($accountId: String!) {
-            transfers(
-              orderBy: block_height_DESC
-              where: {
-                OR: [
-                  { to: { id_eq: $accountId } }
-                  { from: { id_eq: $accountId } }
-                ]
-              }
-              limit: 40
-            ) {
-              block {
-                height
-              }
-              extrinsic {
-                index
-                section
-                method
-                hash
-                status
-                signedData
-              }
-              to {
-                id
-                evmAddress
-              }
-              from {
-                id
-                evmAddress
-              }
-              amount
-              denom
-              token {
-                id
-              }
-              feeAmount
-              errorMessage
-              timestamp
+    transfers: {
+      query: gql`
+        query transfers($accountId: String!) {
+          transfers(
+            orderBy: block_height_DESC
+            where: {
+              OR: [
+                { to: { id_eq: $accountId } }
+                { from: { id_eq: $accountId } }
+              ]
             }
+            limit: 40
+          ) {
+            block {
+              height
+            }
+            extrinsic {
+              index
+              section
+              method
+              hash
+              status
+              signedData
+            }
+            to {
+              id
+              evmAddress
+            }
+            from {
+              id
+              evmAddress
+            }
+            amount
+            denom
+            token {
+              id
+            }
+            feeAmount
+            errorMessage
+            timestamp
           }
-        `,
-        variables() {
-          return {
-            accountId: this.accountId,
-          }
-        },
-        skip() {
-          return !this.accountId
-        },
-        result({ data }) {
-          this.transfers = data.transfers.map((t) => ({
-            ...t,
-            block_id: t.block.height,
-            extrinsic_hash: t.extrinsic.hash,
-            extrinsic_index: t.extrinsic.index,
-            success: t.extrinsic.status === 'success',
-            to_address: t.to.id || t.to.evmAddress,
-            from_address: t.from.id || t.from.evmAddress,
-            token_address: t.token.id,
-            fee_amount: t.extrinsic.signedData.fee.partialFee,
-            error_message: t.errorMessage,
-            symbol: t.token.verified_contract?.contract_data?.symbol, // TODO: verified contract info isn't in the token table anymore, it's separate
-            decimals: t.token.verified_contract?.contract_data?.decimals, // TODO
-          }))
-          this.totalRows = this.transfers.length
-          this.loading = false
-        },
+        }
+      `,
+      variables() {
+        return {
+          accountId: this.accountId,
+        }
+      },
+      skip() {
+        return !this.accountId
+      },
+      fetchPolicy: 'network-only',
+      result({ data }) {
+        this.transfers = data.transfers.map((t) => ({
+          ...t,
+          block_id: t.block.height,
+          extrinsic_hash: t.extrinsic.hash,
+          extrinsic_index: t.extrinsic.index,
+          success: t.extrinsic.status === 'success',
+          to_address: t.to.id || t.to.evmAddress,
+          from_address: t.from.id || t.from.evmAddress,
+          token_address: t.token.id,
+          fee_amount: t.extrinsic.signedData.fee.partialFee,
+          error_message: t.errorMessage,
+          symbol: t.token.verified_contract?.contract_data?.symbol, // TODO: verified contract info isn't in the token table anymore, it's separate
+          decimals: t.token.verified_contract?.contract_data?.decimals, // TODO
+        }))
+        this.totalRows = this.transfers.length
+        this.loading = false
       },
     },
   },

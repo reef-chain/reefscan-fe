@@ -83,6 +83,7 @@ export default {
           index: parseInt(this.eventIndex),
         }
       },
+      fetchPolicy: 'network-only',
       result({ data }) {
         this.parsedEvent = data.event[0]
         this.loading = false

@@ -173,6 +173,7 @@ import { network } from '@/frontend.config.js'
 import commonMixin from '@/mixins/commonMixin.js'
 import TokenHolders from '@/components/TokenHolders'
 import TokenTransfers from '@/components/TokenTransfers'
+import BlockTimeout from '@/utils/polling.js'
 
 export default {
   components: {
@@ -190,6 +191,7 @@ export default {
       address: this.toContractAddress(this.$route.params.id),
       contract: undefined,
       tab: 'info',
+      callbackId: null,
     }
   },
   computed: {
@@ -229,81 +231,94 @@ export default {
       this.address = this.$route.params.id
     },
   },
+  created() {
+    this.updateData()
+    BlockTimeout.addCallback(this.updateData)
+  },
+  destroyed() {
+    BlockTimeout.removeCallback(this.updateData)
+  },
+  methods: {
+    updateData() {
+      this.$apollo.queries.verifiedContracts.refetch()
+      this.$apollo.queries.tokenHoldersCount.refetch()
+    },
+  },
   apollo: {
-    $subscribe: {
-      contract: {
-        query: gql`
-          subscription contract($address: String = "") {
-            verifiedContracts(
-              limit: 1
-              where: { id_containsInsensitive: $address }
-            ) {
-              id
-              contractData
-              name
-              contract {
-                extrinsic {
-                  block {
-                    height
-                  }
-                  signer
+    verifiedContracts: {
+      query: gql`
+        query contract($address: String = "") {
+          verifiedContracts(
+            limit: 1
+            where: { id_containsInsensitive: $address }
+          ) {
+            id
+            contractData
+            name
+            contract {
+              extrinsic {
+                block {
+                  height
                 }
-                signer {
-                  id
-                }
-                bytecode
-                timestamp
+                signer
               }
-              type
-              target
-              runs
-              optimization
-              source
-              args
-              compiledData
-              compilerVersion
+              signer {
+                id
+              }
+              bytecode
+              timestamp
             }
+            type
+            target
+            runs
+            optimization
+            source
+            args
+            compiledData
+            compilerVersion
           }
-        `,
-        variables() {
-          return {
-            address: this.address,
-          }
-        },
-        result({ data }) {
-          if (data.verifiedContracts[0]) {
-            const { name, type, contract, compiledData, source } =
-              data.verifiedContracts[0]
-            this.contractType = type.replace('ERC', 'ERC-')
-            this.contractName = name
-            this.contract = contract
-            this.contract.extrinsic.block_id = contract.extrinsic.block.height
-            this.contract.verified_contract = data.verifiedContracts[0]
-            this.contract.abi = compiledData[name] || []
-            this.contract.source = Object.keys(source).reduce(
-              this.sourceCode(data),
-              []
-            )
-          }
-          this.loading = false
-        },
+        }
+      `,
+      variables() {
+        return {
+          address: this.address,
+        }
       },
-      tokenHolders: {
-        query: gql`
-          query tokenHoldersAggregate($address: String!) {
-            tokenHoldersCount(tokenId: $address) {
-              count
-            }
+      fetchPolicy: 'network-only',
+      result({ data }) {
+        if (data.verifiedContracts[0]) {
+          const { name, type, contract, compiledData, source } =
+            data.verifiedContracts[0]
+          this.contractType = type.replace('ERC', 'ERC-')
+          this.contractName = name
+          this.contract = contract
+          this.contract.extrinsic.block_id = contract.extrinsic.block.height
+          this.contract.verified_contract = data.verifiedContracts[0]
+          this.contract.abi = compiledData[name] || []
+          this.contract.source = Object.keys(source).reduce(
+            this.sourceCode(data),
+            []
+          )
+        }
+        this.loading = false
+      },
+    },
+    tokenHoldersCount: {
+      query: gql`
+        query tokenHoldersAggregate($address: String!) {
+          tokenHoldersCount(tokenId: $address) {
+            count
           }
-        `,
-        variables() {
-          return {
-            address: this.address,
-          }
-        },
-        result({ data }) {
-          this.holders = data.tokenHoldersCount.count
-        },
+        }
+      `,
+      variables() {
+        return {
+          address: this.address,
+        }
+      },
+      fetchPolicy: 'network-only',
+      result({ data }) {
+        this.holders = data.tokenHoldersCount.count
       },
     },
   },
