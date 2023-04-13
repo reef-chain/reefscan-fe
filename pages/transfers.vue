@@ -199,6 +199,7 @@ export default {
             }
             token {
               id
+              contractData
             }
             from {
               id
@@ -263,8 +264,7 @@ export default {
               transfer.from.id === null
                 ? transfer.from.evmAddress
                 : transfer.from.id,
-            symbol:
-              transfer.token.verified_contract?.contract_data?.symbol || ' ', // TODO: fix this
+            symbol: transfer.token.contractData?.symbol || ' ', // TODO: fix this
             decimals:
               transfer.token.verified_contract?.contract_data?.decimals || 18, // TODO: fix this
           }
