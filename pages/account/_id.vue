@@ -36,12 +36,7 @@
             {{ parsedAccount.identity.display }}
           </Headline>
           <Headline v-else>
-            <div>
-              {{ shortAddress(parsedAccount.address) }}
-            </div>
-            <div v-if="parsedAccount.evm_address">
-              {{ shortAddress(parsedAccount.evm_address) }}
-            </div>
+            {{ shortAddress(parsedAccount.address) }}
           </Headline>
 
           <Data>
@@ -315,6 +310,7 @@ export default {
           this.parsedAccount = {
             ...this.parsedAccount,
             address: this.parsedAccount.id,
+            evm_address: this.parsedAccount.evmAddress,
             available_balance: this.parsedAccount.availableBalance,
             locked_balance: this.parsedAccount.lockedBalance,
             free_balance: this.parsedAccount.freeBalance,
