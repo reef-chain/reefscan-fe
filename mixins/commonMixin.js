@@ -42,7 +42,7 @@ const formatLargeNumber = (num, dec = '0') => {
     decAmo = num.slice(num.length - 3)
     postfix = 'k'
   }
-  decAmo = decAmo.replace(/0+/, '')
+  // decAmo = decAmo.replace(/0+/, '')
   decAmo = decAmo !== '' ? '.' + decAmo.slice(0, 3) : ''
   return `${intAmo}${decAmo}${postfix}`
 }
@@ -97,9 +97,7 @@ export default {
         .div(new BigNumber(10).pow(decimals))
         .toFormat()
         .replaceAll(',', '')
-
       const decimalPoint = bn.indexOf('.')
-
       if (decimalPoint === -1) {
         return `${formatLargeNumber(bn)} ${symbol}`
       } else {
