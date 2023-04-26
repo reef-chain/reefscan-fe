@@ -79,25 +79,37 @@ export default {
     extrinsic: {
       query: gql`
         query extrinsics {
-          extrinsic(
-            order_by: { block_id: desc }
+          extrinsic: extrinsicsConnection(
+            orderBy: { block_id: desc }
             where: { type: { _eq: "signed" } }
-            limit: 10
+            first: 10
           ) {
-            id
-            block_id
-            index
-            type
-            signer
-            section
-            method
-            hash
-            docs
+            edges {
+              node {
+                id
+                block_id
+                index
+                type
+                signer
+                section
+                method
+                hash
+                docs
+              }
+            }
           }
         }
       `,
       fetchPolicy: 'network-only',
       result({ data }) {
+        const dataArr = []
+        if (data.extrinsic.edges) {
+          for (let idx = 0; idx < data.extrinsic.edges.length; idx++) {
+            dataArr.push(data.extrinsic.edges[idx].node)
+          }
+          data.extrinsic = dataArr
+          this.extrinsic = dataArr
+        }
         this.extrinsics = data.extrinsic
       },
     },

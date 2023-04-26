@@ -68,6 +68,64 @@ import { gql } from 'graphql-tag'
 import commonMixin from '@/mixins/commonMixin.js'
 import BlockTimeout from '@/utils/polling.js'
 
+const FIRST_BATCH_QUERY = gql`
+  query evm_event_qry($contractAddress: String!, $first: Int!) {
+    transactions: evmEventsConnection(
+      first: $first
+      where: { contractAddress_containsInsensitive: $contractAddress }
+      orderBy: block_id_DESC
+    ) {
+      edges {
+        node {
+          event {
+            extrinsic {
+              id
+              hash
+              block {
+                height
+              }
+              index
+              timestamp
+              status
+            }
+          }
+        }
+      }
+    }
+  }
+`
+const NEXT_BATCH_QUERY = gql`
+  query evm_event_qry(
+    $contractAddress: String!
+    $first: Int!
+    $after: String!
+  ) {
+    transactions: evmEventsConnection(
+      first: $first
+      after: $after
+      where: { contractAddress_containsInsensitive: $contractAddress }
+      orderBy: block_id_DESC
+    ) {
+      edges {
+        node {
+          event {
+            extrinsic {
+              id
+              hash
+              block {
+                height
+              }
+              index
+              timestamp
+              status
+            }
+          }
+        }
+      }
+    }
+  }
+`
+
 export default {
   mixins: [commonMixin],
   props: {
@@ -86,6 +144,15 @@ export default {
       callbackId: null,
     }
   },
+  computed: {
+    queryToExecute() {
+      if (this.currentPage === 1) {
+        return FIRST_BATCH_QUERY
+      } else {
+        return NEXT_BATCH_QUERY
+      }
+    },
+  },
   created() {
     // force fetch
     this.updateData()
@@ -102,42 +169,26 @@ export default {
   },
   apollo: {
     transactions: {
-      query: gql`
-        query evm_event_qry(
-          $contractAddress: String!
-          $perPage: Int!
-          $offset: Int!
-        ) {
-          transactions: evmEvents(
-            limit: $perPage
-            offset: $offset
-            where: { contractAddress_containsInsensitive: $contractAddress }
-            orderBy: block_id_DESC
-          ) {
-            event {
-              extrinsic {
-                id
-                hash
-                block {
-                  height
-                }
-                index
-                timestamp
-                status
-              }
-            }
-          }
-        }
-      `,
+      query: function () {
+        return this.queryToExecute
+      },
       variables() {
         return {
           contractAddress: this.toContractAddress(this.contractId),
-          perPage: this.perPage,
-          offset: (this.currentPage - 1) * this.perPage,
+          first: this.perPage,
+          after: ((this.currentPage - 1) * this.perPage + 1).toString(),
         }
       },
       fetchPolicy: 'network-only',
       result({ data }) {
+        const dataArr = []
+        if (data.transactions.edges) {
+          for (let idx = 0; idx < data.transactions.edges.length; idx++) {
+            dataArr.push(data.transactions.edges[idx].node)
+          }
+          data.transactions = dataArr
+          this.transactions = dataArr
+        }
         if (data) {
           this.transactions = data.transactions.reduce((state, curr) => {
             curr.event.extrinsic.block_id = curr.event.extrinsic.block.height

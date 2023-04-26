@@ -102,6 +102,83 @@ import Search from '@/components/Search'
 import { paginationOptions } from '@/frontend.config.js'
 import BlockTimeout from '@/utils/polling.js'
 
+const FIRST_BATCH_QUERY = gql`
+  query tokens($first: Int = 10, $where: VerifiedContractWhereInput = {}) {
+    verifiedContracts: verifiedContractsConnection(
+      first: $first
+      orderBy: contract_timestamp_DESC
+      where: $where
+    ) {
+      edges {
+        node {
+          id
+          contractData
+          name
+          contract {
+            timestamp
+            extrinsic {
+              hash
+              block {
+                height
+              }
+            }
+            signer {
+              id
+            }
+          }
+        }
+      }
+    }
+    totalTokens: verifiedContractsConnection(
+      orderBy: id_ASC
+      where: { type_not_eq: other }
+    ) {
+      totalCount
+    }
+  }
+`
+
+const NEXT_BATCH_QUERY = gql`
+  query tokens(
+    $after: String!
+    $first: Int = 10
+    $where: VerifiedContractWhereInput = {}
+  ) {
+    verifiedContracts: verifiedContractsConnection(
+      first: $first
+      orderBy: contract_timestamp_DESC
+      after: $after
+      where: $where
+    ) {
+      edges {
+        node {
+          id
+          contractData
+          name
+          contract {
+            timestamp
+            extrinsic {
+              hash
+              block {
+                height
+              }
+            }
+            signer {
+              id
+            }
+          }
+        }
+      }
+    }
+    totalTokens: verifiedContractsConnection(
+      orderBy: id_ASC
+      where: { type_not_eq: other }
+    ) {
+      totalCount
+    }
+  }
+`
+
 export default {
   components: {
     Loading,
@@ -122,6 +199,15 @@ export default {
       previousPage: null,
       forceLoad: false,
     }
+  },
+  computed: {
+    queryToExecute() {
+      if (this.currentPage === 1) {
+        return FIRST_BATCH_QUERY
+      } else {
+        return NEXT_BATCH_QUERY
+      }
+    },
   },
   watch: {
     currentPage() {
@@ -149,42 +235,9 @@ export default {
   },
   apollo: {
     verifiedContracts: {
-      query: gql`
-        query tokens(
-          $offset: Int = 0
-          $perPage: Int = 10
-          $where: VerifiedContractWhereInput = {}
-        ) {
-          verifiedContracts(
-            limit: $perPage
-            orderBy: contract_timestamp_DESC
-            offset: $offset
-            where: $where
-          ) {
-            id
-            contractData
-            name
-            contract {
-              timestamp
-              extrinsic {
-                hash
-                block {
-                  height
-                }
-              }
-              signer {
-                id
-              }
-            }
-          }
-          totalTokens: verifiedContractsConnection(
-            orderBy: id_ASC
-            where: { type_not_eq: other }
-          ) {
-            totalCount
-          }
-        }
-      `,
+      query: function () {
+        return this.queryToExecute
+      },
       variables() {
         const where = {
           type_not_eq: 'other',
@@ -193,13 +246,21 @@ export default {
           where.id_containsInsensitive = this.toContractAddress(this.filter)
 
         return {
-          perPage: this.perPage,
-          offset: (this.currentPage - 1) * this.perPage,
+          first: this.perPage,
+          after: ((this.currentPage - 1) * this.perPage).toString(),
           where,
         }
       },
       fetchPolicy: 'network-only',
       result({ data }) {
+        const dataArr = []
+        if (data.verifiedContracts.edges) {
+          for (let idx = 0; idx < data.verifiedContracts.edges.length; idx++) {
+            dataArr.push(data.verifiedContracts.edges[idx].node)
+          }
+          data.verifiedContracts = dataArr
+          this.verifiedContracts = dataArr
+        }
         if (data && data.verifiedContracts) {
           this.tokens = data.verifiedContracts.map((token) => {
             return {

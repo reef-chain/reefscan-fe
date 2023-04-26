@@ -126,7 +126,89 @@ const GET_TRANSFER_EXTRINSIC_EVENTS = gql`
     }
   }
 `
-
+const FIRST_BATCH_QUERY = gql`
+  query transfer($first: Int!, $where: TransferWhereInput) {
+    extrinsic: transfersConnection(
+      first: $first
+      orderBy: timestamp_DESC
+      where: $where
+    ) {
+      edges {
+        node {
+          to {
+            id
+            evmAddress
+          }
+          token {
+            id
+            contractData
+          }
+          from {
+            id
+            evmAddress
+          }
+          extrinsic {
+            id
+            hash
+            index
+            block {
+              height
+            }
+            args
+            status
+            errorMessage
+          }
+          id
+          amount
+          timestamp
+          denom
+        }
+      }
+    }
+  }
+`
+const NEXT_BATCH_QUERY = gql`
+  query transfer($first: Int!, $after: String!, $where: TransferWhereInput) {
+    extrinsic: transfersConnection(
+      first: $first
+      orderBy: timestamp_DESC
+      after: $after
+      where: $where
+    ) {
+      edges {
+        node {
+          to {
+            id
+            evmAddress
+          }
+          token {
+            id
+            contractData
+          }
+          from {
+            id
+            evmAddress
+          }
+          extrinsic {
+            id
+            hash
+            index
+            block {
+              height
+            }
+            args
+            status
+            errorMessage
+          }
+          id
+          amount
+          timestamp
+          denom
+        }
+      }
+    }
+  }
+`
 export default {
   components: {
     ReefIdenticon,
@@ -147,6 +229,15 @@ export default {
       previousPage: null,
       forceLoad: false,
     }
+  },
+  computed: {
+    queryToExecute() {
+      if (this.currentPage === 1) {
+        return FIRST_BATCH_QUERY
+      } else {
+        return NEXT_BATCH_QUERY
+      }
+    },
   },
   watch: {
     currentPage() {
@@ -181,48 +272,9 @@ export default {
   },
   apollo: {
     extrinsic: {
-      query: gql`
-        query transfer(
-          $perPage: Int!
-          $offset: Int!
-          $where: TransferWhereInput
-        ) {
-          extrinsic: transfers(
-            limit: $perPage
-            orderBy: timestamp_DESC
-            offset: $offset
-            where: $where
-          ) {
-            to {
-              id
-              evmAddress
-            }
-            token {
-              id
-              contractData
-            }
-            from {
-              id
-              evmAddress
-            }
-            extrinsic {
-              id
-              hash
-              index
-              block {
-                height
-              }
-              args
-              status
-              errorMessage
-            }
-            id
-            amount
-            timestamp
-            denom
-          }
-        }
-      `,
+      query: function () {
+        return this.queryToExecute
+      },
       variables() {
         let where = {}
         if (this.filter) {
@@ -242,12 +294,20 @@ export default {
         }
         return {
           where,
-          perPage: this.perPage,
-          offset: (this.currentPage - 1) * this.perPage,
+          first: this.perPage,
+          after: ((this.currentPage - 1) * this.perPage).toString(),
         }
       },
       fetchPolicy: 'network-only',
       async result({ data }) {
+        const dataArr = []
+        if (data.extrinsic.edges) {
+          for (let idx = 0; idx < data.extrinsic.edges.length; idx++) {
+            dataArr.push(data.extrinsic.edges[idx].node)
+          }
+          data.extrinsic = dataArr
+          this.extrinsic = dataArr
+        }
         const converted = data.extrinsic.map((transfer) => {
           return {
             amount: transfer.amount,

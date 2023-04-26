@@ -74,6 +74,53 @@ import Loading from '@/components/Loading.vue'
 import { paginationOptions } from '@/frontend.config.js'
 import BlockTimeout from '@/utils/polling.js'
 
+const NEXT_BATCH_QUERY = gql`
+  query blocks($where: BlockWhereInput, $first: Int!, $after: String!) {
+    blocks: blocksConnection(
+      after: $after
+      first: $first
+      where: $where
+      orderBy: height_DESC
+    ) {
+      edges {
+        node {
+          id
+          hash
+          finalized
+          timestamp
+          height
+        }
+      }
+    }
+    totalBlocks: chainInfos(where: { id_eq: "blocks" }, limit: 1) {
+      count
+    }
+  }
+`
+
+const FIRST_BATCH_QUERY = gql`
+  query blocks($where: BlockWhereInput, $first: Int!) {
+    blocks: blocksConnection(
+      first: $first
+      where: $where
+      orderBy: height_DESC
+    ) {
+      edges {
+        node {
+          id
+          hash
+          finalized
+          timestamp
+          height
+        }
+      }
+    }
+    totalBlocks: chainInfos(where: { id_eq: "blocks" }, limit: 1) {
+      count
+    }
+  }
+`
+
 export default {
   components: {
     Loading,
@@ -93,6 +140,15 @@ export default {
       previousPage: null,
       forceLoad: false,
     }
+  },
+  computed: {
+    queryToExecute() {
+      if (this.currentPage === 1) {
+        return FIRST_BATCH_QUERY
+      } else {
+        return NEXT_BATCH_QUERY
+      }
+    },
   },
   watch: {
     currentPage() {
@@ -125,37 +181,28 @@ export default {
   },
   apollo: {
     blocks: {
-      query: gql`
-        query blocks($where: BlockWhereInput, $perPage: Int!, $offset: Int!) {
-          blocks(
-            offset: $offset
-            limit: $perPage
-            where: $where
-            orderBy: height_DESC
-          ) {
-            id
-            hash
-            finalized
-            timestamp
-            height
-          }
-          totalBlocks: chainInfos(where: { id_eq: "blocks" }, limit: 1) {
-            count
-          }
-        }
-      `,
+      query: function () {
+        return this.queryToExecute
+      },
       variables() {
         return {
           where: this.isBlockNumber(this.filter)
             ? { height_eq: parseInt(this.filter) }
             : {},
-          perPage: this.perPage,
-          offset: (this.currentPage - 1) * this.perPage,
+          first: this.perPage,
+          after: ((this.currentPage - 1) * this.perPage).toString(),
         }
       },
       fetchPolicy: 'network-only', // force fetch data from the server
       result({ data }) {
-        this.blocks = data.blocks
+        const blocksArr = []
+        if (data.blocks.edges) {
+          for (let idx = 0; idx < data.blocks.edges.length; idx++) {
+            blocksArr.push(data.blocks.edges[idx].node)
+          }
+          data.blocks = blocksArr
+          this.blocks = blocksArr
+        }
         this.blocks = this.blocks.map((block) => {
           block.id = block.height
           return block

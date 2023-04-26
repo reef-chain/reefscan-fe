@@ -129,6 +129,50 @@ import Input from '@/components/Input'
 import tableUtils from '@/mixins/tableUtils'
 import BlockTimeout from '@/utils/polling.js'
 
+const GQL_QUERY = gql`
+  query transfers($accountId: String!) {
+    transfers: transfersConnection(
+      orderBy: block_height_DESC
+      where: {
+        OR: [{ to: { id_eq: $accountId } }, { from: { id_eq: $accountId } }]
+      }
+      first: 40
+    ) {
+      edges {
+        node {
+          block {
+            height
+          }
+          extrinsic {
+            index
+            section
+            method
+            hash
+            status
+            signedData
+          }
+          to {
+            id
+            evmAddress
+          }
+          from {
+            id
+            evmAddress
+          }
+          amount
+          denom
+          token {
+            id
+          }
+          feeAmount
+          errorMessage
+          timestamp
+        }
+      }
+    }
+  }
+`
+
 export default {
   components: {
     ReefIdenticon,
@@ -205,48 +249,7 @@ export default {
   },
   apollo: {
     transfers: {
-      query: gql`
-        query transfers($accountId: String!) {
-          transfers(
-            orderBy: block_height_DESC
-            where: {
-              OR: [
-                { to: { id_eq: $accountId } }
-                { from: { id_eq: $accountId } }
-              ]
-            }
-            limit: 40
-          ) {
-            block {
-              height
-            }
-            extrinsic {
-              index
-              section
-              method
-              hash
-              status
-              signedData
-            }
-            to {
-              id
-              evmAddress
-            }
-            from {
-              id
-              evmAddress
-            }
-            amount
-            denom
-            token {
-              id
-            }
-            feeAmount
-            errorMessage
-            timestamp
-          }
-        }
-      `,
+      query: GQL_QUERY,
       variables() {
         return {
           accountId: this.accountId,
@@ -257,6 +260,14 @@ export default {
       },
       fetchPolicy: 'network-only',
       result({ data }) {
+        const dataArr = []
+        if (data.transfers.edges) {
+          for (let idx = 0; idx < data.transfers.edges.length; idx++) {
+            dataArr.push(data.transfers.edges[idx].node)
+          }
+          data.transfers = dataArr
+          this.transfers = dataArr
+        }
         this.transfers = data.transfers.map((t) => ({
           ...t,
           block_id: t.block.height,

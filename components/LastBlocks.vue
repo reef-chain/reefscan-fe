@@ -80,15 +80,27 @@ export default {
     blocks: {
       query: gql`
         query blocks {
-          blocks(orderBy: height_DESC, where: {}, limit: 10) {
-            height
-            finalized
-            hash
+          blocks: blocksConnection(orderBy: height_DESC, where: {}, first: 10) {
+            edges {
+              node {
+                height
+                finalized
+                hash
+              }
+            }
           }
         }
       `,
       fetchPolicy: 'network-only',
       result({ data }) {
+        const dataArr = []
+        if (data.blocks.edges) {
+          for (let idx = 0; idx < data.blocks.edges.length; idx++) {
+            dataArr.push(data.blocks.edges[idx].node)
+          }
+          data.blocks = dataArr
+          this.blocks = dataArr
+        }
         this.blocks = data.blocks.map((item) => {
           this.loading = false
           return {

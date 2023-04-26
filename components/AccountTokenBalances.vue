@@ -73,6 +73,33 @@ import Input from '@/components/Input'
 import tableUtils from '@/mixins/tableUtils'
 import BlockTimeout from '@/utils/polling.js'
 
+const GQL_QUERY = gql`
+  query token_holder($accountId: String!) {
+    tokenHolders: tokenHoldersConnection(
+      orderBy: balance_DESC
+      where: {
+        signer: { id_eq: $accountId }
+        AND: { token: { type_eq: ERC20 } }
+      }
+      first: 50
+    ) {
+      edges {
+        node {
+          signer {
+            id
+            evmAddress
+          }
+          balance
+          token {
+            id
+            contractData
+          }
+        }
+      }
+    }
+  }
+`
+
 export default {
   components: {
     JsonCSV,
@@ -140,28 +167,7 @@ export default {
   },
   apollo: {
     tokenHolders: {
-      query: gql`
-        query token_holder($accountId: String!) {
-          tokenHolders(
-            orderBy: balance_DESC
-            where: {
-              signer: { id_eq: $accountId }
-              AND: { token: { type_eq: ERC20 } }
-            }
-            limit: 50
-          ) {
-            signer {
-              id
-              evmAddress
-            }
-            balance
-            token {
-              id
-              contractData
-            }
-          }
-        }
-      `,
+      query: GQL_QUERY,
       variables() {
         return {
           accountId: this.accountId,
@@ -172,6 +178,14 @@ export default {
       },
       fetchPolicy: 'network-only',
       result({ data }) {
+        const dataArr = []
+        if (data.tokenHolders.edges) {
+          for (let idx = 0; idx < data.tokenHolders.edges.length; idx++) {
+            dataArr.push(data.tokenHolders.edges[idx].node)
+          }
+          data.tokenHolders = dataArr
+          this.tokenHolders = dataArr
+        }
         this.balances = data.tokenHolders.map((balance) => ({
           contract_id: balance.token.id,
           holder_account_id: balance.signer.id,

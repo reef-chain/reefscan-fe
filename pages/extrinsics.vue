@@ -77,6 +77,64 @@ import Loading from '@/components/Loading.vue'
 import { paginationOptions } from '@/frontend.config.js'
 import BlockTimeout from '@/utils/polling.js'
 
+const FIRST_BATCH_QUERY = gql`
+  query extrinsics(
+    $blockNumber: BlockWhereInput!
+    $first: Int!
+    $after: String!
+  ) {
+    extrinsics: extrinsicsConnection(
+      first: $first
+      after: $after
+      where: { block: $blockNumber }
+      orderBy: id_DESC
+    ) {
+      edges {
+        node {
+          id
+          block {
+            height
+          }
+          index
+          signer
+          section
+          method
+          hash
+          type
+          timestamp
+          errorMessage
+        }
+      }
+    }
+  }
+`
+const NEXT_BATCH_QUERY = gql`
+  query extrinsics($blockNumber: BlockWhereInput!, $first: Int!) {
+    extrinsics: extrinsicsConnection(
+      first: $first
+      where: { block: $blockNumber }
+      orderBy: id_DESC
+    ) {
+      edges {
+        node {
+          id
+          block {
+            height
+          }
+          index
+          signer
+          section
+          method
+          hash
+          type
+          timestamp
+          errorMessage
+        }
+      }
+    }
+  }
+`
+
 export default {
   components: {
     Loading,
@@ -97,6 +155,15 @@ export default {
       previousPage: null,
       forceLoad: false,
     }
+  },
+  computed: {
+    queryToExecute() {
+      if (this.currentPage === 1) {
+        return FIRST_BATCH_QUERY
+      } else {
+        return NEXT_BATCH_QUERY
+      }
+    },
   },
   watch: {
     currentPage() {
@@ -131,43 +198,27 @@ export default {
   },
   apollo: {
     extrinsics: {
-      query: gql`
-        query extrinsics(
-          $blockNumber: BlockWhereInput!
-          $perPage: Int!
-          $offset: Int!
-        ) {
-          extrinsics(
-            limit: $perPage
-            offset: $offset
-            where: { block: $blockNumber }
-            orderBy: id_DESC
-          ) {
-            id
-            block {
-              height
-            }
-            index
-            signer
-            section
-            method
-            hash
-            type
-            timestamp
-            errorMessage
-          }
-        }
-      `,
+      query: function () {
+        return this.queryToExecute
+      },
       variables() {
         const offs = (this.currentPage - 1) * this.perPage
         return {
           blockNumber: this.filter ? { height_eq: parseInt(this.filter) } : {},
-          perPage: this.perPage,
-          offset: offs + 1,
+          first: this.perPage,
+          after: offs.toString(),
         }
       },
       fetchPolicy: 'network-only',
       result({ data }) {
+        const dataArr = []
+        if (data.extrinsics.edges) {
+          for (let idx = 0; idx < data.extrinsics.edges.length; idx++) {
+            dataArr.push(data.extrinsics.edges[idx].node)
+          }
+          data.extrinsics = dataArr
+          this.extrinsics = dataArr
+        }
         data.extrinsics.forEach((item) => {
           item.block_id = item.block.height
           item.error_message = item.errorMessage

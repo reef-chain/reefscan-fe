@@ -146,30 +146,54 @@ export default {
     finalized: {
       query: gql`
         query blocks {
-          finalized: blocks(
-            limit: 1
+          finalized: blocksConnection(
+            first: 1
             orderBy: height_DESC
             where: { finalized_eq: true }
           ) {
-            height
+            edges {
+              node {
+                height
+              }
+            }
           }
         }
       `,
       fetchPolicy: 'network-only',
       result({ data }) {
+        const dataArr = []
+        if (data.finalized.edges) {
+          for (let idx = 0; idx < data.finalized.edges.length; idx++) {
+            dataArr.push(data.finalized.edges[idx].node)
+          }
+          data.finalized = dataArr
+          this.finalized = dataArr
+        }
         this.lastFinalizedBlock = data.finalized[0].height
       },
     },
     lastBlock: {
       query: gql`
         query blocks {
-          lastBlock: blocks(limit: 1, orderBy: height_DESC) {
-            height
+          lastBlock: blocksConnection(first: 1, orderBy: height_DESC) {
+            edges {
+              node {
+                height
+              }
+            }
           }
         }
       `,
       fetchPolicy: 'network-only',
       result({ data }) {
+        const dataArr = []
+        if (data.lastBlock.edges) {
+          for (let idx = 0; idx < data.lastBlock.edges.length; idx++) {
+            dataArr.push(data.lastBlock.edges[idx].node)
+          }
+          data.lastBlock = dataArr
+          this.lastBlock = dataArr
+        }
         this.lastBlock = data.lastBlock[0].height
       },
     },

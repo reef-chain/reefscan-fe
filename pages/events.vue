@@ -69,6 +69,76 @@ import Loading from '@/components/Loading.vue'
 import { paginationOptions } from '@/frontend.config.js'
 import BlockTimeout from '@/utils/polling.js'
 
+const FIRST_BATCH_QUERY = gql`
+  query events($blockNumber: BlockWhereInput!, $first: Int!) {
+    events: eventsConnection(
+      first: $first
+      where: { block: $blockNumber }
+      orderBy: id_DESC
+    ) {
+      edges {
+        node {
+          id
+          block {
+            height
+          }
+          extrinsic {
+            id
+            block {
+              height
+            }
+            index
+          }
+          index
+          data
+          method
+          phase
+          section
+          timestamp
+        }
+      }
+    }
+    totalEvents: chainInfos(where: { id_eq: "events" }, limit: 1) {
+      count
+    }
+  }
+`
+const NEXT_BATCH_QUERY = gql`
+  query events($blockNumber: BlockWhereInput!, $first: Int!, $after: String!) {
+    events: eventsConnection(
+      first: $first
+      after: $after
+      where: { block: $blockNumber }
+      orderBy: id_DESC
+    ) {
+      edges {
+        node {
+          id
+          block {
+            height
+          }
+          extrinsic {
+            id
+            block {
+              height
+            }
+            index
+          }
+          index
+          data
+          method
+          phase
+          section
+          timestamp
+        }
+      }
+    }
+    totalEvents: chainInfos(where: { id_eq: "events" }, limit: 1) {
+      count
+    }
+  }
+`
+
 export default {
   components: {
     Loading,
@@ -89,6 +159,15 @@ export default {
       previousPage: null,
       forceLoad: false,
     }
+  },
+  computed: {
+    queryToExecute() {
+      if (this.currentPage === 1) {
+        return FIRST_BATCH_QUERY
+      } else {
+        return NEXT_BATCH_QUERY
+      }
+    },
   },
   watch: {
     currentPage() {
@@ -121,51 +200,26 @@ export default {
   },
   apollo: {
     events: {
-      query: gql`
-        query events(
-          $blockNumber: BlockWhereInput!
-          $perPage: Int!
-          $offset: Int!
-        ) {
-          events(
-            limit: $perPage
-            offset: $offset
-            where: { block: $blockNumber }
-            orderBy: id_DESC
-          ) {
-            id
-            block {
-              height
-            }
-            extrinsic {
-              id
-              block {
-                height
-              }
-              index
-            }
-            index
-            data
-            method
-            phase
-            section
-            timestamp
-          }
-          totalEvents: chainInfos(where: { id_eq: "events" }, limit: 1) {
-            count
-          }
-        }
-      `,
+      query: function () {
+        return this.queryToExecute
+      },
       variables() {
         return {
           blockNumber: this.filter ? { height_eq: parseInt(this.filter) } : {},
-          perPage: this.perPage,
-          offset: (this.currentPage - 1) * this.perPage,
+          first: this.perPage,
+          after: ((this.currentPage - 1) * this.perPage).toString(),
         }
       },
       fetchPolicy: 'network-only',
       result({ data }) {
-        this.events = data.events
+        const dataArr = []
+        if (data.events.edges) {
+          for (let idx = 0; idx < data.events.edges.length; idx++) {
+            dataArr.push(data.events.edges[idx].node)
+          }
+          data.events = dataArr
+          this.events = dataArr
+        }
         this.events.forEach((event) => {
           event.block_id = event.block.height
           event.extrinsic.block_id = event.extrinsic.block.height

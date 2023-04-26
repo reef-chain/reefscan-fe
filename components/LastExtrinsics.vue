@@ -64,22 +64,38 @@ export default {
     extrinsics: {
       query: gql`
         query extrinsics {
-          extrinsics(orderBy: id_DESC, limit: 10, offset: 1) {
-            id
-            block {
-              height
+          extrinsics: extrinsicsConnection(
+            orderBy: id_DESC
+            first: 10
+            after: "1"
+          ) {
+            edges {
+              node {
+                id
+                block {
+                  height
+                }
+                index
+                type
+                signer
+                section
+                method
+                hash
+              }
             }
-            index
-            type
-            signer
-            section
-            method
-            hash
           }
         }
       `,
       fetchPolicy: 'network-only',
       result({ data }) {
+        const dataArr = []
+        if (data.extrinsics.edges) {
+          for (let idx = 0; idx < data.extrinsics.edges.length; idx++) {
+            dataArr.push(data.extrinsics.edges[idx].node)
+          }
+          data.extrinsics = dataArr
+          this.extrinsics = dataArr
+        }
         this.extrinsics = data.extrinsics.map((item) => {
           return {
             ...item,

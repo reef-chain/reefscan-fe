@@ -105,6 +105,51 @@ import Search from '@/components/Search'
 import { paginationOptions } from '@/frontend.config.js'
 import BlockTimeout from '@/utils/polling.js'
 
+const FIRST_BATCH_QUERY = gql`
+  query contract($where: ContractWhereInput!, $first: Int!) {
+    contracts: contractsConnection(
+      first: $first
+      where: $where
+      orderBy: extrinsic_timestamp_DESC
+    ) {
+      edges {
+        node {
+          id
+          extrinsic {
+            block {
+              height
+            }
+          }
+          timestamp
+        }
+      }
+    }
+  }
+`
+
+const NEXT_BATCH_QUERY = gql`
+  query contract($where: ContractWhereInput!, $first: Int!, $after: String!) {
+    contracts: contractsConnection(
+      first: $first
+      after: $after
+      where: $where
+      orderBy: extrinsic_timestamp_DESC
+    ) {
+      edges {
+        node {
+          id
+          extrinsic {
+            block {
+              height
+            }
+          }
+          timestamp
+        }
+      }
+    }
+  }
+`
+
 export default {
   components: {
     Loading,
@@ -125,6 +170,15 @@ export default {
       previousPage: null,
       forceLoad: false,
     }
+  },
+  computed: {
+    queryToExecute() {
+      if (this.currentPage === 1) {
+        return FIRST_BATCH_QUERY
+      } else {
+        return NEXT_BATCH_QUERY
+      }
+    },
   },
   watch: {
     currentPage() {
@@ -161,28 +215,9 @@ export default {
   },
   apollo: {
     contracts: {
-      query: gql`
-        query contract(
-          $where: ContractWhereInput!
-          $perPage: Int!
-          $offset: Int!
-        ) {
-          contracts(
-            limit: $perPage
-            offset: $offset
-            where: $where
-            orderBy: extrinsic_timestamp_DESC
-          ) {
-            id
-            extrinsic {
-              block {
-                height
-              }
-            }
-            timestamp
-          }
-        }
-      `,
+      query: function () {
+        return this.queryToExecute
+      },
       variables() {
         let where = {}
         if (this.isBlockNumber(this.filter)) {
@@ -200,18 +235,25 @@ export default {
         }
         const newVar = {
           where,
-          perPage: this.perPage,
-          offset: (this.currentPage - 1) * this.perPage,
+          first: this.perPage,
+          after: ((this.currentPage - 1) * this.perPage).toString(),
         }
         return newVar
       },
       fetchPolicy: 'network-only',
       result({ data }) {
+        const dataArr = []
+        if (data.contracts.edges) {
+          for (let idx = 0; idx < data.contracts.edges.length; idx++) {
+            dataArr.push(data.contracts.edges[idx].node)
+          }
+          data.contracts = dataArr
+          this.contracts = dataArr
+        }
         data.contracts.forEach((contract) => {
           contract.address = contract.id
           contract.extrinsic.block_id = contract.extrinsic.block.height
         })
-        this.contracts = data.contracts
         this.totalRows = this.filter ? this.contracts.length : this.nContracts
         if (!this.forceLoad) this.loading = false
       },

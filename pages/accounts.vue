@@ -180,6 +180,51 @@ import Loading from '@/components/Loading.vue'
 import commonMixin from '@/mixins/commonMixin.js'
 import BlockTimeout from '@/utils/polling.js'
 
+const FIRST_BATCH_QUERY = gql`
+  query account($first: Int!, $where: AccountWhereInput) {
+    accounts: accountsConnection(
+      orderBy: freeBalance_DESC
+      first: $first
+      where: $where
+    ) {
+      edges {
+        node {
+          id
+          evmAddress
+          availableBalance
+          freeBalance
+          lockedBalance
+        }
+      }
+    }
+    totalAccounts: chainInfos(where: { id_eq: "accounts" }, limit: 1) {
+      count
+    }
+  }
+`
+const NEXT_BATCH_QUERY = gql`
+  query account($first: Int!, $after: String!, $where: AccountWhereInput) {
+    accounts: accountsConnection(
+      orderBy: freeBalance_DESC
+      first: $first
+      after: $after
+      where: $where
+    ) {
+      edges {
+        node {
+          id
+          evmAddress
+          availableBalance
+          freeBalance
+          lockedBalance
+        }
+      }
+    }
+    totalAccounts: chainInfos(where: { id_eq: "accounts" }, limit: 1) {
+      count
+    }
+  }
+`
 export default {
   components: {
     Loading,
@@ -216,14 +261,14 @@ export default {
       })
     },
     currentPage() {
+      this.fetchData()
       if (this.currentPage === 1) {
         // if moving from any other page to page 1
         if (this.previousPage !== 1) {
           this.loading = true // set loading to true before refetching
           this.forceLoad = true
           setTimeout(() => {
-            this.$apollo.queries.favoriteAccounts.refetch()
-            this.$apollo.queries.accounts.refetch()
+            this.updateData()
             this.forceLoad = false
           }, 100)
         }
@@ -234,6 +279,7 @@ export default {
     },
   },
   created() {
+    this.updateData()
     // get favorites from cookie
     if (this.$cookies.get('favorites')) {
       this.favorites = this.$cookies.get('favorites')
@@ -244,9 +290,75 @@ export default {
     BlockTimeout.removeCallback(this.updateData)
   },
   methods: {
+    fetchData() {
+      let where = {}
+      if (this.isAddress(this.filter)) {
+        where = { id_eq: this.filter }
+      } else if (this.isContractId(this.filter)) {
+        where = {
+          evmAddress_eq: this.toContractAddress(this.filter),
+        }
+      }
+      const query =
+        this.currentPage === 1 ? FIRST_BATCH_QUERY : NEXT_BATCH_QUERY
+      const variables =
+        this.currentPage === 1
+          ? {
+              first: this.perPage,
+              where,
+            }
+          : {
+              first: this.perPage,
+              after: ((this.currentPage - 1) * this.perPage).toString(),
+              where,
+            }
+      this.$apollo
+        .query({
+          query,
+          variables,
+        })
+        .then((data) => {
+          data = data.data
+          const dataArr = []
+          if (data.accounts.edges) {
+            for (let idx = 0; idx < data.accounts.edges.length; idx++) {
+              dataArr.push(data.accounts.edges[idx].node)
+            }
+            data.accounts = dataArr
+            this.accounts = dataArr
+          }
+          if (data && data.accounts) {
+            data.accounts = data.accounts.map((account) => ({
+              ...account,
+              address: account.id,
+              free_balance: account.freeBalance,
+              evm_address: account.evmAddress,
+              locked_balance: account.lockedBalance,
+              available_balance: account.availableBalance,
+            }))
+            this.allAccounts = data.accounts.map((account, index) => ({
+              ...account,
+              favorite: this.favorites.includes(account.address),
+              rank: index + (this.currentPage - 1) * this.perPage + 1,
+            }))
+            if (!this.filter) {
+              this.updateFavoritesRank()
+              this.totalRows = this.nAccounts
+            } else {
+              this.totalRows = this.allAccounts.length
+            }
+          }
+          this.nAccounts = data.totalAccounts[0].count
+          this.totalRows = this.nAccounts
+          if (!this.forceLoad) this.loading = false
+        })
+        .catch((error) => {
+          throw error
+        })
+    },
     updateData() {
       this.$apollo.queries.favoriteAccounts.refetch()
-      this.$apollo.queries.accounts.refetch()
+      this.fetchData()
     },
     toggleFavorite(accountId) {
       const includes = this.favorites.includes(accountId)
@@ -331,73 +443,6 @@ export default {
           }))
           this.updateFavoritesRank()
         }
-      },
-    },
-    accounts: {
-      query: gql`
-        query account(
-          $perPage: Int!
-          $offset: Int!
-          $where: AccountWhereInput
-        ) {
-          accounts(
-            orderBy: freeBalance_DESC
-            limit: $perPage
-            offset: $offset
-            where: $where
-          ) {
-            id
-            evmAddress
-            availableBalance
-            freeBalance
-            lockedBalance
-          }
-          totalAccounts: chainInfos(where: { id_eq: "accounts" }, limit: 1) {
-            count
-          }
-        }
-      `,
-      variables() {
-        let where = {}
-        if (this.isAddress(this.filter)) {
-          where = { id_eq: this.filter }
-        } else if (this.isContractId(this.filter)) {
-          where = {
-            evmAddress_eq: this.toContractAddress(this.filter),
-          }
-        }
-        return {
-          perPage: this.perPage,
-          offset: (this.currentPage - 1) * this.perPage,
-          where,
-        }
-      },
-      fetchPolicy: 'network-only',
-      result({ data }) {
-        if (data && data.accounts) {
-          data.accounts = data.accounts.map((account) => ({
-            ...account,
-            address: account.id,
-            free_balance: account.freeBalance,
-            evm_address: account.evmAddress,
-            locked_balance: account.lockedBalance,
-            available_balance: account.availableBalance,
-          }))
-          this.allAccounts = data.accounts.map((account, index) => ({
-            ...account,
-            favorite: this.favorites.includes(account.address),
-            rank: index + (this.currentPage - 1) * this.perPage + 1,
-          }))
-          if (!this.filter) {
-            this.updateFavoritesRank()
-            this.totalRows = this.nAccounts
-          } else {
-            this.totalRows = this.allAccounts.length
-          }
-        }
-        this.nAccounts = data.totalAccounts[0].count
-        this.totalRows = this.nAccounts
-        if (!this.forceLoad) this.loading = false
       },
     },
   },

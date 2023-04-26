@@ -71,7 +71,7 @@ export default {
     events: {
       query: gql`
         query events($extrinsic_index: Int!, $block_height: Int!) {
-          events(
+          events: eventsConnection(
             orderBy: index_ASC
             where: {
               extrinsic: {
@@ -79,19 +79,23 @@ export default {
                 block: { height_eq: $block_height }
               }
             }
-            limit: 50
+            first: 50
           ) {
-            extrinsic {
-              id
-              index
-              block {
-                height
+            edges {
+              node {
+                extrinsic {
+                  id
+                  index
+                  block {
+                    height
+                  }
+                }
+                index
+                data
+                method
+                section
               }
             }
-            index
-            data
-            method
-            section
           }
         }
       `,
@@ -104,6 +108,14 @@ export default {
       },
       fetchPolicy: 'network-only',
       result({ data }) {
+        const dataArr = []
+        if (data.events.edges) {
+          for (let idx = 0; idx < data.events.edges.length; idx++) {
+            dataArr.push(data.events.edges[idx].node)
+          }
+          data.events = dataArr
+          this.events = dataArr
+        }
         data.events = data.events.map((item) => {
           item.extrinsic.block_id = item.extrinsic.block.height
           return item

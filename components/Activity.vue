@@ -97,6 +97,32 @@ import { paginationOptions } from '@/frontend.config.js'
 import tableUtils from '@/mixins/tableUtils'
 import BlockTimeout from '@/utils/polling.js'
 
+const GQL_QUERY = gql`
+  query extrinsic($signer: String!) {
+    extrinsics: extrinsicsConnection(
+      orderBy: block_height_DESC
+      where: { signer_eq: $signer }
+      first: 50
+    ) {
+      edges {
+        node {
+          id
+          index
+          block {
+            height
+          }
+          signer
+          hash
+          section
+          method
+          status
+          timestamp
+        }
+      }
+    }
+  }
+`
+
 export default {
   components: {
     ReefIdenticon,
@@ -159,27 +185,7 @@ export default {
   },
   apollo: {
     extrinsics: {
-      query: gql`
-        query extrinsic($signer: String!) {
-          extrinsics(
-            orderBy: block_height_DESC
-            where: { signer_eq: $signer }
-            limit: 50
-          ) {
-            id
-            index
-            block {
-              height
-            }
-            signer
-            hash
-            section
-            method
-            status
-            timestamp
-          }
-        }
-      `,
+      query: GQL_QUERY,
       variables() {
         return {
           signer: this.accountId,
@@ -190,6 +196,14 @@ export default {
       },
       fetchPolicy: 'network-only',
       result({ data }) {
+        const dataArr = []
+        if (data.extrinsics.edges) {
+          for (let idx = 0; idx < data.extrinsics.edges.length; idx++) {
+            dataArr.push(data.extrinsics.edges[idx].node)
+          }
+          data.extrinsics = dataArr
+          this.extrinsics = dataArr
+        }
         data.extrinsics = data.extrinsics.map((item) => {
           return {
             ...item,

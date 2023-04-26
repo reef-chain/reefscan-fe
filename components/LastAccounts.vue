@@ -65,17 +65,33 @@ export default {
     accounts: {
       query: gql`
         query accounts {
-          accounts(orderBy: timestamp_DESC, where: {}, limit: 10) {
-            id
-            block {
-              height
+          accounts: accountsConnection(
+            orderBy: timestamp_DESC
+            where: {}
+            first: 10
+          ) {
+            edges {
+              node {
+                id
+                block {
+                  height
+                }
+                freeBalance
+              }
             }
-            freeBalance
           }
         }
       `,
       fetchPolicy: 'network-only',
       result({ data }) {
+        const dataArr = []
+        if (data.accounts.edges) {
+          for (let idx = 0; idx < data.accounts.edges.length; idx++) {
+            dataArr.push(data.accounts.edges[idx].node)
+          }
+          data.accounts = dataArr
+          this.accounts = dataArr
+        }
         this.accounts = data.accounts.map((item) => {
           return {
             address: item.id,

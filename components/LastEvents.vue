@@ -65,23 +65,35 @@ export default {
     events: {
       query: gql`
         query events {
-          events(orderBy: id_DESC, where: {}, limit: 10) {
-            extrinsic {
-              id
-              block {
-                height
+          events: eventsConnection(orderBy: id_DESC, where: {}, first: 10) {
+            edges {
+              node {
+                extrinsic {
+                  id
+                  block {
+                    height
+                  }
+                  index
+                }
+                index
+                data
+                method
+                phase
+                section
               }
-              index
             }
-            index
-            data
-            method
-            phase
-            section
           }
         }
       `,
       result({ data }) {
+        const dataArr = []
+        if (data.events.edges) {
+          for (let idx = 0; idx < data.events.edges.length; idx++) {
+            dataArr.push(data.events.edges[idx].node)
+          }
+          data.events = dataArr
+          this.events = dataArr
+        }
         this.events = data.events.map((event) => {
           return {
             ...event,

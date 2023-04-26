@@ -133,34 +133,49 @@ export default {
       // TODO: broken until we have a way to get the token info
       query: gql`
         query transfer {
-          lastTransfers: transfers(limit: 10, orderBy: timestamp_DESC) {
-            extrinsic {
-              id
-              hash
-              index
-              block {
-                height
+          lastTransfers: transfersConnection(
+            first: 10
+            orderBy: timestamp_DESC
+          ) {
+            edges {
+              node {
+                extrinsic {
+                  id
+                  hash
+                  index
+                  block {
+                    height
+                  }
+                }
+                from {
+                  id
+                  evmAddress
+                }
+                to {
+                  id
+                  evmAddress
+                }
+                token {
+                  id
+                }
+                success
+                amount
+                timestamp
               }
             }
-            from {
-              id
-              evmAddress
-            }
-            to {
-              id
-              evmAddress
-            }
-            token {
-              id
-            }
-            success
-            amount
-            timestamp
           }
         }
       `,
       fetchPolicy: 'network-only',
       async result({ data }) {
+        const dataArr = []
+        if (data.lastTransfers.edges) {
+          for (let idx = 0; idx < data.lastTransfers.edges.length; idx++) {
+            dataArr.push(data.lastTransfers.edges[idx].node)
+          }
+          data.lastTransfers = dataArr
+          this.lastTransfers = dataArr
+        }
         const processed = data.lastTransfers.map((transfer) => ({
           amount: transfer.amount,
           success: transfer.success,
