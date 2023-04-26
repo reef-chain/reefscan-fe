@@ -65,7 +65,11 @@
         </Cell>
 
         <Cell>
-          {{ formatShortAmount(item.amount, item.symbol, item.decimals) }}
+          {{
+            item.isNft
+              ? formatNftTransfer(item.amount)
+              : formatShortAmount(item.amount, item.symbol, item.decimals)
+          }}
         </Cell>
 
         <Cell align="center">
@@ -139,6 +143,7 @@ export default {
           ) {
             edges {
               node {
+                nftId
                 extrinsic {
                   id
                   hash
@@ -184,6 +189,7 @@ export default {
           index: transfer.extrinsic.index,
           timestamp: transfer.timestamp,
           tokenAddress: transfer.token.id,
+          isNft: transfer.nftId !== null,
           symbol:
             transfer.token.verified_contract?.contract_data?.symbol || ' ',
           decimals:

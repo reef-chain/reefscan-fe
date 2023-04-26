@@ -52,6 +52,7 @@ export default {
           transfers(where: { extrinsic: { hash_eq: $hash } }, limit: 1) {
             amount
             denom
+            nftId
             block {
               height
             }
@@ -101,7 +102,7 @@ export default {
           this.transfer.block_id = this.transfer.block.height
           this.transfer.extrinsic.error_message =
             this.transfer.extrinsic.errorMessage
-
+          this.transfer.isNft = this.transfer.nftId !== null
           this.transfer.extrinsic.events = this.transfer.extrinsic.events.map(
             (event) => {
               event.extrinsic_id = event.extrinsic.id

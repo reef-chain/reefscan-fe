@@ -128,6 +128,9 @@ export default {
         .toFixed(2)
         .replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,')} ${denom}`
     },
+    formatNftTransfer(amount) {
+      return 'NFT' + (amount === '1' ? '' : ' ' + amount + 'x')
+    },
     capitalize(s) {
       if (typeof s !== 'string') return ''
       return s.charAt(0).toUpperCase() + s.slice(1)

@@ -61,7 +61,11 @@
             </span>
           </Cell>
 
-          <Cell>{{ formatAmount(item.amount, symbol, decimals) }}</Cell>
+          <Cell>{{
+            item.isNft
+              ? formatNftTransfer(item.amount)
+              : formatAmount(item.amount, symbol, decimals)
+          }}</Cell>
 
           <Cell
             v-b-tooltip.hover
@@ -157,6 +161,7 @@ export default {
             where: { token: { id_eq: $tokenId } }
             limit: 60
           ) {
+            nftId
             extrinsic {
               hash
               block {
@@ -193,6 +198,7 @@ export default {
           return {
             ...transfer,
             to_address: transfer.to.id,
+            isNft: transfer.nftId,
             from_address: transfer.from.id,
             to_evm_address: transfer.to.evmAddress,
             from_evm_address: transfer.from.evmAddress,

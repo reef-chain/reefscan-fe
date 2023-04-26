@@ -90,7 +90,9 @@
           </Cell>
 
           <Cell align="right">{{
-            formatShortAmount(item.amount, item.symbol, item.decimals)
+            item.isNft
+              ? formatNftTransfer(item.amount)
+              : formatShortAmount(item.amount, item.symbol, item.decimals)
           }}</Cell>
 
           <Cell align="right">{{ formatShortAmount(item.fee_amount) }}</Cell>
@@ -140,6 +142,7 @@ const GQL_QUERY = gql`
     ) {
       edges {
         node {
+          nftId
           block {
             height
           }
@@ -277,6 +280,7 @@ export default {
           to_address: t.to.id || t.to.evmAddress,
           from_address: t.from.id || t.from.evmAddress,
           token_address: t.token.id,
+          isNft: t.nftId !== null,
           fee_amount: t.extrinsic.signedData.fee.partialFee,
           error_message: t.errorMessage,
           symbol: t.token.verified_contract?.contract_data?.symbol, // TODO: verified contract info isn't in the token table anymore, it's separate

@@ -68,7 +68,9 @@
               </Cell>
 
               <Cell>{{
-                formatShortAmount(item.amount, item.symbol, item.decimals)
+                item.isNft
+                  ? formatNftTransfer(item.amount)
+                  : formatShortAmount(item.amount, item.symbol, item.decimals)
               }}</Cell>
 
               <Cell
@@ -135,6 +137,7 @@ const FIRST_BATCH_QUERY = gql`
     ) {
       edges {
         node {
+          nftId
           to {
             id
             evmAddress
@@ -177,6 +180,7 @@ const NEXT_BATCH_QUERY = gql`
     ) {
       edges {
         node {
+          nftId
           to {
             id
             evmAddress
@@ -318,6 +322,7 @@ export default {
             extrinsicId: transfer.extrinsic.id,
             index: parseInt(transfer.id.split('-')[1]),
             block_id: transfer.extrinsic.block.height,
+            isNft: transfer.nftId !== null,
             to:
               transfer.to.id === null ? transfer.to.evmAddress : transfer.to.id,
             from:

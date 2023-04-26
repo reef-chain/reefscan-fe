@@ -61,6 +61,7 @@ export default {
           ) {
             amount
             denom
+            nftId
             block {
               height
             }
@@ -127,7 +128,7 @@ export default {
 
           this.transfer.success =
             data.transfers[0].extrinsic.status === 'success'
-
+          this.transfer.isNft = this.transfer.nftId !== null
           if (this.transfer.to_address === 'deleted') {
             this.transfer.to_address =
               data.transfers[0].extrinsic.events[0].data[1]
