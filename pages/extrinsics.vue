@@ -77,7 +77,7 @@ import Loading from '@/components/Loading.vue'
 import { paginationOptions } from '@/frontend.config.js'
 import BlockTimeout from '@/utils/polling.js'
 
-const FIRST_BATCH_QUERY = gql`
+const GQL_QUERY = gql`
   query extrinsics(
     $blockNumber: BlockWhereInput!
     $first: Int!
@@ -86,32 +86,6 @@ const FIRST_BATCH_QUERY = gql`
     extrinsics: extrinsicsConnection(
       first: $first
       after: $after
-      where: { block: $blockNumber }
-      orderBy: id_DESC
-    ) {
-      edges {
-        node {
-          id
-          block {
-            height
-          }
-          index
-          signer
-          section
-          method
-          hash
-          type
-          timestamp
-          errorMessage
-        }
-      }
-    }
-  }
-`
-const NEXT_BATCH_QUERY = gql`
-  query extrinsics($blockNumber: BlockWhereInput!, $first: Int!) {
-    extrinsics: extrinsicsConnection(
-      first: $first
       where: { block: $blockNumber }
       orderBy: id_DESC
     ) {
@@ -156,15 +130,6 @@ export default {
       forceLoad: false,
     }
   },
-  computed: {
-    queryToExecute() {
-      if (this.currentPage === 1) {
-        return FIRST_BATCH_QUERY
-      } else {
-        return NEXT_BATCH_QUERY
-      }
-    },
-  },
   watch: {
     currentPage() {
       if (this.currentPage === 1) {
@@ -198,11 +163,9 @@ export default {
   },
   apollo: {
     extrinsics: {
-      query: function () {
-        return this.queryToExecute
-      },
+      query: GQL_QUERY,
       variables() {
-        const offs = (this.currentPage - 1) * this.perPage
+        const offs = (this.currentPage - 1) * this.perPage + 1
         return {
           blockNumber: this.filter ? { height_eq: parseInt(this.filter) } : {},
           first: this.perPage,
