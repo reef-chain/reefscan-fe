@@ -97,18 +97,29 @@
               <Cell>{{ $t('details.contract.signer') }}</Cell>
               <Cell>
                 <ReefIdenticon
-                  v-if="contract.signer"
-                  :key="contract.signer"
+                  v-if="contract.signerId"
+                  :key="contract.signerId"
                   class="contract-details__account-identicon"
-                  :address="contract.signer"
+                  :address="contract.signerId"
                   :size="20"
                 />
                 <nuxt-link
-                  v-if="contract.signer"
-                  :to="`/account/${contract.signer}`"
+                  v-if="contract.signerId"
+                  :to="`/account/${contract.signerId}`"
                 >
-                  {{ shortAddress(contract.signer) }}
+                  {{ shortAddress(contract.signerId) }}
                 </nuxt-link>
+              </Cell>
+            </Row>
+            <Row>
+              <Cell>Status</Cell>
+              <Cell>
+                <font-awesome-icon
+                  v-if="contract.statusResponse == 'success'"
+                  icon="check"
+                  class="text-success"
+                />
+                <font-awesome-icon v-else icon="times" class="text-danger" />
               </Cell>
             </Row>
             <Row>
@@ -388,34 +399,6 @@ export default {
   },
   apollo: {
     contracts: {
-      // query: gql`
-      //   subscription contract($address: String!) {
-      //     contract(where: { address: { _ilike: $address } }) {
-      //       address
-      //       verified_contract {
-      //         name
-      //         args
-      //         source
-      //         compiler_version
-      //         compiled_data
-      //         contract_data
-      //         optimization
-      //         runs
-      //         target
-      //         type
-      //       }
-      //       bytecode
-      //       bytecode_context
-      //       bytecode_arguments
-      //       signer
-      //       extrinsic {
-      //         block_id
-      //       }
-      //       timestamp
-      //     }
-      //   }
-      // `,
-
       // ClickUp Task /contract/0xd4112Be340b43Fbb700C31C625c1Ae92C60599d4  -  success value missing - comment out for now
       query: gql`
         query contracts($address: String!) {
@@ -425,6 +408,7 @@ export default {
               block {
                 height
               }
+              status
             }
             timestamp
             bytecode
@@ -449,7 +433,8 @@ export default {
           data.contracts[0].bytecode_context = data.contracts[0].bytecodeContext
           data.contracts[0].bytecode_arguments =
             data.contracts[0].bytecodeArguments
-          data.contracts[0].signer = data.contracts[0].signer?.id
+          data.contracts[0].signerId = data.contracts[0].signer?.id
+          data.contracts[0].statusResponse = data.contracts[0].extrinsic.status
           this.contract = data.contracts[0]
           const name = data.contracts[0].verified_contract?.name
 
