@@ -3,7 +3,7 @@
     <section>
       <Search
         v-model="search"
-        label="Reef Blockchain Explorer - beta"
+        label="Reef Blockchain Explorer"
         placeholder="Search by block number, block hash, extrinsic hash or account address"
         show-stats
         @keydown="doSearch"
