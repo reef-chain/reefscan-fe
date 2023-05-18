@@ -6,8 +6,8 @@
           <div class="col-lg-6">
             <ul class="list-inline">
               <li class="list-inline-item">
-                <!--                <nuxt-link to="/verifyContract">Verify Contract</nuxt-link>-->
-                <span>sqd beta 0.0.5</span>
+                <nuxt-link to="/verifyContract">Verify Contract</nuxt-link>
+                <span>v1.0.1</span>
               </li>
             </ul>
           </div>
@@ -20,7 +20,7 @@
                 <a href="https://docs.reef.io" target="_blank">Docs</a>
               </li>
               <li class="list-inline-item">
-                <a href="https://github.com/reef-defi" target="_blank"
+                <a href="https://github.com/reef-chain" target="_blank"
                   >GitHub</a
                 >
               </li>
