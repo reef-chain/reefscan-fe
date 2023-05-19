@@ -130,7 +130,18 @@ export default {
       }
     },
   },
-
+  router: {
+    extendRoutes(routes, resolve) {
+      routes.push({
+        name: 'extrinsic',
+        path: '/extrinsic/:block',
+        component: resolve(
+          __dirname,
+          'pages/extrinsic/_block/extrinsicHash.vue'
+        ),
+      })
+    },
+  },
   module: {
     rules: [
       {
