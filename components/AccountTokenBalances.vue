@@ -164,6 +164,9 @@ export default {
     updateData() {
       this.$apollo.queries.tokenHolders.refetch()
     },
+    setPerPage(value) {
+      this.perPage = value
+    },
   },
   apollo: {
     tokenHolders: {
@@ -177,28 +180,38 @@ export default {
         return !this.accountId
       },
       fetchPolicy: 'network-only',
-      result({ data }) {
-        const dataArr = []
-        if (data.tokenHolders.edges) {
-          for (let idx = 0; idx < data.tokenHolders.edges.length; idx++) {
-            dataArr.push(data.tokenHolders.edges[idx].node)
+      result({ data, error }) {
+        if (error) {
+          this.setPerPage(20)
+          this.$bvToast.toast(`Exceeds the size limit`, {
+            title: 'Encountered an Error',
+            variant: 'danger',
+            autoHideDelay: 5000,
+            appendToast: false,
+          })
+        } else {
+          const dataArr = []
+          if (data.tokenHolders.edges) {
+            for (let idx = 0; idx < data.tokenHolders.edges.length; idx++) {
+              dataArr.push(data.tokenHolders.edges[idx].node)
+            }
+            data.tokenHolders = dataArr
+            this.tokenHolders = dataArr
           }
-          data.tokenHolders = dataArr
-          this.tokenHolders = dataArr
+          this.balances = data.tokenHolders.map((balance) => ({
+            contract_id: balance.token.id,
+            holder_account_id: balance.signer.id,
+            holder_evm_address: balance.signer.evmAddress,
+            balance: balance.balance.toLocaleString('fullwide', {
+              useGrouping: false,
+            }),
+            token_name: balance.token.contractData?.name,
+            token_symbol: balance.token.contractData?.symbol,
+            token_decimals: balance.token.contractData?.decimals,
+          }))
+          this.totalRows = this.balances.length
+          this.loading = false
         }
-        this.balances = data.tokenHolders.map((balance) => ({
-          contract_id: balance.token.id,
-          holder_account_id: balance.signer.id,
-          holder_evm_address: balance.signer.evmAddress,
-          balance: balance.balance.toLocaleString('fullwide', {
-            useGrouping: false,
-          }),
-          token_name: balance.token.contractData?.name,
-          token_symbol: balance.token.contractData?.symbol,
-          token_decimals: balance.token.contractData?.decimals,
-        }))
-        this.totalRows = this.balances.length
-        this.loading = false
       },
     },
   },

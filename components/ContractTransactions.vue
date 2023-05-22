@@ -166,6 +166,9 @@ export default {
       this.$apollo.queries.transactions.refetch()
       this.$apollo.queries.total_transactions.refetch()
     },
+    setPerPage(value) {
+      this.perPage = value
+    },
   },
   apollo: {
     transactions: {
@@ -180,23 +183,33 @@ export default {
         }
       },
       fetchPolicy: 'network-only',
-      result({ data }) {
-        const dataArr = []
-        if (data.transactions.edges) {
-          for (let idx = 0; idx < data.transactions.edges.length; idx++) {
-            dataArr.push(data.transactions.edges[idx].node)
+      result({ data, error }) {
+        if (error) {
+          this.setPerPage(20)
+          this.$bvToast.toast(`Exceeds the size limit`, {
+            title: 'Encountered an Error',
+            variant: 'danger',
+            autoHideDelay: 5000,
+            appendToast: false,
+          })
+        } else {
+          const dataArr = []
+          if (data.transactions.edges) {
+            for (let idx = 0; idx < data.transactions.edges.length; idx++) {
+              dataArr.push(data.transactions.edges[idx].node)
+            }
+            data.transactions = dataArr
+            this.transactions = dataArr
           }
-          data.transactions = dataArr
-          this.transactions = dataArr
+          if (data) {
+            this.transactions = data.transactions.reduce((state, curr) => {
+              curr.event.extrinsic.block_id = curr.event.extrinsic.block.height
+              state.push(curr.event.extrinsic)
+              return state
+            }, [])
+          }
+          this.loading = false
         }
-        if (data) {
-          this.transactions = data.transactions.reduce((state, curr) => {
-            curr.event.extrinsic.block_id = curr.event.extrinsic.block.height
-            state.push(curr.event.extrinsic)
-            return state
-          }, [])
-        }
-        this.loading = false
       },
     },
     // TODO: needs to be implemented in the backend

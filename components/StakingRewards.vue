@@ -129,6 +129,9 @@ export default {
     updateData() {
       this.$apollo.queries.event.refetch()
     },
+    setPerPage(value) {
+      this.perPage = value
+    },
     handleNumFields(num) {
       localStorage.paginationOptions = num
       this.perPage = parseInt(num)
@@ -178,23 +181,33 @@ export default {
         return !this.accountId
       },
       fetchPolicy: 'network-only',
-      result({ data }) {
-        this.stakingRewards = data.event.map((stakeEv) => {
-          const timestamp = new Date(stakeEv.timestamp).getTime() / 1000
-          stakeEv.event.extrinsic_id = stakeEv.event.extrinsic.id
-          return {
-            timestamp,
-            timeago: timestamp,
-            amount: stakeEv.amount,
-            address: stakeEv.signer.id,
-            block_id: stakeEv.event.block.height,
-            hash: stakeEv.event.extrinsic.hash,
-            fee: stakeEv.event.extrinsic.signedData?.fee.partialFee || 0,
-            extrinsicIndex: stakeEv.event.extrinsic.index,
-          }
-        })
-        this.totalRows = this.stakingRewards.length
-        this.loading = false
+      result({ data, error }) {
+        if (error) {
+          this.setPerPage(20)
+          this.$bvToast.toast(`Exceeds the size limit`, {
+            title: 'Encountered an Error',
+            variant: 'danger',
+            autoHideDelay: 5000,
+            appendToast: false,
+          })
+        } else {
+          this.stakingRewards = data.event.map((stakeEv) => {
+            const timestamp = new Date(stakeEv.timestamp).getTime() / 1000
+            stakeEv.event.extrinsic_id = stakeEv.event.extrinsic.id
+            return {
+              timestamp,
+              timeago: timestamp,
+              amount: stakeEv.amount,
+              address: stakeEv.signer.id,
+              block_id: stakeEv.event.block.height,
+              hash: stakeEv.event.extrinsic.hash,
+              fee: stakeEv.event.extrinsic.signedData?.fee.partialFee || 0,
+              extrinsicIndex: stakeEv.event.extrinsic.index,
+            }
+          })
+          this.totalRows = this.stakingRewards.length
+          this.loading = false
+        }
       },
     },
   },

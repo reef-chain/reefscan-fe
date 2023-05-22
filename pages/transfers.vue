@@ -273,6 +273,9 @@ export default {
       this.$apollo.queries.extrinsic.refetch()
       this.$apollo.queries.totalTransfers.refetch()
     },
+    setPerPage(value) {
+      this.perPage = value
+    },
   },
   apollo: {
     extrinsic: {
@@ -303,63 +306,74 @@ export default {
         }
       },
       fetchPolicy: 'network-only',
-      async result({ data }) {
-        const dataArr = []
-        if (data.extrinsic.edges) {
-          for (let idx = 0; idx < data.extrinsic.edges.length; idx++) {
-            dataArr.push(data.extrinsic.edges[idx].node)
-          }
-          data.extrinsic = dataArr
-          this.extrinsic = dataArr
-        }
-        const converted = data.extrinsic.map((transfer) => {
-          return {
-            amount: transfer.amount,
-            success: transfer.extrinsic.status === 'success',
-            timestamp: transfer.timestamp,
-            hash: transfer.extrinsic.hash,
-            idx: transfer.extrinsic.index,
-            extrinsicId: transfer.extrinsic.id,
-            index: parseInt(transfer.id.split('-')[1]),
-            block_id: transfer.extrinsic.block.height,
-            isNft: transfer.nftId !== null,
-            to:
-              transfer.to.id === null ? transfer.to.evmAddress : transfer.to.id,
-            from:
-              transfer.from.id === null
-                ? transfer.from.evmAddress
-                : transfer.from.id,
-            symbol: transfer.token.contractData?.symbol || ' ', // TODO: fix this
-            decimals:
-              transfer.token.verified_contract?.contract_data?.decimals || 18, // TODO: fix this
-          }
-        })
-        const repared = converted.map(async (transfer) => {
-          if (transfer.to !== 'deleted' && transfer.from !== 'deleted') {
-            return transfer
-          }
-          const res = await this.$apollo.provider.defaultClient.query({
-            query: GET_TRANSFER_EXTRINSIC_EVENTS,
-            variables: {
-              exId: transfer.extrinsicId,
-            },
+      async result({ data, error }) {
+        if (error) {
+          this.setPerPage(20)
+          this.$bvToast.toast(`Exceeds the size limit`, {
+            title: 'Encountered an Error',
+            variant: 'danger',
+            autoHideDelay: 5000,
+            appendToast: false,
           })
-          if (
-            res.data &&
-            res.data.extrinsic.length > 0 &&
-            res.data.extrinsic[0].events &&
-            res.data.extrinsic[0].events.length > 0 &&
-            res.data.extrinsic[0].events[0].data
-          ) {
-            const [to, from] = res.data.extrinsic[0].events[0].data
-            return { ...transfer, to, from }
+        } else {
+          const dataArr = []
+          if (data.extrinsic.edges) {
+            for (let idx = 0; idx < data.extrinsic.edges.length; idx++) {
+              dataArr.push(data.extrinsic.edges[idx].node)
+            }
+            data.extrinsic = dataArr
+            this.extrinsic = dataArr
           }
-          return transfer
-        })
-
-        this.transfers = await Promise.all(repared)
-        this.totalRows = this.filter ? this.transfers.length : this.nTransfers
-        if (!this.forceLoad) this.loading = false
+          const converted = data.extrinsic.map((transfer) => {
+            return {
+              amount: transfer.amount,
+              success: transfer.extrinsic.status === 'success',
+              timestamp: transfer.timestamp,
+              hash: transfer.extrinsic.hash,
+              idx: transfer.extrinsic.index,
+              extrinsicId: transfer.extrinsic.id,
+              index: parseInt(transfer.id.split('-')[1]),
+              block_id: transfer.extrinsic.block.height,
+              isNft: transfer.nftId !== null,
+              to:
+                transfer.to.id === null
+                  ? transfer.to.evmAddress
+                  : transfer.to.id,
+              from:
+                transfer.from.id === null
+                  ? transfer.from.evmAddress
+                  : transfer.from.id,
+              symbol: transfer.token.contractData?.symbol || ' ', // TODO: fix this
+              decimals:
+                transfer.token.verified_contract?.contract_data?.decimals || 18, // TODO: fix this
+            }
+          })
+          const repared = converted.map(async (transfer) => {
+            if (transfer.to !== 'deleted' && transfer.from !== 'deleted') {
+              return transfer
+            }
+            const res = await this.$apollo.provider.defaultClient.query({
+              query: GET_TRANSFER_EXTRINSIC_EVENTS,
+              variables: {
+                exId: transfer.extrinsicId,
+              },
+            })
+            if (
+              res.data &&
+              res.data.extrinsic.length > 0 &&
+              res.data.extrinsic[0].events &&
+              res.data.extrinsic[0].events.length > 0 &&
+              res.data.extrinsic[0].events[0].data
+            ) {
+              const [to, from] = res.data.extrinsic[0].events[0].data
+              return { ...transfer, to, from }
+            }
+            return transfer
+          })
+          this.transfers = await Promise.all(repared)
+          this.totalRows = this.filter ? this.transfers.length : this.nTransfers
+          if (!this.forceLoad) this.loading = false
+        }
       },
     },
     totalTransfers: {

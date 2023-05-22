@@ -60,6 +60,9 @@ export default {
     updateData() {
       this.$apollo.queries.events.refetch()
     },
+    setPerPage(value) {
+      this.perPage = value
+    },
   },
   apollo: {
     events: {
@@ -85,25 +88,35 @@ export default {
           }
         }
       `,
-      result({ data }) {
-        const dataArr = []
-        if (data.events.edges) {
-          for (let idx = 0; idx < data.events.edges.length; idx++) {
-            dataArr.push(data.events.edges[idx].node)
+      result({ data, error }) {
+        if (error) {
+          this.setPerPage(20)
+          this.$bvToast.toast(`Exceeds the size limit`, {
+            title: 'Encountered an Error',
+            variant: 'danger',
+            autoHideDelay: 5000,
+            appendToast: false,
+          })
+        } else {
+          const dataArr = []
+          if (data.events.edges) {
+            for (let idx = 0; idx < data.events.edges.length; idx++) {
+              dataArr.push(data.events.edges[idx].node)
+            }
+            data.events = dataArr
+            this.events = dataArr
           }
-          data.events = dataArr
-          this.events = dataArr
+          this.events = data.events.map((event) => {
+            return {
+              ...event,
+              extrinsic: {
+                ...event.extrinsic,
+                block_id: event.extrinsic.block.height,
+              },
+            }
+          })
+          this.loading = false
         }
-        this.events = data.events.map((event) => {
-          return {
-            ...event,
-            extrinsic: {
-              ...event.extrinsic,
-              block_id: event.extrinsic.block.height,
-            },
-          }
-        })
-        this.loading = false
       },
     },
   },
