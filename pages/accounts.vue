@@ -114,16 +114,23 @@
                 <span>{{ shortAddress(item.address) }}</span>
               </Cell>
 
-              <Cell
-                v-if="item.evm_address"
-                :link="{ url: `/account/${item.address}`, fill: false }"
-              >
-                <eth-identicon :address="item.evm_address" :size="20" />
+              <Cell :link="{ url: `/account/${item.address}`, fill: false }">
+                <eth-identicon
+                  v-if="item.evm_address"
+                  :address="item.evm_address"
+                  :size="20"
+                />
+                <eth-identicon
+                  v-if="!item.evm_address"
+                  :address="item.address"
+                  :size="20"
+                />
                 <span>{{
-                  item.evm_address ? shortHash(item.evm_address) : ''
+                  item.evm_address
+                    ? shortHash(item.evm_address)
+                    : 'Not connected'
                 }}</span>
               </Cell>
-              <Cell v-else />
 
               <Cell align="right">{{
                 formatShortAmount(item.free_balance)
