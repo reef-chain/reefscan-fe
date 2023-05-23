@@ -66,10 +66,11 @@
                   :address="parsedAccount.address"
                   :size="20"
                 />
-                <span v-if="parsedAccount.evm_address">{{
+                <span>{{
                   parsedAccount.evm_address
+                    ? parsedAccount.evm_address
+                    : 'Not connected'
                 }}</span>
-                <span v-else> Not connected</span>
               </Cell>
             </Row>
 
