@@ -56,10 +56,10 @@
 <script>
 import { validationMixin } from 'vuelidate'
 // eslint-disable-next-line no-unused-vars
+import { WsProvider } from '@polkadot/api'
 import { Provider, Signer } from '@reef-defi/evm-provider'
 import { web3Accounts, web3Enable } from '@polkadot/extension-dapp'
 import { encodeAddress } from '@polkadot/keyring'
-import { WsProvider } from '@polkadot/rpc-provider'
 import commonMixin from '@/mixins/commonMixin.js'
 import { network } from '@/frontend.config.js'
 
@@ -124,28 +124,96 @@ export default {
     },
     async onSubmit(evt) {
       evt.preventDefault()
-      const allInjected = await web3Enable('reef')
-      const injectedSigner = allInjected[0].signer
+      // const allInjected = await web3Enable('reef')
+      // const injectedSigner = allInjected[0].signer
+      // const evmProvider = new Provider({
+      //   provider: new WsProvider(network.nodeWs),
+      // })
+      // try {
+      //   evmProvider.api.on('ready', async () => {
+      //     this.$signer = new Signer(
+      //       evmProvider,
+      //       this.selectedAddress,
+      //       injectedSigner
+      //     )
+      //     const evmAddr = await this.$signer.queryEvmAddress()
+      //     const signMsg = {
+      //       name: 'anukul',
+      //     }
+      //     this.$signature = await this.$signer._signMessage(
+      //       evmAddr,
+      //       JSON.stringify(signMsg)
+      //     )
+      //   })
+      // } catch (error) {
+      //   this.requestStatus = error
+      // }
+      // const provider = new Provider({
+      //   provider: new WsProvider(network.nodeWs),
+      // })
+      // const allInjected = await web3Enable('reef')
+      // const injectedSigner = allInjected[0].signer
+      // provider.api.on('ready', async () => {
+      //   const wallet = new Signer(
+      //     provider,
+      //     this.selectedAddress,
+      //     injectedSigner
+      //   )
+      //   await wallet.isClaimed()
+      //   const res = await wallet.signMessage('anukul')
+      //   console.log(res)
+      // })
+      // provider.api.on('ready', async () => {
+      //   await web3FromAddress(this.selectedAddress)
+      //     .then(async (injector) => {
+      //       try {
+      //         // create signer
+      //         const wallet = new Signer(
+      //           this.provider,
+      //           this.selectedAddress,
+      //           injector.signer
+      //         )
+      //         // claim default account
+      //         if (!(await wallet.isClaimed())) {
+      //           // eslint-disable-next-line no-console
+      //           await wallet.claimDefaultAccount()
+      //         }
+      //         // console.log(wallet.signMessage('anukul'))
+      //       } catch (error) {
+      //         console.log(error)
+      //       }
+      //     })
+      //     .catch((error) => {
+      //       console.log(error)
+      //     })
+      // })
+      const allInjected = await web3Enable('Reef')
+      if (allInjected.length === 0) {
+        throw new Error('extension not installed')
+      }
       const evmProvider = new Provider({
         provider: new WsProvider(network.nodeWs),
       })
-      try {
-        evmProvider.api.on('ready', async () => {
-          this.$signer = new Signer(
-            evmProvider,
-            this.selectedAddress,
-            injectedSigner
-          )
-          const signMsg = {
-            contractAddress: this.$route.params.id,
-            fileHash: this.$fileHash,
-          }
-          this.$signature = await this.$signer.signMessage(signMsg)
-        })
-      } catch (error) {
-        this.requestStatus = error
-      }
-
+      evmProvider.api.on('ready', async () => {
+        const allAccounts = await web3Accounts()
+        const wallet = new Signer(
+          evmProvider,
+          allAccounts[0].address,
+          allInjected[0].signer
+        )
+        if (!(await wallet.isClaimed())) {
+          console.log(await wallet.getAddress())
+          await wallet.claimDefaultAccount()
+        }
+        const stringifiedData = ['anukul', 'pandey'].toString()
+        console.log(
+          await wallet.signingKey.signRaw({
+            address: allAccounts[0].address,
+            data: stringifiedData,
+            type: 'bytes',
+          })
+        )
+      })
       const ensure = (condition, message) => {
         if (!condition) {
           throw new Error(message)
