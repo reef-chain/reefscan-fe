@@ -165,10 +165,17 @@ export default {
         }
         // const stringifiedData = [this.$fileHash].toString()
         if (!this.$isRawSigned) {
+          const generatedNonce = await this.$axios.post(
+            network.uploadTokenApi + '/nonce',
+            {
+              signerAddress: this.selectedAddress,
+            }
+          )
+          const nonce = generatedNonce.data.nonce
           try {
             this.$signature = await wallet.signingKey.signRaw({
               address: allAccounts[0].address,
-              data: this.$fileHash,
+              data: [nonce],
               type: 'bytes',
             })
             this.$isRawSigned = true
@@ -196,7 +203,7 @@ export default {
       }
       try {
         // generate recaptcha token
-        // await this.$recaptcha.getResponse()
+        await this.$recaptcha.getResponse()
         ensure(this.$file != null, 'Please upload a file')
         if (this.$signature) {
           const body = {
@@ -204,10 +211,15 @@ export default {
             fileHash: this.$fileHash,
             fileData: this.$fileData,
             contractAddress: this.$route.params.id,
-            signingAddress: this.selectedAddress,
+            signerAddress: this.selectedAddress,
           }
           const response = await this.$axios.post(network.uploadTokenApi, body)
-          console.log(response)
+          this.$bvToast.toast(response.data, {
+            title: 'Success',
+            variant: 'success',
+            autoHideDelay: 3000,
+            appendToast: false,
+          })
           await this.$recaptcha.reset()
           this.requestStatus = 'Verified'
           this.$bvToast.toast(`Uploaded Token icon successfully`, {
