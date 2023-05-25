@@ -140,69 +140,6 @@ export default {
     },
     async onSubmit(evt) {
       evt.preventDefault()
-      // const allInjected = await web3Enable('reef')
-      // const injectedSigner = allInjected[0].signer
-      // const evmProvider = new Provider({
-      //   provider: new WsProvider(network.nodeWs),
-      // })
-      // try {
-      //   evmProvider.api.on('ready', async () => {
-      //     this.$signer = new Signer(
-      //       evmProvider,
-      //       this.selectedAddress,
-      //       injectedSigner
-      //     )
-      //     const evmAddr = await this.$signer.queryEvmAddress()
-      //     const signMsg = {
-      //       name: 'anukul',
-      //     }
-      //     this.$signature = await this.$signer._signMessage(
-      //       evmAddr,
-      //       JSON.stringify(signMsg)
-      //     )
-      //   })
-      // } catch (error) {
-      //   this.requestStatus = error
-      // }
-      // const provider = new Provider({
-      //   provider: new WsProvider(network.nodeWs),
-      // })
-      // const allInjected = await web3Enable('reef')
-      // const injectedSigner = allInjected[0].signer
-      // provider.api.on('ready', async () => {
-      //   const wallet = new Signer(
-      //     provider,
-      //     this.selectedAddress,
-      //     injectedSigner
-      //   )
-      //   await wallet.isClaimed()
-      //   const res = await wallet.signMessage('anukul')
-      //   console.log(res)
-      // })
-      // provider.api.on('ready', async () => {
-      //   await web3FromAddress(this.selectedAddress)
-      //     .then(async (injector) => {
-      //       try {
-      //         // create signer
-      //         const wallet = new Signer(
-      //           this.provider,
-      //           this.selectedAddress,
-      //           injector.signer
-      //         )
-      //         // claim default account
-      //         if (!(await wallet.isClaimed())) {
-      //           // eslint-disable-next-line no-console
-      //           await wallet.claimDefaultAccount()
-      //         }
-      //         // console.log(wallet.signMessage('anukul'))
-      //       } catch (error) {
-      //         console.log(error)
-      //       }
-      //     })
-      //     .catch((error) => {
-      //       console.log(error)
-      //     })
-      // })
       const allInjected = await web3Enable('Reef')
       if (allInjected.length === 0) {
         throw new Error('extension not installed')
