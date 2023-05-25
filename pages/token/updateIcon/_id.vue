@@ -141,7 +141,7 @@ export default {
         fileBase64: this.$fileBase64,
         timestamp: new Date().getTime(),
       }
-      const hash = generateSHA256Hash(this.$fileData)
+      const hash = generateSHA256Hash(JSON.stringify(this.$fileData))
       this.$fileHash = hash
     },
     async onSubmit(evt) {
@@ -181,7 +181,7 @@ export default {
       }
       try {
         // generate recaptcha token
-        await this.$recaptcha.getResponse()
+        // await this.$recaptcha.getResponse()
         ensure(this.$file != null, 'Please upload a file')
         if (this.$signature) {
           const body = {
@@ -194,6 +194,9 @@ export default {
           await this.$axios.post(network.uploadTokenApi, body)
           await this.$recaptcha.reset()
           this.requestStatus = 'Verified'
+          setTimeout(() => {
+            this.$router.push(`/token/${this.$route.params.id}`)
+          }, 2000)
         }
       } catch (error) {
         // eslint-disable-next-line no-console
