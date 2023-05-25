@@ -9,15 +9,15 @@
 
         <Card v-else class="token-details">
           <div class="token-details__identicon">
-            <eth-identicon :address="address" :size="80" />
+            <eth-identicon v-if="!iconUrl" :address="address" :size="80" />
+            <img
+              v-if="iconUrl"
+              :src="iconUrl"
+              style="width: 80px; height: 80px"
+            />
           </div>
 
           <Headline>
-            <img
-              v-if="contract.verified_contract.contractData.icon_url"
-              :src="contract.verified_contract.token_icon_url"
-              style="width: 32px; height: 32px"
-            />
             <span>{{ tokenName }}</span>
           </Headline>
           <h4 class="text-center mb-4">
@@ -287,11 +287,15 @@ export default {
       fetchPolicy: 'network-only',
       result({ data }) {
         if (data.verifiedContracts[0]) {
-          const { name, type, contract, compiledData, source } =
+          const { name, type, contract, compiledData, source, contractData } =
             data.verifiedContracts[0]
           this.contractType = type.replace('ERC', 'ERC-')
           this.contractName = name
           this.contract = contract
+          this.iconUrl =
+            contractData.iconUrl !== undefined
+              ? contractData.iconUrl.replace('ipfs://', 'https://ipfs.io/ipfs/')
+              : undefined
           this.contract.extrinsic.block_id = contract.extrinsic.block.height
           this.contract.verified_contract = data.verifiedContracts[0]
           this.contract.abi = compiledData[name] || []
