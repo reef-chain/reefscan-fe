@@ -165,13 +165,28 @@ export default {
         }
         // const stringifiedData = [this.$fileHash].toString()
         if (!this.$isRawSigned) {
-          this.$signature = await wallet.signingKey.signRaw({
-            address: allAccounts[0].address,
-            data: this.$fileHash,
-            type: 'bytes',
-          })
-          this.$isRawSigned = true
-          this.buttonMessage = 'Upload icon'
+          try {
+            this.$signature = await wallet.signingKey.signRaw({
+              address: allAccounts[0].address,
+              data: this.$fileHash,
+              type: 'bytes',
+            })
+            this.$isRawSigned = true
+            this.$bvToast.toast(`Successfully signed the file data`, {
+              title: 'Signed Raw',
+              variant: 'success',
+              autoHideDelay: 3000,
+              appendToast: false,
+            })
+            this.buttonMessage = 'Upload icon'
+          } catch (error) {
+            this.$bvToast.toast(`Unable to sign the file data`, {
+              title: 'Error in signing message',
+              variant: 'danger',
+              autoHideDelay: 3000,
+              appendToast: false,
+            })
+          }
         }
       })
       const ensure = (condition, message) => {
@@ -191,9 +206,16 @@ export default {
             contractAddress: this.$route.params.id,
             signingAddress: this.selectedAddress,
           }
-          await this.$axios.post(network.uploadTokenApi, body)
+          const response = await this.$axios.post(network.uploadTokenApi, body)
+          console.log(response)
           await this.$recaptcha.reset()
           this.requestStatus = 'Verified'
+          this.$bvToast.toast(`Uploaded Token icon successfully`, {
+            title: 'Success',
+            variant: 'success',
+            autoHideDelay: 3000,
+            appendToast: false,
+          })
           setTimeout(() => {
             this.$router.push(`/token/${this.$route.params.id}`)
           }, 2000)
@@ -207,6 +229,12 @@ export default {
         } else {
           this.requestStatus = 'Recaptcha token is missing'
         }
+        this.$bvToast.toast(`${this.requestStatus}`, {
+          title: 'Error in updating token icon!',
+          variant: 'danger',
+          autoHideDelay: 3000,
+          appendToast: false,
+        })
       }
     },
   },
