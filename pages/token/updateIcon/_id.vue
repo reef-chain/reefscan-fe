@@ -45,7 +45,7 @@
               {{ requestStatus }}
             </b-alert>
             <b-button type="submit" variant="outline-primary2" class="btn-block"
-              >Upload Icon
+              >{{ buttonMessage }}
             </b-button>
           </b-form>
         </div>
@@ -108,6 +108,8 @@ export default {
       selectedEvmAddress: null,
       selectedAccount: null,
       signature: null,
+      isRawSigned: false,
+      buttonMessage: 'Upload and Sign',
     }
   },
   async created() {
@@ -135,7 +137,11 @@ export default {
       this.$file = event.target.files[0]
       // const fileData = await readFileAsArrayBuffer(this.$file)
       this.$fileBase64 = await readFileAsBase64(this.$file)
-      const hash = await generateSHA256Hash(this.$fileBase64)
+      this.$fileData = {
+        fileBase64: this.$fileBase64,
+        timestamp: new Date().getTime(),
+      }
+      const hash = generateSHA256Hash(this.$fileData)
       this.$fileHash = hash
     },
     async onSubmit(evt) {
@@ -158,11 +164,15 @@ export default {
           await wallet.claimDefaultAccount()
         }
         // const stringifiedData = [this.$fileHash].toString()
-        this.$signature = await wallet.signingKey.signRaw({
-          address: allAccounts[0].address,
-          data: this.$fileHash,
-          type: 'bytes',
-        })
+        if (!this.$isRawSigned) {
+          this.$signature = await wallet.signingKey.signRaw({
+            address: allAccounts[0].address,
+            data: this.$fileHash,
+            type: 'bytes',
+          })
+          this.$isRawSigned = true
+          this.buttonMessage = 'Upload icon'
+        }
       })
       const ensure = (condition, message) => {
         if (!condition) {
@@ -176,13 +186,12 @@ export default {
         if (this.$signature) {
           const body = {
             signature: this.$signature.signature,
-            file: this.$fileBase64,
             fileHash: this.$fileHash,
+            fileData: this.$fileData,
             contractAddress: this.$route.params.id,
             signingAddress: this.selectedAddress,
           }
-          console.log(body)
-          console.log(await this.$axios.post(network.verificatorApi, body))
+          await this.$axios.post(network.uploadTokenApi, body)
           await this.$recaptcha.reset()
           this.requestStatus = 'Verified'
         }
