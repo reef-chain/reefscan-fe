@@ -174,12 +174,6 @@ export default {
         await this.$recaptcha.getResponse()
         ensure(this.$file != null, 'Please upload a file')
         if (this.$signature) {
-          // const formData = new FormData()
-          // formData.append('signature', this.$signature)
-          // formData.append('file', this.$file)
-          // formData.append('fileHash', this.$fileHash)
-          // formData.append('contractAddress', this.$route.params.id)
-
           const body = {
             signature: this.$signature.signature,
             file: this.$fileBase64,
@@ -205,14 +199,6 @@ export default {
     },
   },
 }
-// function readFileAsArrayBuffer(file) {
-//   return new Promise((resolve, reject) => {
-//     const reader = new FileReader()
-//     reader.onload = () => resolve(reader.result)
-//     reader.onerror = reject
-//     reader.readAsArrayBuffer(file)
-//   })
-// }
 
 function generateSHA256Hash(inputString) {
   const hash = crypto.createHash('sha256')
