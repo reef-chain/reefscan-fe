@@ -22,6 +22,7 @@
                 placeholder="Please select image icon file..."
                 drop-placeholder="Drop image icon file here..."
                 aria-describedby="source-help"
+                name="tokenImage"
                 @change="(event) => onFileChange(event)"
               />
             </div>
@@ -54,6 +55,7 @@
 </template>
 
 <script>
+import crypto from 'crypto'
 import { validationMixin } from 'vuelidate'
 // eslint-disable-next-line no-unused-vars
 import { WsProvider } from '@polkadot/api'
@@ -62,6 +64,20 @@ import { web3Accounts, web3Enable } from '@polkadot/extension-dapp'
 import { encodeAddress } from '@polkadot/keyring'
 import commonMixin from '@/mixins/commonMixin.js'
 import { network } from '@/frontend.config.js'
+
+function readFileAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      const base64Data = reader.result.split(',')[1]
+      resolve(base64Data)
+    }
+    reader.onerror = (error) => {
+      reject(error)
+    }
+    reader.readAsDataURL(file)
+  })
+}
 
 export default {
   mixins: [commonMixin, validationMixin],
@@ -117,9 +133,9 @@ export default {
     },
     async onFileChange(event) {
       this.$file = event.target.files[0]
-      const fileData = await readFileAsArrayBuffer(this.$file)
-      const hash = await generateSHA256Hash(fileData)
-      this.$fileName = this.$file.name
+      // const fileData = await readFileAsArrayBuffer(this.$file)
+      this.$fileBase64 = await readFileAsBase64(this.$file)
+      const hash = await generateSHA256Hash(this.$fileBase64)
       this.$fileHash = hash
     },
     async onSubmit(evt) {
@@ -202,17 +218,14 @@ export default {
           allInjected[0].signer
         )
         if (!(await wallet.isClaimed())) {
-          console.log(await wallet.getAddress())
           await wallet.claimDefaultAccount()
         }
-        const stringifiedData = ['anukul', 'pandey'].toString()
-        console.log(
-          await wallet.signingKey.signRaw({
-            address: allAccounts[0].address,
-            data: stringifiedData,
-            type: 'bytes',
-          })
-        )
+        // const stringifiedData = [this.$fileHash].toString()
+        this.$signature = await wallet.signingKey.signRaw({
+          address: allAccounts[0].address,
+          data: this.$fileHash,
+          type: 'bytes',
+        })
       })
       const ensure = (condition, message) => {
         if (!condition) {
@@ -224,11 +237,21 @@ export default {
         await this.$recaptcha.getResponse()
         ensure(this.$file != null, 'Please upload a file')
         if (this.$signature) {
+          // const formData = new FormData()
+          // formData.append('signature', this.$signature)
+          // formData.append('file', this.$file)
+          // formData.append('fileHash', this.$fileHash)
+          // formData.append('contractAddress', this.$route.params.id)
+
           const body = {
-            signature: this.$signature,
-            file: this.$file,
+            signature: this.$signature.signature,
+            file: this.$fileBase64,
+            fileHash: this.$fileHash,
+            contractAddress: this.$route.params.id,
+            signingAddress: this.selectedAddress,
           }
-          await this.$axios.post(network.verificatorApi, body)
+          console.log(body)
+          console.log(await this.$axios.post(network.verificatorApi, body))
           await this.$recaptcha.reset()
           this.requestStatus = 'Verified'
         }
@@ -245,24 +268,19 @@ export default {
     },
   },
 }
-function readFileAsArrayBuffer(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result)
-    reader.onerror = reject
-    reader.readAsArrayBuffer(file)
-  })
-}
+// function readFileAsArrayBuffer(file) {
+//   return new Promise((resolve, reject) => {
+//     const reader = new FileReader()
+//     reader.onload = () => resolve(reader.result)
+//     reader.onerror = reject
+//     reader.readAsArrayBuffer(file)
+//   })
+// }
 
-function generateSHA256Hash(data) {
-  const buffer = new Uint8Array(data)
-  return crypto.subtle.digest('SHA-256', buffer).then((hashBuffer) => {
-    const hashArray = Array.from(new Uint8Array(hashBuffer))
-    const hashHex = hashArray
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('')
-    return hashHex
-  })
+function generateSHA256Hash(inputString) {
+  const hash = crypto.createHash('sha256')
+  hash.update(inputString)
+  return hash.digest('hex')
 }
 </script>
 
