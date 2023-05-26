@@ -165,17 +165,10 @@ export default {
         }
         // const stringifiedData = [this.$fileHash].toString()
         if (!this.$isRawSigned) {
-          const generatedNonce = await this.$axios.post(
-            network.uploadTokenApi + '/nonce',
-            {
-              signerAddress: this.selectedAddress,
-            }
-          )
-          const nonce = generatedNonce.data.nonce
           try {
             this.$signature = await wallet.signingKey.signRaw({
               address: allAccounts[0].address,
-              data: [nonce],
+              data: this.$fileHash,
               type: 'bytes',
             })
             this.$isRawSigned = true
@@ -241,12 +234,14 @@ export default {
         } else {
           this.requestStatus = 'Recaptcha token is missing'
         }
-        this.$bvToast.toast(`${this.requestStatus}`, {
-          title: 'Error in updating token icon!',
-          variant: 'danger',
-          autoHideDelay: 3000,
-          appendToast: false,
-        })
+        if (this.requestStatus !== undefined) {
+          this.$bvToast.toast(`${this.requestStatus}`, {
+            title: 'Error in updating token icon!',
+            variant: 'danger',
+            autoHideDelay: 3000,
+            appendToast: false,
+          })
+        }
       }
     },
   },
