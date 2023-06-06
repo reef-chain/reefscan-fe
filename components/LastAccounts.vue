@@ -60,6 +60,9 @@ export default {
     updateData() {
       this.$apollo.queries.accounts.refetch()
     },
+    setPerPage(value) {
+      this.perPage = value
+    },
   },
   apollo: {
     accounts: {
@@ -83,23 +86,33 @@ export default {
         }
       `,
       fetchPolicy: 'network-only',
-      result({ data }) {
-        const dataArr = []
-        if (data.accounts.edges) {
-          for (let idx = 0; idx < data.accounts.edges.length; idx++) {
-            dataArr.push(data.accounts.edges[idx].node)
+      result({ data, error }) {
+        if (error) {
+          this.setPerPage(20)
+          this.$bvToast.toast(`Exceeds the size limit`, {
+            title: 'Encountered an Error',
+            variant: 'danger',
+            autoHideDelay: 5000,
+            appendToast: false,
+          })
+        } else {
+          const dataArr = []
+          if (data.accounts.edges) {
+            for (let idx = 0; idx < data.accounts.edges.length; idx++) {
+              dataArr.push(data.accounts.edges[idx].node)
+            }
+            data.accounts = dataArr
+            this.accounts = dataArr
           }
-          data.accounts = dataArr
-          this.accounts = dataArr
+          this.accounts = data.accounts.map((item) => {
+            return {
+              address: item.id,
+              block_id: item.block.height,
+              free_balance: item.freeBalance,
+            }
+          })
+          this.loading = false
         }
-        this.accounts = data.accounts.map((item) => {
-          return {
-            address: item.id,
-            block_id: item.block.height,
-            free_balance: item.freeBalance,
-          }
-        })
-        this.loading = false
       },
     },
   },

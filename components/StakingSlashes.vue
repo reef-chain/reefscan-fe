@@ -121,6 +121,9 @@ export default {
     updateData() {
       this.$apollo.queries.staking_slash.refetch()
     },
+    setPerPage(value) {
+      this.perPage = value
+    },
   },
   apollo: {
     staking_slash: {
@@ -146,17 +149,27 @@ export default {
         return !this.accountId
       },
       fetchPolicy: 'network-only',
-      result({ data }) {
-        this.stakingSlashes = data.staking_slash.map((event) => {
-          return {
-            block_id: event.block_id,
-            timestamp: event.timestamp,
-            timeago: event.timestamp,
-            amount: event.amount,
-          }
-        })
-        this.totalRows = this.stakingSlashes.length
-        this.loading = false
+      result({ data, error }) {
+        if (error) {
+          this.setPerPage(20)
+          this.$bvToast.toast(`Exceeds the size limit`, {
+            title: 'Encountered an Error',
+            variant: 'danger',
+            autoHideDelay: 5000,
+            appendToast: false,
+          })
+        } else {
+          this.stakingSlashes = data.staking_slash.map((event) => {
+            return {
+              block_id: event.block_id,
+              timestamp: event.timestamp,
+              timeago: event.timestamp,
+              amount: event.amount,
+            }
+          })
+          this.totalRows = this.stakingSlashes.length
+          this.loading = false
+        }
       },
     },
   },

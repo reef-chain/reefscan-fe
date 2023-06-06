@@ -160,6 +160,9 @@ export default {
       this.$apollo.queries.extrinsics.refetch()
       this.$apollo.queries.totalExtrinsics.refetch()
     },
+    setPerPage(value) {
+      this.perPage = value
+    },
   },
   apollo: {
     extrinsics: {
@@ -173,22 +176,34 @@ export default {
         }
       },
       fetchPolicy: 'network-only',
-      result({ data }) {
-        const dataArr = []
-        if (data.extrinsics.edges) {
-          for (let idx = 0; idx < data.extrinsics.edges.length; idx++) {
-            dataArr.push(data.extrinsics.edges[idx].node)
+      result({ data, error }) {
+        if (error) {
+          this.setPerPage(50)
+          this.$bvToast.toast(`Exceeds the size limit`, {
+            title: 'Encountered an Error',
+            variant: 'danger',
+            autoHideDelay: 5000,
+            appendToast: false,
+          })
+        } else {
+          const dataArr = []
+          if (data.extrinsics.edges) {
+            for (let idx = 0; idx < data.extrinsics.edges.length; idx++) {
+              dataArr.push(data.extrinsics.edges[idx].node)
+            }
+            data.extrinsics = dataArr
+            this.extrinsics = dataArr
           }
-          data.extrinsics = dataArr
-          this.extrinsics = dataArr
+          data.extrinsics.forEach((item) => {
+            item.block_id = item.block.height
+            item.error_message = item.errorMessage
+          })
+          this.extrinsics = data.extrinsics
+          this.totalRows = this.filter
+            ? this.extrinsics.length
+            : this.nExtrinsics
+          if (!this.forceLoad) this.loading = false
         }
-        data.extrinsics.forEach((item) => {
-          item.block_id = item.block.height
-          item.error_message = item.errorMessage
-        })
-        this.extrinsics = data.extrinsics
-        this.totalRows = this.filter ? this.extrinsics.length : this.nExtrinsics
-        if (!this.forceLoad) this.loading = false
       },
     },
     totalExtrinsics: {

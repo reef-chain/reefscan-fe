@@ -246,6 +246,9 @@ export default {
       localStorage.paginationOptions = num
       this.perPage = parseInt(num)
     },
+    setPerPage(value) {
+      this.perPage = value
+    },
     updateData() {
       this.$apollo.queries.transfers.refetch()
     },
@@ -262,32 +265,42 @@ export default {
         return !this.accountId
       },
       fetchPolicy: 'network-only',
-      result({ data }) {
-        const dataArr = []
-        if (data.transfers.edges) {
-          for (let idx = 0; idx < data.transfers.edges.length; idx++) {
-            dataArr.push(data.transfers.edges[idx].node)
+      result({ data, error }) {
+        if (error) {
+          this.setPerPage(20)
+          this.$bvToast.toast(`Exceeds the size limit`, {
+            title: 'Encountered an Error',
+            variant: 'danger',
+            autoHideDelay: 5000,
+            appendToast: false,
+          })
+        } else {
+          const dataArr = []
+          if (data.transfers.edges) {
+            for (let idx = 0; idx < data.transfers.edges.length; idx++) {
+              dataArr.push(data.transfers.edges[idx].node)
+            }
+            data.transfers = dataArr
+            this.transfers = dataArr
           }
-          data.transfers = dataArr
-          this.transfers = dataArr
+          this.transfers = data.transfers.map((t) => ({
+            ...t,
+            block_id: t.block.height,
+            extrinsic_hash: t.extrinsic.hash,
+            extrinsic_index: t.extrinsic.index,
+            success: t.extrinsic.status === 'success',
+            to_address: t.to.id || t.to.evmAddress,
+            from_address: t.from.id || t.from.evmAddress,
+            token_address: t.token.id,
+            isNft: t.nftId !== null,
+            fee_amount: t.extrinsic.signedData.fee.partialFee,
+            error_message: t.errorMessage,
+            symbol: t.token.verified_contract?.contract_data?.symbol, // TODO: verified contract info isn't in the token table anymore, it's separate
+            decimals: t.token.verified_contract?.contract_data?.decimals, // TODO
+          }))
+          this.totalRows = this.transfers.length
+          this.loading = false
         }
-        this.transfers = data.transfers.map((t) => ({
-          ...t,
-          block_id: t.block.height,
-          extrinsic_hash: t.extrinsic.hash,
-          extrinsic_index: t.extrinsic.index,
-          success: t.extrinsic.status === 'success',
-          to_address: t.to.id || t.to.evmAddress,
-          from_address: t.from.id || t.from.evmAddress,
-          token_address: t.token.id,
-          isNft: t.nftId !== null,
-          fee_amount: t.extrinsic.signedData.fee.partialFee,
-          error_message: t.errorMessage,
-          symbol: t.token.verified_contract?.contract_data?.symbol, // TODO: verified contract info isn't in the token table anymore, it's separate
-          decimals: t.token.verified_contract?.contract_data?.decimals, // TODO
-        }))
-        this.totalRows = this.transfers.length
-        this.loading = false
       },
     },
   },

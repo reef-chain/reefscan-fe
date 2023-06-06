@@ -441,17 +441,27 @@ export default {
         }
       },
       fetchPolicy: 'network-only',
-      result({ data }) {
-        if (data && data.favoriteAccounts) {
-          this.favoriteAccounts = data.favoriteAccounts.map((account) => ({
-            ...account,
-            address: account.id,
-            free_balance: account.freeBalance,
-            evm_address: account.evmAddress,
-            locked_balance: account.lockedBalance,
-            available_balance: account.availableBalance,
-            favorite: true,
-          }))
+      result({ data, error }) {
+        if (error) {
+          this.setPerPage(50)
+          this.$bvToast.toast(`Exceeds the size limit`, {
+            title: 'Encountered an Error',
+            variant: 'danger',
+            autoHideDelay: 5000,
+            appendToast: false,
+          })
+        } else {
+          if (data && data.favoriteAccounts) {
+            this.favoriteAccounts = data.favoriteAccounts.map((account) => ({
+              ...account,
+              address: account.id,
+              free_balance: account.freeBalance,
+              evm_address: account.evmAddress,
+              locked_balance: account.lockedBalance,
+              available_balance: account.availableBalance,
+              favorite: true,
+            }))
+          }
           this.updateFavoritesRank()
         }
       },
