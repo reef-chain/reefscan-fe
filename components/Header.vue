@@ -8,7 +8,8 @@
             @input="$emit('toggle-mobile-menu', $event)"
           />
           <nuxt-link to="/" class="header__logo">
-            <Logo />
+            <Logo v-if="network.name == 'Mainnet'" />
+            <LogoTestnet v-if="network.name == 'Testnet'" />
           </nuxt-link>
         </div>
 
@@ -50,6 +51,7 @@
 
 <script>
 import Logo from '@/assets/Logo'
+import LogoTestnet from '@/assets/LogoTestnet.vue'
 import Hamburger from '@/components/Hamburger'
 import ReefPrice from '@/components/ReefPrice'
 import { network } from '@/frontend.config.js'
@@ -57,6 +59,7 @@ import { network } from '@/frontend.config.js'
 export default {
   components: {
     Logo,
+    LogoTestnet,
     ReefPrice,
     Hamburger,
   },
