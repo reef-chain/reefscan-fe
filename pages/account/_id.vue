@@ -53,14 +53,24 @@
               </Cell>
             </Row>
 
-            <Row v-if="parsedAccount.evm_address">
+            <Row>
               <Cell>{{ $t('details.account.evm_address') }}</Cell>
               <Cell>
                 <eth-identicon
+                  v-if="parsedAccount.evm_address"
                   :address="parsedAccount.evm_address"
                   :size="20"
                 />
-                <span>{{ parsedAccount.evm_address }}</span>
+                <eth-identicon
+                  v-else
+                  :address="parsedAccount.address"
+                  :size="20"
+                />
+                <span>{{
+                  parsedAccount.evm_address
+                    ? parsedAccount.evm_address
+                    : 'Not connected'
+                }}</span>
               </Cell>
             </Row>
 
