@@ -17,6 +17,7 @@
           <Table v-else>
             <THead>
               <Cell>Name</Cell>
+              <Cell>Icon</Cell>
               <Cell>Symbol</Cell>
               <Cell>Contract Address</Cell>
               <Cell>Created at block</Cell>
@@ -40,15 +41,23 @@
                   title="Validated Token"
                 />
               </Cell>
+              <Cell>
+                <img
+                  v-if="item.token_icon"
+                  :src="item.token_icon"
+                  style="width: 22px; height: 22px"
+                />
+                <!-- <eth-identicon
+                  v-if="!item.token_icon"
+                  :address="item.address"
+                  :size="32"
+                /> -->
+                <!-- <span v-if="!item.token_icon"> No Icon</span> -->
+              </Cell>
               <Cell
                 v-if="item.contract_data && item.contract_data.symbol"
                 :link="`/token/${item.address}`"
               >
-                <img
-                  v-if="item.contract_data.token_icon_url"
-                  :src="item.contract_data.token_icon_url"
-                  class="identicon"
-                />
                 <span>{{ item.contract_data.symbol }}</span>
                 <font-awesome-icon
                   v-if="item.verified_contract"
@@ -291,13 +300,19 @@ export default {
                     },
                   },
                 },
-                contract_data: token.contractData,
-              }
-            })
-            this.totalRows = this.filter ? this.tokens.length : this.nTokens
-            this.nTokens = data.totalTokens.totalCount
-            this.totalRows = this.nTokens
-          }
+              },
+              contract_data: token.contractData,
+              token_icon: token.contractData.iconUrl
+                ? token.contractData.iconUrl.replace(
+                    'ipfs://',
+                    'https://reef.infura-ipfs.io/ipfs/'
+                  )
+                : undefined,
+            }
+          })
+          this.totalRows = this.filter ? this.tokens.length : this.nTokens
+          this.nTokens = data.totalTokens.totalCount
+          this.totalRows = this.nTokens
           this.loading = false
         }
       },
@@ -334,5 +349,9 @@ export default {
   .validated {
     color: lightgreen;
   }
+}
+
+img {
+  border-radius: 50%;
 }
 </style>

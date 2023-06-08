@@ -22,6 +22,7 @@
                 placeholder="Please select image icon file..."
                 drop-placeholder="Drop image icon file here..."
                 aria-describedby="source-help"
+                name="tokenImage"
                 @change="(event) => onFileChange(event)"
               />
             </div>
@@ -44,7 +45,7 @@
               {{ requestStatus }}
             </b-alert>
             <b-button type="submit" variant="outline-primary2" class="btn-block"
-              >Upload Icon
+              >{{ buttonMessage }}
             </b-button>
           </b-form>
         </div>
@@ -54,14 +55,33 @@
 </template>
 
 <script>
+import crypto from 'crypto'
 import { validationMixin } from 'vuelidate'
 // eslint-disable-next-line no-unused-vars
+import { WsProvider } from '@polkadot/api'
 import { Provider, Signer } from '@reef-defi/evm-provider'
-import { web3Accounts, web3Enable } from '@polkadot/extension-dapp'
+import {
+  web3Accounts,
+  web3Enable,
+  web3FromAddress,
+} from '@polkadot/extension-dapp'
 import { encodeAddress } from '@polkadot/keyring'
-import { WsProvider } from '@polkadot/rpc-provider'
 import commonMixin from '@/mixins/commonMixin.js'
 import { network } from '@/frontend.config.js'
+
+function readFileAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      const base64Data = reader.result.split(',')[1]
+      resolve(base64Data)
+    }
+    reader.onerror = (error) => {
+      reject(error)
+    }
+    reader.readAsDataURL(file)
+  })
+}
 
 export default {
   mixins: [commonMixin, validationMixin],
@@ -92,6 +112,8 @@ export default {
       selectedEvmAddress: null,
       selectedAccount: null,
       signature: null,
+      isRawSigned: false,
+      buttonMessage: 'Upload and Sign',
     }
   },
   async created() {
@@ -117,35 +139,58 @@ export default {
     },
     async onFileChange(event) {
       this.$file = event.target.files[0]
-      const fileData = await readFileAsArrayBuffer(this.$file)
-      const hash = await generateSHA256Hash(fileData)
-      this.$fileName = this.$file.name
+      // const fileData = await readFileAsArrayBuffer(this.$file)
+      this.$fileBase64 = await readFileAsBase64(this.$file)
+      this.$fileData = {
+        fileBase64: this.$fileBase64,
+        timestamp: new Date().getTime(),
+      }
+      const hash = generateSHA256Hash(JSON.stringify(this.$fileData))
       this.$fileHash = hash
     },
     async onSubmit(evt) {
       evt.preventDefault()
-      const allInjected = await web3Enable('reef')
-      const injectedSigner = allInjected[0].signer
+      const allInjected = await web3Enable('Reef')
+      if (allInjected.length === 0) {
+        throw new Error('extension not installed')
+      }
       const evmProvider = new Provider({
         provider: new WsProvider(network.nodeWs),
       })
-      try {
-        evmProvider.api.on('ready', async () => {
-          this.$signer = new Signer(
-            evmProvider,
-            this.selectedAddress,
-            injectedSigner
-          )
-          const signMsg = {
-            contractAddress: this.$route.params.id,
-            fileHash: this.$fileHash,
+      evmProvider.api.on('ready', async () => {
+        const allAccounts = await web3Accounts()
+        const injector = await web3FromAddress(this.selectedAddress)
+        const wallet = new Signer(
+          evmProvider,
+          this.selectedAddress,
+          injector.signer
+        )
+        // const stringifiedData = [this.$fileHash].toString()
+        if (!this.$isRawSigned) {
+          try {
+            this.$signature = await wallet.signingKey.signRaw({
+              address: allAccounts[0].address,
+              data: this.$fileHash,
+              type: 'bytes',
+            })
+            this.$isRawSigned = true
+            this.$bvToast.toast(`Successfully signed the file data`, {
+              title: 'Signed Raw',
+              variant: 'success',
+              autoHideDelay: 3000,
+              appendToast: false,
+            })
+            this.buttonMessage = 'Upload icon'
+          } catch (error) {
+            this.$bvToast.toast(`Unable to sign the file data`, {
+              title: 'Error in signing message',
+              variant: 'danger',
+              autoHideDelay: 3000,
+              appendToast: false,
+            })
           }
-          this.$signature = await this.$signer.signMessage(signMsg)
-        })
-      } catch (error) {
-        this.requestStatus = error
-      }
-
+        }
+      })
       const ensure = (condition, message) => {
         if (!condition) {
           throw new Error(message)
@@ -155,14 +200,33 @@ export default {
         // generate recaptcha token
         await this.$recaptcha.getResponse()
         ensure(this.$file != null, 'Please upload a file')
+        // this.selectedAddress = await resolveEvmAddress(this.$selectedAddress)
         if (this.$signature) {
           const body = {
-            signature: this.$signature,
-            file: this.$file,
+            signature: this.$signature.signature,
+            fileHash: this.$fileHash,
+            fileData: this.$fileData,
+            contractAddress: this.$route.params.id,
+            signerAddress: this.selectedAddress,
           }
-          await this.$axios.post(network.verificatorApi, body)
+          const response = await this.$axios.post(network.uploadTokenApi, body)
+          this.$bvToast.toast(response.data, {
+            title: 'Success',
+            variant: 'success',
+            autoHideDelay: 3000,
+            appendToast: false,
+          })
           await this.$recaptcha.reset()
           this.requestStatus = 'Verified'
+          this.$bvToast.toast(`Uploaded Token icon successfully`, {
+            title: 'Success',
+            variant: 'success',
+            autoHideDelay: 3000,
+            appendToast: false,
+          })
+          setTimeout(() => {
+            this.$router.push(`/token/${this.$route.params.id}`)
+          }, 2000)
         }
       } catch (error) {
         // eslint-disable-next-line no-console
@@ -173,28 +237,23 @@ export default {
         } else {
           this.requestStatus = 'Recaptcha token is missing'
         }
+        if (this.requestStatus !== undefined) {
+          this.$bvToast.toast(`${this.requestStatus}`, {
+            title: 'Error in updating token icon!',
+            variant: 'danger',
+            autoHideDelay: 3000,
+            appendToast: false,
+          })
+        }
       }
     },
   },
 }
-function readFileAsArrayBuffer(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result)
-    reader.onerror = reject
-    reader.readAsArrayBuffer(file)
-  })
-}
 
-function generateSHA256Hash(data) {
-  const buffer = new Uint8Array(data)
-  return crypto.subtle.digest('SHA-256', buffer).then((hashBuffer) => {
-    const hashArray = Array.from(new Uint8Array(hashBuffer))
-    const hashHex = hashArray
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('')
-    return hashHex
-  })
+function generateSHA256Hash(inputString) {
+  const hash = crypto.createHash('sha256')
+  hash.update(inputString)
+  return hash.digest('hex')
 }
 </script>
 

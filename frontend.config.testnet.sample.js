@@ -10,6 +10,8 @@ export const network = {
   backendHttp: 'https://testnet.reefscan.com/api/v3',
   verificatorApi:
     'https://testnet.reefscan.com/api/verificator/submit-verification',
+  uploadTokenApi:
+    'https://testnet.reefscan.com/api/verificator/submit-verification',
   googleAnalytics: '',
   theme: '@/assets/scss/themes/reef.scss',
 }
