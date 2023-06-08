@@ -197,6 +197,9 @@ export default {
     updateData() {
       this.$apollo.queries.events.refetch()
     },
+    setPerPage(value) {
+      this.perPage = value
+    },
   },
   apollo: {
     events: {
@@ -211,23 +214,33 @@ export default {
         }
       },
       fetchPolicy: 'network-only',
-      result({ data }) {
-        const dataArr = []
-        if (data.events.edges) {
-          for (let idx = 0; idx < data.events.edges.length; idx++) {
-            dataArr.push(data.events.edges[idx].node)
+      result({ data, error }) {
+        if (error) {
+          this.setPerPage(50)
+          this.$bvToast.toast(`Exceeds the size limit`, {
+            title: 'Encountered an Error',
+            variant: 'danger',
+            autoHideDelay: 5000,
+            appendToast: false,
+          })
+        } else {
+          const dataArr = []
+          if (data.events.edges) {
+            for (let idx = 0; idx < data.events.edges.length; idx++) {
+              dataArr.push(data.events.edges[idx].node)
+            }
+            data.events = dataArr
+            this.events = dataArr
           }
-          data.events = dataArr
-          this.events = dataArr
+          this.events.forEach((event) => {
+            event.block_id = event.block.height
+            event.extrinsic.block_id = event.extrinsic.block.height
+          })
+          this.totalRows = this.filter ? this.events.length : this.nEvents
+          this.nEvents = data.totalEvents[0].count
+          this.totalRows = this.nEvents
+          this.loading = false
         }
-        this.events.forEach((event) => {
-          event.block_id = event.block.height
-          event.extrinsic.block_id = event.extrinsic.block.height
-        })
-        this.totalRows = this.filter ? this.events.length : this.nEvents
-        this.nEvents = data.totalEvents[0].count
-        this.totalRows = this.nEvents
-        this.loading = false
       },
     },
   },

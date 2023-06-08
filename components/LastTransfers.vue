@@ -131,6 +131,9 @@ export default {
     updateData() {
       this.$apollo.queries.lastTransfers.refetch()
     },
+    setPerPage(value) {
+      this.perPage = value
+    },
   },
   apollo: {
     lastTransfers: {
@@ -172,59 +175,69 @@ export default {
         }
       `,
       fetchPolicy: 'network-only',
-      async result({ data }) {
-        const dataArr = []
-        if (data.lastTransfers.edges) {
-          for (let idx = 0; idx < data.lastTransfers.edges.length; idx++) {
-            dataArr.push(data.lastTransfers.edges[idx].node)
-          }
-          data.lastTransfers = dataArr
-          this.lastTransfers = dataArr
-        }
-        const processed = data.lastTransfers.map((transfer) => ({
-          amount: transfer.amount,
-          success: transfer.success,
-          hash: transfer.extrinsic.hash,
-          height: transfer.extrinsic.block.height,
-          index: transfer.extrinsic.index,
-          timestamp: transfer.timestamp,
-          tokenAddress: transfer.token.id,
-          isNft: transfer.nftId !== null,
-          symbol:
-            transfer.token.verified_contract?.contract_data?.symbol || ' ',
-          decimals:
-            transfer.token.verified_contract?.contract_data?.decimals || 18,
-          to: transfer.to !== null ? transfer.to.id : transfer.to.evmAddress,
-          from:
-            transfer.from !== null
-              ? transfer.from.id
-              : transfer.from.evmAddress,
-          extrinsicId: transfer.extrinsic.id,
-        }))
-        const repaird = processed.map(async (transfer) => {
-          if (transfer.to !== 'deleted' && transfer.from !== 'deleted') {
-            return transfer
-          }
-          const res = await this.$apollo.provider.defaultClient.query({
-            query: GET_TRANSFER_EXTRINSIC_EVENTS,
-            variables: {
-              exId: transfer.extrinsicId,
-            },
+      async result({ data, error }) {
+        if (error) {
+          this.setPerPage(20)
+          this.$bvToast.toast(`Exceeds the size limit`, {
+            title: 'Encountered an Error',
+            variant: 'danger',
+            autoHideDelay: 5000,
+            appendToast: false,
           })
-          if (
-            res.data &&
-            res.data.extrinsic.length > 0 &&
-            res.data.extrinsic[0].events &&
-            res.data.extrinsic[0].events.length > 0 &&
-            res.data.extrinsic[0].events[0].data
-          ) {
-            const [to, from] = res.data.extrinsic[0].events[0].data
-            return { ...transfer, to, from }
+        } else {
+          const dataArr = []
+          if (data.lastTransfers.edges) {
+            for (let idx = 0; idx < data.lastTransfers.edges.length; idx++) {
+              dataArr.push(data.lastTransfers.edges[idx].node)
+            }
+            data.lastTransfers = dataArr
+            this.lastTransfers = dataArr
           }
-          return transfer
-        })
-        this.transfers = await Promise.all(repaird)
-        this.loading = false
+          const processed = data.lastTransfers.map((transfer) => ({
+            amount: transfer.amount,
+            success: transfer.success,
+            hash: transfer.extrinsic.hash,
+            height: transfer.extrinsic.block.height,
+            index: transfer.extrinsic.index,
+            timestamp: transfer.timestamp,
+            tokenAddress: transfer.token.id,
+            isNft: transfer.nftId !== null,
+            symbol:
+              transfer.token.verified_contract?.contract_data?.symbol || ' ',
+            decimals:
+              transfer.token.verified_contract?.contract_data?.decimals || 18,
+            to: transfer.to !== null ? transfer.to.id : transfer.to.evmAddress,
+            from:
+              transfer.from !== null
+                ? transfer.from.id
+                : transfer.from.evmAddress,
+            extrinsicId: transfer.extrinsic.id,
+          }))
+          const repaird = processed.map(async (transfer) => {
+            if (transfer.to !== 'deleted' && transfer.from !== 'deleted') {
+              return transfer
+            }
+            const res = await this.$apollo.provider.defaultClient.query({
+              query: GET_TRANSFER_EXTRINSIC_EVENTS,
+              variables: {
+                exId: transfer.extrinsicId,
+              },
+            })
+            if (
+              res.data &&
+              res.data.extrinsic.length > 0 &&
+              res.data.extrinsic[0].events &&
+              res.data.extrinsic[0].events.length > 0 &&
+              res.data.extrinsic[0].events[0].data
+            ) {
+              const [to, from] = res.data.extrinsic[0].events[0].data
+              return { ...transfer, to, from }
+            }
+            return transfer
+          })
+          this.transfers = await Promise.all(repaird)
+          this.loading = false
+        }
       },
     },
   },

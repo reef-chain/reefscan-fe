@@ -182,6 +182,9 @@ export default {
       this.totalRows = filteredItems.length
       this.currentPage = 1
     },
+    setPerPage(value) {
+      this.perPage = value
+    },
   },
   apollo: {
     extrinsics: {
@@ -195,24 +198,34 @@ export default {
         return !this.accountId
       },
       fetchPolicy: 'network-only',
-      result({ data }) {
-        const dataArr = []
-        if (data.extrinsics.edges) {
-          for (let idx = 0; idx < data.extrinsics.edges.length; idx++) {
-            dataArr.push(data.extrinsics.edges[idx].node)
+      result({ data, error }) {
+        if (error) {
+          this.setPerPage(20)
+          this.$bvToast.toast(`Exceeds the size limit`, {
+            title: 'Encountered an Error',
+            variant: 'danger',
+            autoHideDelay: 5000,
+            appendToast: false,
+          })
+        } else {
+          const dataArr = []
+          if (data.extrinsics.edges) {
+            for (let idx = 0; idx < data.extrinsics.edges.length; idx++) {
+              dataArr.push(data.extrinsics.edges[idx].node)
+            }
+            data.extrinsics = dataArr
+            this.extrinsics = dataArr
           }
-          data.extrinsics = dataArr
-          this.extrinsics = dataArr
+          data.extrinsics = data.extrinsics.map((item) => {
+            return {
+              ...item,
+              block_id: item.block.height,
+            }
+          })
+          this.activities = data.extrinsics
+          this.totalRows = this.activities.length
+          this.loading = false
         }
-        data.extrinsics = data.extrinsics.map((item) => {
-          return {
-            ...item,
-            block_id: item.block.height,
-          }
-        })
-        this.activities = data.extrinsics
-        this.totalRows = this.activities.length
-        this.loading = false
       },
     },
   },

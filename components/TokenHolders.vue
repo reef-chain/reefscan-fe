@@ -121,6 +121,9 @@ export default {
     updateData() {
       this.$apollo.queries.tokenHolders.refetch()
     },
+    setPerPage(value) {
+      this.perPage = value
+    },
     handleNumFields(num) {
       localStorage.paginationOptions = num
       this.perPage = parseInt(num)
@@ -176,22 +179,32 @@ export default {
         return !this.tokenId
       },
       fetchPolicy: 'network-only',
-      result({ data }) {
-        this.holders = data.tokenHolders.map((holder) => {
-          return {
-            ...holder,
-            token_address: holder.token.id,
-            balance: holder.balance,
-            account: {
-              address: holder.signer ? holder.signer.id : holder.evmAddress,
-              evm_address: holder.signer
-                ? holder.signer.evmAddress
-                : holder.evmAddress,
-            },
-          }
-        })
-        this.totalRows = this.holders.length
-        this.loading = false
+      result({ data, error }) {
+        if (error) {
+          this.setPerPage(20)
+          this.$bvToast.toast(`Exceeds the size limit`, {
+            title: 'Encountered an Error',
+            variant: 'danger',
+            autoHideDelay: 5000,
+            appendToast: false,
+          })
+        } else {
+          this.holders = data.tokenHolders.map((holder) => {
+            return {
+              ...holder,
+              token_address: holder.token.id,
+              balance: holder.balance,
+              account: {
+                address: holder.signer ? holder.signer.id : holder.evmAddress,
+                evm_address: holder.signer
+                  ? holder.signer.evmAddress
+                  : holder.evmAddress,
+              },
+            }
+          })
+          this.totalRows = this.holders.length
+          this.loading = false
+        }
       },
     },
   },

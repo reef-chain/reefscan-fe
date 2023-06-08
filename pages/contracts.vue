@@ -212,6 +212,9 @@ export default {
       this.$apollo.queries.verifiedContracts.refetch()
       this.$apollo.queries.totalContracts.refetch()
     },
+    setPerPage(value) {
+      this.perPage = value
+    },
   },
   apollo: {
     contracts: {
@@ -241,21 +244,31 @@ export default {
         return newVar
       },
       fetchPolicy: 'network-only',
-      result({ data }) {
-        const dataArr = []
-        if (data.contracts.edges) {
-          for (let idx = 0; idx < data.contracts.edges.length; idx++) {
-            dataArr.push(data.contracts.edges[idx].node)
+      result({ data, error }) {
+        if (error) {
+          this.setPerPage(50)
+          this.$bvToast.toast(`Exceeds the size limit`, {
+            title: 'Encountered an Error',
+            variant: 'danger',
+            autoHideDelay: 5000,
+            appendToast: false,
+          })
+        } else {
+          const dataArr = []
+          if (data.contracts.edges) {
+            for (let idx = 0; idx < data.contracts.edges.length; idx++) {
+              dataArr.push(data.contracts.edges[idx].node)
+            }
+            data.contracts = dataArr
+            this.contracts = dataArr
           }
-          data.contracts = dataArr
-          this.contracts = dataArr
+          data.contracts.forEach((contract) => {
+            contract.address = contract.id
+            contract.extrinsic.block_id = contract.extrinsic.block.height
+          })
+          this.totalRows = this.filter ? this.contracts.length : this.nContracts
+          if (!this.forceLoad) this.loading = false
         }
-        data.contracts.forEach((contract) => {
-          contract.address = contract.id
-          contract.extrinsic.block_id = contract.extrinsic.block.height
-        })
-        this.totalRows = this.filter ? this.contracts.length : this.nContracts
-        if (!this.forceLoad) this.loading = false
       },
     },
     verifiedContracts: {

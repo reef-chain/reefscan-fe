@@ -151,6 +151,9 @@ export default {
     updateData() {
       this.$apollo.queries.transfers.refetch()
     },
+    setPerPage(value) {
+      this.perPage = value
+    },
   },
   apollo: {
     transfers: {
@@ -193,23 +196,33 @@ export default {
         return !this.tokenId
       },
       fetchPolicy: 'network-only',
-      result({ data }) {
-        this.transfers = data.transfers.map((transfer) => {
-          return {
-            ...transfer,
-            to_address: transfer.to.id,
-            isNft: transfer.nftId,
-            from_address: transfer.from.id,
-            to_evm_address: transfer.to.evmAddress,
-            from_evm_address: transfer.from.evmAddress,
-            extrinsic: {
-              ...transfer.extrinsic,
-              block_id: transfer.extrinsic.block.height,
-            },
-          }
-        })
-        this.totalRows = this.transfers.length
-        this.loading = false
+      result({ data, error }) {
+        if (error) {
+          this.setPerPage(20)
+          this.$bvToast.toast(`Exceeds the size limit`, {
+            title: 'Encountered an Error',
+            variant: 'danger',
+            autoHideDelay: 5000,
+            appendToast: false,
+          })
+        } else {
+          this.transfers = data.transfers.map((transfer) => {
+            return {
+              ...transfer,
+              to_address: transfer.to.id,
+              isNft: transfer.nftId,
+              from_address: transfer.from.id,
+              to_evm_address: transfer.to.evmAddress,
+              from_evm_address: transfer.from.evmAddress,
+              extrinsic: {
+                ...transfer.extrinsic,
+                block_id: transfer.extrinsic.block.height,
+              },
+            }
+          })
+          this.totalRows = this.transfers.length
+          this.loading = false
+        }
       },
     },
   },

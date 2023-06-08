@@ -178,6 +178,9 @@ export default {
     updateData() {
       this.$apollo.queries.blocks.refetch()
     },
+    setPerPage(value) {
+      this.perPage = value
+    },
   },
   apollo: {
     blocks: {
@@ -194,25 +197,35 @@ export default {
         }
       },
       fetchPolicy: 'network-only', // force fetch data from the server
-      result({ data }) {
-        const blocksArr = []
-        if (data.blocks.edges) {
-          for (let idx = 0; idx < data.blocks.edges.length; idx++) {
-            blocksArr.push(data.blocks.edges[idx].node)
-          }
-          data.blocks = blocksArr
-          this.blocks = blocksArr
-        }
-        this.blocks = this.blocks.map((block) => {
-          block.id = block.height
-          return block
-        })
-        if (this.filter) {
-          this.totalRows = this.blocks.length
+      result({ data, error }) {
+        if (error) {
+          this.setPerPage(20)
+          this.$bvToast.toast(`Exceeds the size limit`, {
+            title: 'Encountered an Error',
+            variant: 'danger',
+            autoHideDelay: 5000,
+            appendToast: false,
+          })
         } else {
-          this.totalRows = data.totalBlocks[0].count
+          const blocksArr = []
+          if (data.blocks.edges) {
+            for (let idx = 0; idx < data.blocks.edges.length; idx++) {
+              blocksArr.push(data.blocks.edges[idx].node)
+            }
+            data.blocks = blocksArr
+            this.blocks = blocksArr
+          }
+          this.blocks = this.blocks.map((block) => {
+            block.id = block.height
+            return block
+          })
+          if (this.filter) {
+            this.totalRows = this.blocks.length
+          } else {
+            this.totalRows = data.totalBlocks[0].count
+          }
+          if (!this.forceLoad) this.loading = false
         }
-        if (!this.forceLoad) this.loading = false
       },
     },
   },
