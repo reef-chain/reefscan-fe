@@ -291,7 +291,7 @@ export default {
               token_icon: token.contractData.iconUrl
                 ? token.contractData.iconUrl.replace(
                     'ipfs://',
-                    'https://ipfs.io/ipfs/'
+                    'https://reef.infura-ipfs.io/ipfs/'
                   )
                 : undefined,
             }

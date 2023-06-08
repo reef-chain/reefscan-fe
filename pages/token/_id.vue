@@ -294,7 +294,10 @@ export default {
           this.contract = contract
           this.iconUrl =
             contractData.iconUrl !== undefined
-              ? contractData.iconUrl.replace('ipfs://', 'https://ipfs.io/ipfs/')
+              ? contractData.iconUrl.replace(
+                  'ipfs://',
+                  'https://reef.infura-ipfs.io/ipfs/'
+                )
               : undefined
           this.contract.extrinsic.block_id = contract.extrinsic.block.height
           this.contract.verified_contract = data.verifiedContracts[0]

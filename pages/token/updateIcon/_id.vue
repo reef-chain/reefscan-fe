@@ -60,7 +60,11 @@ import { validationMixin } from 'vuelidate'
 // eslint-disable-next-line no-unused-vars
 import { WsProvider } from '@polkadot/api'
 import { Provider, Signer } from '@reef-defi/evm-provider'
-import { web3Accounts, web3Enable } from '@polkadot/extension-dapp'
+import {
+  web3Accounts,
+  web3Enable,
+  web3FromAddress,
+} from '@polkadot/extension-dapp'
 import { encodeAddress } from '@polkadot/keyring'
 import commonMixin from '@/mixins/commonMixin.js'
 import { network } from '@/frontend.config.js'
@@ -155,14 +159,12 @@ export default {
       })
       evmProvider.api.on('ready', async () => {
         const allAccounts = await web3Accounts()
+        const injector = await web3FromAddress(this.selectedAddress)
         const wallet = new Signer(
           evmProvider,
-          allAccounts[0].address,
-          allInjected[0].signer
+          this.selectedAddress,
+          injector.signer
         )
-        if (!(await wallet.isClaimed())) {
-          await wallet.claimDefaultAccount()
-        }
         // const stringifiedData = [this.$fileHash].toString()
         if (!this.$isRawSigned) {
           try {
@@ -198,6 +200,7 @@ export default {
         // generate recaptcha token
         await this.$recaptcha.getResponse()
         ensure(this.$file != null, 'Please upload a file')
+        // this.selectedAddress = await resolveEvmAddress(this.$selectedAddress)
         if (this.$signature) {
           const body = {
             signature: this.$signature.signature,
