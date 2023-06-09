@@ -261,43 +261,29 @@ export default {
         }
       },
       fetchPolicy: 'network-only',
-      result({ data, error }) {
-        if (error) {
-          this.setPerPage(50)
-          this.$bvToast.toast(`Exceeds the size limit`, {
-            title: 'Encountered an Error',
-            variant: 'danger',
-            autoHideDelay: 5000,
-            appendToast: false,
-          })
-        } else {
-          const dataArr = []
-          if (data.verifiedContracts.edges) {
-            for (
-              let idx = 0;
-              idx < data.verifiedContracts.edges.length;
-              idx++
-            ) {
-              dataArr.push(data.verifiedContracts.edges[idx].node)
-            }
-            data.verifiedContracts = dataArr
-            this.verifiedContracts = dataArr
+      result({ data }) {
+        const dataArr = []
+        if (data.verifiedContracts.edges) {
+          for (let idx = 0; idx < data.verifiedContracts.edges.length; idx++) {
+            dataArr.push(data.verifiedContracts.edges[idx].node)
           }
-          if (data && data.verifiedContracts) {
-            this.tokens = data.verifiedContracts.map((token) => {
-              return {
-                ...token,
-                address: token.id,
-                contract: {
-                  ...token.contract,
-                  extrinsic: {
-                    ...token.contract.extrinsic,
-                    block_id: token.contract.extrinsic.block.height,
-                  },
-                  token_holders_aggregate: {
-                    aggregate: {
-                      count: 0, // TODO: token holder amount won't work because aggregates don't exist the way they did
-                    },
+          data.verifiedContracts = dataArr
+          this.verifiedContracts = dataArr
+        }
+        if (data && data.verifiedContracts) {
+          this.tokens = data.verifiedContracts.map((token) => {
+            return {
+              ...token,
+              address: token.id,
+              contract: {
+                ...token.contract,
+                extrinsic: {
+                  ...token.contract.extrinsic,
+                  block_id: token.contract.extrinsic.block.height,
+                },
+                token_holders_aggregate: {
+                  aggregate: {
+                    count: 0, // TODO: token holder amount won't work because aggregates don't exist the way they did
                   },
                 },
               },
@@ -313,17 +299,14 @@ export default {
           this.totalRows = this.filter ? this.tokens.length : this.nTokens
           this.nTokens = data.totalTokens.totalCount
           this.totalRows = this.nTokens
-          this.loading = false
         }
+        this.loading = false
       },
     },
   },
   methods: {
     updateData() {
       this.$apollo.queries.verifiedContracts.refetch()
-    },
-    setPerPage(value) {
-      this.perPage = value
     },
     getItemSupply(item) {
       const supply = this.formatTokenAmount(
