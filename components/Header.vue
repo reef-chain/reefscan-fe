@@ -34,10 +34,10 @@
             <template #button-content>
               {{ network.name }}
             </template>
-            <b-dropdown-item href="https://reefscan.info"
+            <b-dropdown-item href="https://reefscan.com"
               >Mainnet</b-dropdown-item
             >
-            <b-dropdown-item href="https://testnet.reefscan.info"
+            <b-dropdown-item href="https://testnet.reefscan.com"
               >Testnet</b-dropdown-item
             >
           </b-dropdown>
