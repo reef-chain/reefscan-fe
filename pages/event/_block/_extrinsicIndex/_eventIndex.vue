@@ -98,11 +98,15 @@ export default {
         }
       },
       result({ data }) {
-        this.parsedEvent = data?.events[0]
-        this.parsedEvent.block_id = this.parsedEvent.block.height
-        this.parsedEvent.extrinsic.block_id =
-          this.parsedEvent.extrinsic.block.height
-        this.loading = false
+        try {
+          this.parsedEvent = data?.events[0]
+          this.parsedEvent.block_id = this.parsedEvent.block.height
+          this.parsedEvent.extrinsic.block_id =
+            this.parsedEvent.extrinsic.block.height
+          this.loading = false
+        } catch (error) {
+          this.loading = false
+        }
       },
     },
   },

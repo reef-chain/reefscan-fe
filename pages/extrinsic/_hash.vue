@@ -78,11 +78,15 @@ export default {
       },
       fetchPolicy: 'network-only',
       result({ data }) {
-        this.parsedExtrinsic = data.extrinsics[0]
-        this.parsedExtrinsic.block_id = this.parsedExtrinsic.block.height
-        this.parsedExtrinsic.error_message = this.parsedExtrinsic.errorMessage
-        this.parsedExtrinsic.signed_data = this.parsedExtrinsic.signedData
-        this.loading = false
+        try {
+          this.parsedExtrinsic = data.extrinsics[0]
+          this.parsedExtrinsic.block_id = this.parsedExtrinsic.block.height
+          this.parsedExtrinsic.error_message = this.parsedExtrinsic.errorMessage
+          this.parsedExtrinsic.signed_data = this.parsedExtrinsic.signedData
+          this.loading = false
+        } catch (error) {
+          this.loading = false
+        }
       },
     },
   },
