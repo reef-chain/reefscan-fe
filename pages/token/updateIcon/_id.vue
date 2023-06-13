@@ -14,6 +14,20 @@
             <strong>access</strong> over this page. Kindly choose an image file
             to upload.
           </b-alert>
+          <b-form-group
+            id="input-group-from"
+            label="call from account"
+            label-for="input-from"
+            class="w-100"
+          >
+            <b-form-select
+              id="input-from"
+              v-model="selectedAddress"
+              :options="extensionAddresses"
+              class="w-100"
+              @change="updateSelectedAddress"
+            ></b-form-select>
+          </b-form-group>
           <b-form enctype="multipart/form-data" @submit="onSubmit">
             <div class="d-flex justify-content-center">
               <b-form-file
@@ -60,6 +74,7 @@ import { validationMixin } from 'vuelidate'
 // eslint-disable-next-line no-unused-vars
 import { WsProvider } from '@polkadot/api'
 import { Provider, Signer } from '@reef-defi/evm-provider'
+import { gql } from 'graphql-tag'
 import {
   web3Accounts,
   web3Enable,
@@ -121,18 +136,39 @@ export default {
     const accounts = await web3Accounts()
     if (accounts.length > 0) {
       this.extensionAccounts = accounts
-      if (this.extensionAccounts.length > 0) {
-        this.selectedAccount = this.extensionAccounts[0]
-        this.selectedAddress = encodeAddress(
-          this.extensionAccounts[0].address,
-          network.ss58Format
-        )
-      } else {
-        this.noAccountsFound = true
+      if (accounts.length > 0) {
+        this.extensionAccounts = accounts
+        for (const account of accounts) {
+          const encodedAddress = encodeAddress(
+            account.address,
+            network.ss58Format
+          )
+          const evmAddress = await this.getEVMAddress(encodedAddress)
+          this.extensionAddresses.push({
+            value: encodedAddress,
+            text: evmAddress
+              ? `${account.meta.name}: ${this.shortAddress(
+                  encodedAddress
+                )} (${this.shortHash(evmAddress)})`
+              : `${account.meta.name}: ${this.shortAddress(encodedAddress)}`,
+          })
+        }
+        if (
+          this.extensionAccounts.length > 0 &&
+          this.extensionAddresses.length > 0
+        ) {
+          this.selectedAccount = this.extensionAccounts[0]
+          this.selectedAddress = this.extensionAddresses[0]
+        } else {
+          this.noAccountsFound = true
+        }
       }
     }
   },
   methods: {
+    updateSelectedAddress(address) {
+      this.selectedAddress = address
+    },
     validateState(name) {
       const { $dirty, $error } = this.$v[name]
       return $dirty ? !$error : null
@@ -158,7 +194,6 @@ export default {
         provider: new WsProvider(network.nodeWs),
       })
       evmProvider.api.on('ready', async () => {
-        const allAccounts = await web3Accounts()
         const injector = await web3FromAddress(this.selectedAddress)
         const wallet = new Signer(
           evmProvider,
@@ -169,7 +204,7 @@ export default {
         if (!this.$isRawSigned) {
           try {
             this.$signature = await wallet.signingKey.signRaw({
-              address: allAccounts[0].address,
+              address: this.selectedAddress,
               data: this.$fileHash,
               type: 'bytes',
             })
@@ -245,6 +280,27 @@ export default {
             appendToast: false,
           })
         }
+      }
+    },
+    async getEVMAddress(accountId) {
+      const client = this.$apolloProvider.defaultClient
+      const query = gql`
+        query account {
+          accounts(where: {id_containsInsensitive: "${accountId}"}, limit: 1) {
+            evmAddress
+          }
+        }
+      `
+      const response = await client.query({ query })
+      if (response.data.account && response.data.account.length > 0) {
+        const evmAddress = response.data.account[0].evmAddress
+        if (evmAddress) {
+          return evmAddress
+        } else {
+          return ''
+        }
+      } else {
+        return ''
       }
     },
   },
