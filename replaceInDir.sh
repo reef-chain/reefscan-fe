@@ -1,6 +1,6 @@
 #!/bin/bash
 
-declare -a replaceStrings=("GQL_WS_URI" "GQL_HTTP_URI" "NODE_WS" "VERIFICATOR_API" "NETWORK_ID" "NETWORK_LABEL")
+declare -a replaceStrings=("GQL_WS_URI" "GQL_HTTP_URI" "NODE_WS" "VERIFICATOR_API" "UPLOAD_TOKEN_API" "NETWORK_ID" "NETWORK_LABEL")
 directory=/usr/share/nginx/html/_nuxt
 
 echo "replacing in $directory ===================================="

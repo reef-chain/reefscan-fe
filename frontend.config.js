@@ -9,6 +9,7 @@ export const network = {
   backendWs: '&GQL_WS_URI',
   backendHttp: '&GQL_HTTP_URI',
   verificatorApi: '&VERIFICATOR_API',
+  uploadTokenApi: '&UPLOAD_TOKEN_API',
   googleAnalytics: '',
   theme: '@/assets/scss/themes/reef.scss',
 }
