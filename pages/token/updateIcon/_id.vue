@@ -128,8 +128,56 @@ export default {
       selectedAccount: null,
       signature: null,
       isRawSigned: false,
-      buttonMessage: 'Upload and Sign',
+      buttonMessage: 'Upload Icon',
     }
+  },
+  watch: {
+    async isRawSigned(newVal) {
+      if (newVal) {
+        try {
+          if (this.$signature) {
+            const body = {
+              signature: this.$signature.signature,
+              fileHash: this.$fileHash,
+              fileData: this.$fileData,
+              contractAddress: this.$route.params.id,
+              signerAddress: this.selectedAddress,
+            }
+            let response = null
+            try {
+              response = await this.$axios.post(network.uploadTokenApi, body)
+            } catch (error) {
+              this.$bvToast.toast(error.response.data, {
+                title: 'Error encountered',
+                variant: 'danger',
+                autoHideDelay: 3000,
+                appendToast: false,
+              })
+              setTimeout(() => {
+                this.$router.push(`/token/updateIcon/${this.$route.params.id}`)
+              }, 2000)
+            }
+            this.$bvToast.toast(response.data, {
+              title: 'Success',
+              variant: 'success',
+              autoHideDelay: 3000,
+              appendToast: false,
+            })
+            await this.$recaptcha.reset()
+            this.requestStatus = 'Verified'
+            this.$bvToast.toast(`Uploaded Token icon successfully`, {
+              title: 'Success',
+              variant: 'success',
+              autoHideDelay: 3000,
+              appendToast: false,
+            })
+            setTimeout(() => {
+              this.$router.push(`/token/${this.$route.params.id}`)
+            }, 2000)
+          }
+        } catch (error) {}
+      }
+    },
   },
   async created() {
     await web3Enable('Reefscan')
@@ -208,14 +256,13 @@ export default {
               data: this.$fileHash,
               type: 'bytes',
             })
-            this.$isRawSigned = true
+            this.$set(this, 'isRawSigned', true)
             this.$bvToast.toast(`Successfully signed the file data`, {
               title: 'Signed Raw',
               variant: 'success',
               autoHideDelay: 3000,
               appendToast: false,
             })
-            this.buttonMessage = 'Upload icon'
           } catch (error) {
             this.$bvToast.toast(`Unable to sign the file data`, {
               title: 'Error in signing message',
@@ -233,7 +280,7 @@ export default {
       }
       try {
         // generate recaptcha token
-        await this.$recaptcha.getResponse()
+        // await this.$recaptcha.getResponse()
         ensure(this.$file != null, 'Please upload a file')
         // this.selectedAddress = await resolveEvmAddress(this.$selectedAddress)
         if (this.$signature) {
