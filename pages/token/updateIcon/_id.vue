@@ -146,6 +146,19 @@ export default {
             let response = null
             try {
               response = await this.$axios.post(network.uploadTokenApi, body)
+              this.$bvToast.toast(response.data, {
+                title: 'Success',
+                variant: 'success',
+                autoHideDelay: 3000,
+                appendToast: false,
+              })
+              this.requestStatus = 'Verified'
+              this.$bvToast.toast(`Uploaded Token icon successfully`, {
+                title: 'Success',
+                variant: 'success',
+                autoHideDelay: 3000,
+                appendToast: false,
+              })
             } catch (error) {
               this.$bvToast.toast(error.response.data, {
                 title: 'Error encountered',
@@ -153,29 +166,18 @@ export default {
                 autoHideDelay: 3000,
                 appendToast: false,
               })
-              setTimeout(() => {
-                this.$router.push(`/token/updateIcon/${this.$route.params.id}`)
-              }, 2000)
             }
-            this.$bvToast.toast(response.data, {
-              title: 'Success',
-              variant: 'success',
-              autoHideDelay: 3000,
-              appendToast: false,
-            })
             await this.$recaptcha.reset()
-            this.requestStatus = 'Verified'
-            this.$bvToast.toast(`Uploaded Token icon successfully`, {
-              title: 'Success',
-              variant: 'success',
-              autoHideDelay: 3000,
-              appendToast: false,
-            })
             setTimeout(() => {
               this.$router.push(`/token/${this.$route.params.id}`)
             }, 2000)
           }
-        } catch (error) {}
+        } catch (error) {
+          this.$file = null
+          setTimeout(() => {
+            this.$router.push(`/token/${this.$route.params.id}`)
+          }, 2000)
+        }
       }
     },
   },
@@ -280,36 +282,9 @@ export default {
       }
       try {
         // generate recaptcha token
-        // await this.$recaptcha.getResponse()
+        await this.$recaptcha.getResponse()
         ensure(this.$file != null, 'Please upload a file')
         // this.selectedAddress = await resolveEvmAddress(this.$selectedAddress)
-        if (this.$signature) {
-          const body = {
-            signature: this.$signature.signature,
-            fileHash: this.$fileHash,
-            fileData: this.$fileData,
-            contractAddress: this.$route.params.id,
-            signerAddress: this.selectedAddress,
-          }
-          const response = await this.$axios.post(network.uploadTokenApi, body)
-          this.$bvToast.toast(response.data, {
-            title: 'Success',
-            variant: 'success',
-            autoHideDelay: 3000,
-            appendToast: false,
-          })
-          await this.$recaptcha.reset()
-          this.requestStatus = 'Verified'
-          this.$bvToast.toast(`Uploaded Token icon successfully`, {
-            title: 'Success',
-            variant: 'success',
-            autoHideDelay: 3000,
-            appendToast: false,
-          })
-          setTimeout(() => {
-            this.$router.push(`/token/${this.$route.params.id}`)
-          }, 2000)
-        }
       } catch (error) {
         // eslint-disable-next-line no-console
         if (error.response) {
