@@ -83,10 +83,14 @@ export default {
         }
       },
       result({ data }) {
-        this.parsedEvent = data.events[0]
-        this.parsedEvent.extrinsic.block_id =
-          this.parsedEvent.extrinsic.block.id
-        this.loading = false
+        try {
+          this.parsedEvent = data.events[0]
+          this.parsedEvent.extrinsic.block_id =
+            this.parsedEvent.extrinsic.block.id
+          this.loading = false
+        } catch (error) {
+          this.loading = false
+        }
       },
     },
   },
