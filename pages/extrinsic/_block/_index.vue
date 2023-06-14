@@ -11,6 +11,7 @@
     </section>
   </div>
 </template>
+
 <script>
 import { gql } from 'graphql-tag'
 import Loading from '@/components/Loading.vue'
@@ -27,7 +28,8 @@ export default {
     return {
       loading: true,
       blockNumber: Number(this.$route.params.block),
-      extrinsicIndex: Number(this.$route.params.index),
+      extrinsicIdentifier: this.$route.params.index,
+      isExtrinsicHash: this.$route.params.index.startsWith('0x'),
       parsedExtrinsic: undefined,
     }
   },
@@ -46,42 +48,83 @@ export default {
   watch: {
     $route() {
       this.blockNumber = Number(this.$route.params.block)
-      this.extrinsicIndex = Number(this.$route.params.index)
+      this.extrinsicIdentifier = this.$route.params.index
+      this.isExtrinsicHash = this.$route.params.index.startsWith('0x')
     },
   },
   apollo: {
     extrinsics: {
-      query: gql`
-        query extrinsics($block_height: Int!, $index: Int!) {
-          extrinsics(
-            where: { block: { height_eq: $block_height }, index_eq: $index }
-            limit: 1
-          ) {
-            id
-            block {
-              height
+      query() {
+        if (this.isExtrinsicHash) {
+          return gql`
+            query extrinsics(
+              $block_height: Int!
+              $extrinsicIdentifier: String!
+            ) {
+              extrinsics(
+                where: {
+                  block: { height_eq: $block_height }
+                  hash_eq: $extrinsicIdentifier
+                }
+                limit: 1
+              ) {
+                id
+                block {
+                  height
+                }
+                index
+                signer
+                section
+                method
+                args
+                hash
+                docs
+                type
+                timestamp
+                errorMessage
+                signedData
+              }
             }
-            index
-            signer
-            section
-            method
-            args
-            hash
-            docs
-            type
-            timestamp
-            errorMessage
-            signedData
-          }
+          `
+        } else {
+          return gql`
+            query extrinsics($block_height: Int!, $extrinsicIdentifier: Int!) {
+              extrinsics(
+                where: {
+                  block: { height_eq: $block_height }
+                  index_eq: $extrinsicIdentifier
+                }
+                limit: 1
+              ) {
+                id
+                block {
+                  height
+                }
+                index
+                signer
+                section
+                method
+                args
+                hash
+                docs
+                type
+                timestamp
+                errorMessage
+                signedData
+              }
+            }
+          `
         }
-      `,
+      },
       skip() {
         return !this.blockNumber
       },
       variables() {
         return {
           block_height: this.blockNumber,
-          index: this.extrinsicIndex,
+          extrinsicIdentifier: this.isExtrinsicHash
+            ? this.extrinsicIdentifier
+            : Number(this.extrinsicIdentifier),
         }
       },
       fetchPolicy: 'network-only',
