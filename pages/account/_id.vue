@@ -61,11 +61,6 @@
                   :address="parsedAccount.evm_address"
                   :size="20"
                 />
-                <eth-identicon
-                  v-else
-                  :address="parsedAccount.address"
-                  :size="20"
-                />
                 <span>{{
                   parsedAccount.evm_address
                     ? parsedAccount.evm_address
