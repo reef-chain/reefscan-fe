@@ -120,11 +120,6 @@
                   :address="item.evm_address"
                   :size="20"
                 />
-                <eth-identicon
-                  v-if="!item.evm_address"
-                  :address="item.address"
-                  :size="20"
-                />
                 <span>{{
                   item.evm_address
                     ? shortHash(item.evm_address)
