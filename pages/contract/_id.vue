@@ -182,12 +182,26 @@
 
             <Row v-if="solidityScanData">
               <Cell>SolidityScan Critical Vulnerabilities</Cell>
-              <Cell wrap>{{ solidityScanData.critical }}</Cell>
+              <Cell wrap>
+                <div
+                  :class="
+                    solidityScanData.critical > 0 ? 'red-cell' : 'green-cell'
+                  "
+                >
+                  {{ solidityScanData.critical }}
+                </div>
+              </Cell>
             </Row>
 
             <Row v-if="solidityScanData">
               <Cell>SolidityScan High Vulnerabilities</Cell>
-              <Cell wrap>{{ solidityScanData.high }}</Cell>
+              <Cell wrap>
+                <div
+                  :class="solidityScanData.high > 0 ? 'red-cell' : 'green-cell'"
+                >
+                  {{ solidityScanData.high }}
+                </div>
+              </Cell>
             </Row>
           </Data>
 
@@ -566,6 +580,16 @@ export default {
 .contract-details {
   .contract-details__source {
     background: rgba(#eaedf3, 0.5);
+  }
+
+  .green-cell {
+    color: green !important;
+    font-weight: bolder !important;
+  }
+
+  .red-cell {
+    color: red !important;
+    font-weight: bolder !important;
   }
 
   .details-headline {
