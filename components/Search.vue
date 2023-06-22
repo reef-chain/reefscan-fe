@@ -8,12 +8,16 @@
           is currently not updated.
         </div>-->
       </div>
-
       <div class="container">
         <div v-if="label || $slots.label" class="search-section__label-section">
           <label v-if="label" class="search-section__label">{{ label }}</label>
+          <div v-if="maintainingIndexer" class="maintainingIndexing">
+            <div class="blinkingdot"></div>
+            <div class="maintainingIndexingText">Indexing in maintenance</div>
+          </div>
           <slot name="label" />
         </div>
+
         <b-form-input
           id="searchInput"
           :value="value"
@@ -35,6 +39,7 @@
 <script>
 import Chain from '@/components/Chain.vue'
 import bubbles from '@/components/BubblesAnimation.vue'
+import { EventBus } from '~/utils/eventBus'
 
 export default {
   components: { bubbles, Chain },
@@ -47,6 +52,22 @@ export default {
     infoMsg: { type: String, default: '' },
     placeholder: { type: String, default: '' },
     showStats: { type: Boolean, default: false },
+  },
+  data() {
+    return {
+      maintainingIndexer: false,
+    }
+  },
+  created() {
+    EventBus.$on('maintaining-indexer', this.maintainIndexer)
+  },
+  destroyed() {
+    EventBus.$off('maintaining-indexer', this.maintainIndexer)
+  },
+  methods: {
+    maintainIndexer(eventData) {
+      this.maintainingIndexer = eventData
+    },
   },
 }
 </script>
@@ -142,5 +163,35 @@ export default {
       margin-bottom: 45px;
     }
   }
+}
+
+.blinkingdot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: red;
+  animation: blink 1s infinite;
+  margin: 4px;
+}
+
+@keyframes blink {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+.maintainingIndexing {
+  display: flex;
+  position: relative;
+  color: white;
+}
+
+.maintainingIndexingText {
+  font-size: 12px;
 }
 </style>

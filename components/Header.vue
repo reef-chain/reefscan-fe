@@ -44,11 +44,6 @@
         </div>
 
         <ReefPrice />
-
-        <div v-if="maintainingIndexer" class="maintainingIndexing">
-          <div class="blinkingdot"></div>
-          <div class="maintainingIndexingText">Indexing in maintenance</div>
-        </div>
       </div>
     </div>
   </div>
@@ -60,7 +55,6 @@ import LogoTestnet from '@/assets/LogoTestnet.vue'
 import Hamburger from '@/components/Hamburger'
 import ReefPrice from '@/components/ReefPrice'
 import { network } from '@/frontend.config.js'
-import { EventBus } from '~/utils/eventBus'
 
 export default {
   components: {
@@ -87,15 +81,6 @@ export default {
         this.$store.dispatch('fiat/update')
       }, 60000)
     }
-    EventBus.$on('maintaining-indexer', this.maintainIndexer)
-  },
-  destroyed() {
-    EventBus.$off('maintaining-indexer', this.maintainIndexer)
-  },
-  methods: {
-    maintainIndexer(eventData) {
-      this.maintainingIndexer = eventData
-    },
   },
 }
 </script>
@@ -342,38 +327,9 @@ export default {
 
         .reef-price {
           margin-left: auto;
-          margin-right: -70px;
         }
       }
     }
   }
-}
-.blinkingdot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background-color: red;
-  animation: blink 1s infinite;
-  margin: 4px;
-}
-
-@keyframes blink {
-  0% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0;
-  }
-  100% {
-    opacity: 1;
-  }
-}
-.maintainingIndexing {
-  display: flex;
-  margin-right: -70px;
-}
-
-.maintainingIndexingText {
-  font-size: 12px;
 }
 </style>
