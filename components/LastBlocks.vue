@@ -130,7 +130,7 @@ export default {
             this.blocks = dataArr
             EventBus.$emit(
               'maintaining-indexer',
-              this.lastBlockOnChain - this.blocks[0].height > 1
+              this.lastBlockOnChain - this.blocks[0].height > 4
             )
           }
           this.blocks = data.blocks.map((item) => {
