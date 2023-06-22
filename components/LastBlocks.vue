@@ -47,10 +47,14 @@
 </template>
 
 <script>
+import { Provider } from '@reef-defi/evm-provider'
+import { WsProvider } from '@polkadot/api'
 import { gql } from 'graphql-tag'
 import commonMixin from '@/mixins/commonMixin.js'
 import Loading from '@/components/Loading.vue'
 import BlockTimeout from '@/utils/polling.js'
+import { network } from '~/frontend.config'
+import { EventBus } from '~/utils/eventBus'
 
 export default {
   components: {
@@ -62,11 +66,23 @@ export default {
       loading: true,
       blocks: [],
       callbackId: null,
+      provider: null,
+      lastBlockOnChain: null,
     }
   },
-  created() {
+  async created() {
     this.updateData()
     BlockTimeout.addCallback(this.updateData)
+    const provider = new Provider({
+      provider: new WsProvider(network.nodeWs),
+    })
+    await provider.api.isReady
+    this.provider = provider
+    try {
+      provider.api.rpc.chain.subscribeNewHeads((header) => {
+        this.lastBlockOnChain = `${header.number}`
+      })
+    } catch (error) {}
   },
   destroyed() {
     BlockTimeout.removeCallback(this.updateData)
@@ -112,6 +128,10 @@ export default {
             }
             data.blocks = dataArr
             this.blocks = dataArr
+            EventBus.$emit(
+              'maintaining-indexer',
+              this.lastBlockOnChain - this.blocks[0].height > 1
+            )
           }
           this.blocks = data.blocks.map((item) => {
             this.loading = false
