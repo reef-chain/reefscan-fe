@@ -314,7 +314,8 @@ export default {
           )
         }
         for (let i = 0; i < this.contract.abi.length; i++) {
-          if (this.contract.abi[i] === 'renounceOwnership') {
+          // checking this cause if token extends ownable or not
+          if (this.contract.abi[i].name === 'renounceOwnership') {
             this.isTokenUriFunc = true
           }
         }
