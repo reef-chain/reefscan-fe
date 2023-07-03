@@ -314,7 +314,7 @@ export default {
           )
         }
         for (let i = 0; i < this.contract.abi.length; i++) {
-          if (this.contract.abi[i] === 'tokenUri') {
+          if (this.contract.abi[i] === 'renounceOwnership') {
             this.isTokenUriFunc = true
           }
         }
