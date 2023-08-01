@@ -167,6 +167,42 @@
               <Cell>{{ $t('details.contract.deployment_solc_version') }}</Cell>
               <Cell wrap>{{ decodedSolcVersion }}</Cell>
             </Row>
+
+            <Row v-if="solidityScanData">
+              <Cell>SolidityScan Security Score</Cell>
+              <Cell wrap>
+                <a
+                  :href="`${solidityScanData.scanner_reference_url}`"
+                  target="_blank"
+                >
+                  {{ solidityScanData.soldityScanScoreV2 }} / 100
+                </a>
+              </Cell>
+            </Row>
+
+            <Row v-if="solidityScanData">
+              <Cell>SolidityScan Critical Vulnerabilities</Cell>
+              <Cell wrap>
+                <div
+                  :class="
+                    solidityScanData.critical > 0 ? 'red-cell' : 'green-cell'
+                  "
+                >
+                  {{ solidityScanData.critical }}
+                </div>
+              </Cell>
+            </Row>
+
+            <Row v-if="solidityScanData">
+              <Cell>SolidityScan High Vulnerabilities</Cell>
+              <Cell wrap>
+                <div
+                  :class="solidityScanData.high > 0 ? 'red-cell' : 'green-cell'"
+                >
+                  {{ solidityScanData.high }}
+                </div>
+              </Cell>
+            </Row>
           </Data>
 
           <!-- Developer -->
@@ -284,6 +320,7 @@ export default {
       provider: undefined,
       tab: 'general',
       callbackId: null,
+      solidityScanData: null,
     }
   },
   computed: {
@@ -499,7 +536,7 @@ export default {
           address: this.address,
         }
       },
-      result({ data }) {
+      async result({ data }) {
         if (data.verifiedContracts[0]) {
           this.verified = data.verifiedContracts[0]
           this.verified.compiler_version = this.verified.compilerVersion
@@ -509,6 +546,12 @@ export default {
             this.verified.compiled_data[this.verified.name]
               ? this.verified.compiled_data[this.verified.name]
               : []
+          try {
+            const resp = await this.$axios.get(
+              `${network.solidityScanData}/${this.address}`
+            )
+            this.solidityScanData = resp.data.data
+          } catch (error) {}
         }
       },
     },
@@ -537,6 +580,16 @@ export default {
 .contract-details {
   .contract-details__source {
     background: rgba(#eaedf3, 0.5);
+  }
+
+  .green-cell {
+    color: green !important;
+    font-weight: bolder !important;
+  }
+
+  .red-cell {
+    color: red !important;
+    font-weight: bolder !important;
   }
 
   .details-headline {

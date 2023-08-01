@@ -12,6 +12,7 @@ export const network = {
     'https://testnet.reefscan.com/api/verificator/submit-verification',
   uploadTokenApi:
     'https://testnet.reefscan.com/api/verificator/submit-verification',
+  solidityScanData: 'https://testnet.reefscan.com/api/solidity_scan/',
   googleAnalytics: '',
   theme: '@/assets/scss/themes/reef.scss',
 }
