@@ -548,7 +548,7 @@ export default {
               : []
           try {
             const resp = await this.$axios.get(
-              `${network.solidityScanData}/${this.address}`
+              `${network.solidityScanApi}/${this.address}`
             )
             this.solidityScanData = resp.data.data
           } catch (error) {}

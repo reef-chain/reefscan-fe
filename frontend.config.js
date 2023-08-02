@@ -12,6 +12,7 @@ export const network = {
   uploadTokenApi: '&UPLOAD_TOKEN_API',
   googleAnalytics: '',
   theme: '@/assets/scss/themes/reef.scss',
+  solidityScanApi: '&SOLIDITY_SCAN_API'
 }
 console.log('network config=', network)
 
