@@ -13,6 +13,7 @@
             <strong>access</strong> over this page. Kindly choose an image file
             to upload.
           </b-alert>
+          <img id="uploaded_image_view" />
           <b-form enctype="multipart/form-data" @submit="onSubmit">
             <div class="d-flex justify-content-center">
               <b-form-file
@@ -115,6 +116,7 @@ export default {
       isRawSigned: false,
       buttonMessage: 'Upload Icon',
       addressOfOwner: '',
+      fileBase64: null,
     }
   },
   watch: {
@@ -213,6 +215,9 @@ export default {
       this.$file = event.target.files[0]
       // const fileData = await readFileAsArrayBuffer(this.$file)
       this.$fileBase64 = await readFileAsBase64(this.$file)
+      const imgElement = document.getElementById('uploaded_image_view')
+      imgElement.className = 'uploaded_image_view'
+      imgElement.src = `data:image/jpeg;base64,${this.$fileBase64}`
       this.$fileData = {
         fileBase64: this.$fileBase64,
         timestamp: new Date().getTime(),
@@ -423,5 +428,13 @@ function generateSHA256Hash(inputString) {
       filter: brightness(1.4);
     }
   }
+}
+
+.uploaded_image_view {
+  max-width: 200px;
+  border: 10px solid #eff2f6;
+  border-radius: 100%;
+  margin: 10px;
+  aspect-ratio: 1;
 }
 </style>
