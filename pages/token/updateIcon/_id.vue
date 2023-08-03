@@ -1,7 +1,10 @@
 <template>
   <div class="verify-contract">
     <section>
-      <b-container class="page-verify-contract main py-5">
+      <div v-if="loading" class="text-center py-4">
+        <Loading />
+      </div>
+      <b-container v-else class="page-verify-contract main py-5">
         <div class="verify-contract__head">
           <Headline class="verify-contract__headline">
             {{ 'Upload Token Icon' }}
@@ -119,6 +122,7 @@ export default {
       buttonMessage: 'Upload Icon',
       addressOfOwner: '',
       fileBase64: null,
+      loading: true,
     }
   },
   watch: {
@@ -172,6 +176,7 @@ export default {
     },
   },
   async created() {
+    this.loading = true
     await web3Enable('Reefscan')
     const accounts = await web3Accounts()
     if (accounts.length > 0) {
@@ -197,18 +202,20 @@ export default {
           this.extensionAccounts.length > 0 &&
           this.extensionAddresses.length > 0
         ) {
-          this.selectedAccount = this.extensionAccounts[0]
-          this.selectedAddress = this.extensionAddresses[0]
+          for (let i = 0; i < this.extensionAddresses.length; i++) {
+            if (this.extensionAddresses[i].value === this.addressOfOwner) {
+              this.selectedAccount = this.extensionAccounts[i]
+              this.selectedAddress = this.extensionAddresses[i]
+            }
+          }
         } else {
           this.noAccountsFound = true
         }
+        this.loading = false
       }
     }
   },
   methods: {
-    updateSelectedAddress(address) {
-      this.selectedAddress = address
-    },
     validateState(name) {
       const { $dirty, $error } = this.$v[name]
       return $dirty ? !$error : null
