@@ -41,11 +41,16 @@
           </h4>
           <div class="unverified-section">
             <nuxt-link
+              v-if="isTokenUriFunc"
               :to="`/token/updateIcon/${address}`"
               class="unverified-section__verify-btn"
             >
               Upload Icon
             </nuxt-link>
+            <b-alert v-if="!isTokenUriFunc" show>
+              You can not update token icon as there is no function in this
+              contract for that.
+            </b-alert>
           </div>
           <Tabs v-model="tab" :options="tabs" />
 
@@ -192,6 +197,7 @@ export default {
       contract: undefined,
       tab: 'info',
       callbackId: null,
+      isTokenUriFunc: false,
     }
   },
   computed: {
@@ -306,6 +312,12 @@ export default {
             this.sourceCode(data),
             []
           )
+        }
+        for (let i = 0; i < this.contract.abi.length; i++) {
+          // checking this cause if token extends ownable or not
+          if (this.contract.abi[i].name === 'renounceOwnership') {
+            this.isTokenUriFunc = true
+          }
         }
         this.loading = false
       },
