@@ -70,6 +70,7 @@ export default {
     return {
       network,
       test: false,
+      maintainingIndexer: false,
     }
   },
   created() {
