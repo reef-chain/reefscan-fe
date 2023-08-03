@@ -6,7 +6,6 @@
           <Headline class="verify-contract__headline">
             {{ 'Upload Token Icon' }}
           </Headline>
-          <Tabs v-model="tab" :options="$options.tabs" />
         </div>
         <div v-if="tab === 'verify'" class="verify-contract">
           <b-alert show>
@@ -129,6 +128,7 @@ export default {
       signature: null,
       isRawSigned: false,
       buttonMessage: 'Upload Icon',
+      addressOfOwner: '',
     }
   },
   watch: {
@@ -324,6 +324,30 @@ export default {
       } else {
         return ''
       }
+    },
+  },
+  apollo: {
+    contractById: {
+      query: gql`
+        query contractById($address: String = "") {
+          contractById(id: $address) {
+            signer {
+              id
+            }
+          }
+        }
+      `,
+      variables() {
+        return {
+          address: this.$route.params.id,
+        }
+      },
+      fetchPolicy: 'network-only',
+      result({ data }) {
+        if (data) {
+          this.addressOfOwner = data.contractById.signer.id
+        }
+      },
     },
   },
 }
