@@ -13,20 +13,6 @@
             <strong>access</strong> over this page. Kindly choose an image file
             to upload.
           </b-alert>
-          <b-form-group
-            id="input-group-from"
-            label="Select Account"
-            label-for="input-from"
-            class="w-100"
-          >
-            <b-form-select
-              id="input-from"
-              v-model="selectedAddress"
-              :options="extensionAddresses"
-              class="w-100"
-              @change="updateSelectedAddress"
-            ></b-form-select>
-          </b-form-group>
           <b-form enctype="multipart/form-data" @submit="onSubmit">
             <div class="d-flex justify-content-center">
               <b-form-file
