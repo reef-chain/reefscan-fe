@@ -13,7 +13,9 @@
             <strong>access</strong> over this page. Kindly choose an image file
             to upload.
           </b-alert>
-          <img id="uploaded_image_view" />
+          <div class="uploaded_image_container">
+            <img id="uploaded_image_view" />
+          </div>
           <b-form enctype="multipart/form-data" @submit="onSubmit">
             <div class="d-flex justify-content-center">
               <b-form-file
@@ -436,5 +438,13 @@ function generateSHA256Hash(inputString) {
   border-radius: 100%;
   margin: 10px;
   aspect-ratio: 1;
+}
+
+.uploaded_image_container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 250;
 }
 </style>
