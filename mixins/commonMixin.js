@@ -209,7 +209,7 @@ export default {
       }
       return utils.isAddress(input)
     },
-    async isContractAddress(input) {
+    async isContractOrEvmAddress(input) {
       input = input.trim()
       if (!input || !input.toString()) {
         return false
@@ -227,9 +227,19 @@ export default {
           }
         `
       const response = await client.query({ query })
-      return response.data.contract.length > 0
+      if (response.data && response.data.contracts) {
+        if (response.data.contracts.length > 0) {
+          return `contract/${response.data.contracts[0].id}`
+        }
+      }
+      if (response.data.contracts.length === 0) {
+        const evmAddress = await this.getEvmAccountAddress(input)
+        if (evmAddress) {
+          return `account/${evmAddress}`
+        }
+      }
     },
-    async isEvmAccountAddress(input) {
+    async getEvmAccountAddress(input) {
       input = input.trim()
       if (!input || !input.toString()) {
         return false
@@ -241,12 +251,16 @@ export default {
       const query = gql`
           query account {
             accounts(limit: 1, where: {evmAddress_eq: "${input}"}) {
-              evmAddress
+              id
             }
           }
         `
       const response = await client.query({ query })
-      return response.data.account.length > 0
+      if (response.data && response.data.accounts) {
+        if (response.data.accounts.length > 0) {
+          return response.data.accounts[0].id
+        }
+      }
     },
     getDateFromTimestamp(timestamp) {
       if (timestamp === 0) {
