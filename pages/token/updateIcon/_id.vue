@@ -186,48 +186,6 @@ export default {
       }
     },
   },
-  async created() {
-    console.log(this.loading)
-    this.loading = true
-    await web3Enable('Reefscan')
-    const accounts = await web3Accounts()
-    if (accounts.length > 0) {
-      this.extensionAccounts = accounts
-      if (accounts.length > 0) {
-        this.extensionAccounts = accounts
-        for (const account of accounts) {
-          const encodedAddress = encodeAddress(
-            account.address,
-            network.ss58Format
-          )
-          const evmAddress = await this.getEVMAddress(encodedAddress)
-          this.extensionAddresses.push({
-            value: encodedAddress,
-            text: evmAddress
-              ? `${account.meta.name}: ${this.shortAddress(
-                  encodedAddress
-                )} (${this.shortHash(evmAddress)})`
-              : `${account.meta.name}: ${this.shortAddress(encodedAddress)}`,
-          })
-        }
-        if (
-          this.extensionAccounts.length > 0 &&
-          this.extensionAddresses.length > 0
-        ) {
-          for (let i = 0; i < this.extensionAddresses.length; i++) {
-            if (this.extensionAddresses[i].value === this.addressOfOwner) {
-              this.selectedAccount = this.extensionAccounts[i]
-              this.selectedAddress = this.extensionAddresses[i].value
-              this.isOwner = true
-            }
-          }
-        } else {
-          this.noAccountsFound = true
-        }
-      }
-    }
-    this.loading = false
-  },
   methods: {
     validateState(name) {
       const { $dirty, $error } = this.$v[name]
@@ -356,9 +314,51 @@ export default {
         }
       },
       fetchPolicy: 'network-only',
-      result({ data }) {
+      async result({ data }) {
         if (data) {
           this.addressOfOwner = data.contractById.signer.id
+          await web3Enable('Reefscan')
+          const accounts = await web3Accounts()
+          if (accounts.length > 0) {
+            this.extensionAccounts = accounts
+            if (accounts.length > 0) {
+              this.extensionAccounts = accounts
+              for (const account of accounts) {
+                const encodedAddress = encodeAddress(
+                  account.address,
+                  network.ss58Format
+                )
+                const evmAddress = await this.getEVMAddress(encodedAddress)
+                this.extensionAddresses.push({
+                  value: encodedAddress,
+                  text: evmAddress
+                    ? `${account.meta.name}: ${this.shortAddress(
+                        encodedAddress
+                      )} (${this.shortHash(evmAddress)})`
+                    : `${account.meta.name}: ${this.shortAddress(
+                        encodedAddress
+                      )}`,
+                })
+              }
+              if (
+                this.extensionAccounts.length > 0 &&
+                this.extensionAddresses.length > 0
+              ) {
+                for (let i = 0; i < this.extensionAddresses.length; i++) {
+                  if (
+                    this.extensionAddresses[i].value === this.addressOfOwner
+                  ) {
+                    this.selectedAccount = this.extensionAccounts[i]
+                    this.selectedAddress = this.extensionAddresses[i].value
+                    this.isOwner = true
+                  }
+                }
+              } else {
+                this.noAccountsFound = true
+              }
+            }
+          }
+          this.loading = false
         }
       },
     },
