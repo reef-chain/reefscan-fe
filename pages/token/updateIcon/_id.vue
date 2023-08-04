@@ -10,50 +10,60 @@
             {{ 'Upload Token Icon' }}
           </Headline>
         </div>
-        <div v-if="tab === 'verify'" class="verify-contract">
-          <b-alert show>
-            Only you have
-            <strong>access</strong> over this page. Kindly choose an image file
-            to upload.
-          </b-alert>
-          <div class="uploaded_image_container">
-            <img id="uploaded_image_view" />
-          </div>
-          <b-form enctype="multipart/form-data" @submit="onSubmit">
-            <div class="d-flex justify-content-center">
-              <b-form-file
-                accept="image/*"
-                class="text-center radius-0"
-                placeholder="Please select image icon file..."
-                drop-placeholder="Drop image icon file here..."
-                aria-describedby="source-help"
-                name="tokenImage"
-                @change="(event) => onFileChange(event)"
-              />
+        <div v-if="isOwner">
+          <div v-if="tab === 'verify'" class="verify-contract">
+            <b-alert show>
+              Only you have
+              <strong>access</strong> over this page. Kindly choose an image
+              file to upload.
+            </b-alert>
+            <div class="uploaded_image_container">
+              <img id="uploaded_image_view" />
             </div>
-            <br />
-            <recaptcha />
-            <b-alert
-              v-if="requestStatus === 'Verified'"
-              variant="success"
-              class="text-center"
-              show
-            >
-              {{ requestStatus }}
-            </b-alert>
-            <b-alert
-              v-if="requestStatus && requestStatus !== 'Verified'"
-              variant="danger"
-              class="text-center"
-              show
-            >
-              {{ requestStatus }}
-            </b-alert>
-            <b-button type="submit" variant="outline-primary2" class="btn-block"
-              >{{ buttonMessage }}
-            </b-button>
-          </b-form>
+            <b-form enctype="multipart/form-data" @submit="onSubmit">
+              <div class="d-flex justify-content-center">
+                <b-form-file
+                  accept="image/*"
+                  class="text-center radius-0"
+                  placeholder="Please select image icon file..."
+                  drop-placeholder="Drop image icon file here..."
+                  aria-describedby="source-help"
+                  name="tokenImage"
+                  @change="(event) => onFileChange(event)"
+                />
+              </div>
+              <br />
+              <recaptcha />
+              <b-alert
+                v-if="requestStatus === 'Verified'"
+                variant="success"
+                class="text-center"
+                show
+              >
+                {{ requestStatus }}
+              </b-alert>
+              <b-alert
+                v-if="requestStatus && requestStatus !== 'Verified'"
+                variant="danger"
+                class="text-center"
+                show
+              >
+                {{ requestStatus }}
+              </b-alert>
+              <b-button
+                type="submit"
+                variant="outline-primary2"
+                class="btn-block"
+                >{{ buttonMessage }}
+              </b-button>
+            </b-form>
+          </div>
         </div>
+        <b-alert v-else variant="danger" show>
+          You are
+          <strong>not the owner</strong> of this Token. Kindly check if you are
+          logged into same account in the extension
+        </b-alert>
       </b-container>
     </section>
   </div>
@@ -123,6 +133,7 @@ export default {
       addressOfOwner: '',
       fileBase64: null,
       loading: true,
+      isOwner: false,
     }
   },
   watch: {
@@ -176,6 +187,7 @@ export default {
     },
   },
   async created() {
+    console.log(this.loading)
     this.loading = true
     await web3Enable('Reefscan')
     const accounts = await web3Accounts()
@@ -205,15 +217,16 @@ export default {
           for (let i = 0; i < this.extensionAddresses.length; i++) {
             if (this.extensionAddresses[i].value === this.addressOfOwner) {
               this.selectedAccount = this.extensionAccounts[i]
-              this.selectedAddress = this.extensionAddresses[i]
+              this.selectedAddress = this.extensionAddresses[i].value
+              this.isOwner = true
             }
           }
         } else {
           this.noAccountsFound = true
         }
-        this.loading = false
       }
     }
+    this.loading = false
   },
   methods: {
     validateState(name) {
