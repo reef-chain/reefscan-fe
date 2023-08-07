@@ -52,10 +52,11 @@ export default {
   apollo: {
     transfers: {
       query: gql`
-        query transfers($block: Int!, $index: Int!) {
+        query transfers($block: Int!, $index: Int!, $eventIndex: Int!) {
           transfers(
             where: {
               extrinsic: { index_eq: $index, block: { height_eq: $block } }
+              event: { index_eq: $eventIndex }
             }
             limit: 1
           ) {
