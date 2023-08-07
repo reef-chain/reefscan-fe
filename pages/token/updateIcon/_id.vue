@@ -1,68 +1,69 @@
 <template>
   <div class="verify-contract">
     <section>
-      <b-container class="page-verify-contract main py-5">
+      <div v-if="loading" class="text-center py-4">
+        <Loading />
+      </div>
+      <b-container v-else class="page-verify-contract main py-5">
         <div class="verify-contract__head">
           <Headline class="verify-contract__headline">
             {{ 'Upload Token Icon' }}
           </Headline>
-          <Tabs v-model="tab" :options="$options.tabs" />
         </div>
-        <div v-if="tab === 'verify'" class="verify-contract">
-          <b-alert show>
-            Only you have
-            <strong>access</strong> over this page. Kindly choose an image file
-            to upload.
-          </b-alert>
-          <b-form-group
-            id="input-group-from"
-            label="Select Account"
-            label-for="input-from"
-            class="w-100"
-          >
-            <b-form-select
-              id="input-from"
-              v-model="selectedAddress"
-              :options="extensionAddresses"
-              class="w-100"
-              @change="updateSelectedAddress"
-            ></b-form-select>
-          </b-form-group>
-          <b-form enctype="multipart/form-data" @submit="onSubmit">
-            <div class="d-flex justify-content-center">
-              <b-form-file
-                accept="image/*"
-                class="text-center radius-0"
-                placeholder="Please select image icon file..."
-                drop-placeholder="Drop image icon file here..."
-                aria-describedby="source-help"
-                name="tokenImage"
-                @change="(event) => onFileChange(event)"
-              />
+        <div v-if="isOwner">
+          <div v-if="tab === 'verify'" class="verify-contract">
+            <b-alert show>
+              Only you have
+              <strong>access</strong> over this page. Kindly choose an image
+              file to upload.
+            </b-alert>
+            <div class="uploaded_image_container">
+              <img id="uploaded_image_view" />
             </div>
-            <br />
-            <recaptcha />
-            <b-alert
-              v-if="requestStatus === 'Verified'"
-              variant="success"
-              class="text-center"
-              show
-            >
-              {{ requestStatus }}
-            </b-alert>
-            <b-alert
-              v-if="requestStatus && requestStatus !== 'Verified'"
-              variant="danger"
-              class="text-center"
-              show
-            >
-              {{ requestStatus }}
-            </b-alert>
-            <b-button type="submit" variant="outline-primary2" class="btn-block"
-              >{{ buttonMessage }}
-            </b-button>
-          </b-form>
+            <b-form enctype="multipart/form-data" @submit="onSubmit">
+              <div class="d-flex justify-content-center">
+                <b-form-file
+                  accept="image/*"
+                  class="text-center radius-0"
+                  placeholder="Please select image icon file..."
+                  drop-placeholder="Drop image icon file here..."
+                  aria-describedby="source-help"
+                  name="tokenImage"
+                  @change="(event) => onFileChange(event)"
+                />
+              </div>
+              <br />
+              <recaptcha />
+              <b-alert
+                v-if="requestStatus === 'Verified'"
+                variant="success"
+                class="text-center"
+                show
+              >
+                {{ requestStatus }}
+              </b-alert>
+              <b-alert
+                v-if="requestStatus && requestStatus !== 'Verified'"
+                variant="danger"
+                class="text-center"
+                show
+              >
+                {{ requestStatus }}
+              </b-alert>
+              <b-button
+                type="submit"
+                variant="outline-primary2"
+                class="btn-block"
+                >{{ buttonMessage }}
+              </b-button>
+            </b-form>
+          </div>
         </div>
+        <b-alert v-else variant="danger" show>
+          You are
+          <strong>not the owner</strong> of this Token. Kindly check if you are
+          logged into same account in the extension
+        </b-alert>
       </b-container>
     </section>
   </div>
@@ -129,6 +130,10 @@ export default {
       signature: null,
       isRawSigned: false,
       buttonMessage: 'Upload Icon',
+      addressOfOwner: '',
+      fileBase64: null,
+      loading: true,
+      isOwner: false,
     }
   },
   watch: {
@@ -181,44 +186,7 @@ export default {
       }
     },
   },
-  async created() {
-    await web3Enable('Reefscan')
-    const accounts = await web3Accounts()
-    if (accounts.length > 0) {
-      this.extensionAccounts = accounts
-      if (accounts.length > 0) {
-        this.extensionAccounts = accounts
-        for (const account of accounts) {
-          const encodedAddress = encodeAddress(
-            account.address,
-            network.ss58Format
-          )
-          const evmAddress = await this.getEVMAddress(encodedAddress)
-          this.extensionAddresses.push({
-            value: encodedAddress,
-            text: evmAddress
-              ? `${account.meta.name}: ${this.shortAddress(
-                  encodedAddress
-                )} (${this.shortHash(evmAddress)})`
-              : `${account.meta.name}: ${this.shortAddress(encodedAddress)}`,
-          })
-        }
-        if (
-          this.extensionAccounts.length > 0 &&
-          this.extensionAddresses.length > 0
-        ) {
-          this.selectedAccount = this.extensionAccounts[0]
-          this.selectedAddress = this.extensionAddresses[0]
-        } else {
-          this.noAccountsFound = true
-        }
-      }
-    }
-  },
   methods: {
-    updateSelectedAddress(address) {
-      this.selectedAddress = address
-    },
     validateState(name) {
       const { $dirty, $error } = this.$v[name]
       return $dirty ? !$error : null
@@ -227,6 +195,9 @@ export default {
       this.$file = event.target.files[0]
       // const fileData = await readFileAsArrayBuffer(this.$file)
       this.$fileBase64 = await readFileAsBase64(this.$file)
+      const imgElement = document.getElementById('uploaded_image_view')
+      imgElement.className = 'uploaded_image_view'
+      imgElement.src = `data:image/jpeg;base64,${this.$fileBase64}`
       this.$fileData = {
         fileBase64: this.$fileBase64,
         timestamp: new Date().getTime(),
@@ -326,6 +297,72 @@ export default {
       }
     },
   },
+  apollo: {
+    contractById: {
+      query: gql`
+        query contractById($address: String = "") {
+          contractById(id: $address) {
+            signer {
+              id
+            }
+          }
+        }
+      `,
+      variables() {
+        return {
+          address: this.$route.params.id,
+        }
+      },
+      fetchPolicy: 'network-only',
+      async result({ data }) {
+        if (data) {
+          this.addressOfOwner = data.contractById.signer.id
+          await web3Enable('Reefscan')
+          const accounts = await web3Accounts()
+          if (accounts.length > 0) {
+            this.extensionAccounts = accounts
+            if (accounts.length > 0) {
+              this.extensionAccounts = accounts
+              for (const account of accounts) {
+                const encodedAddress = encodeAddress(
+                  account.address,
+                  network.ss58Format
+                )
+                const evmAddress = await this.getEVMAddress(encodedAddress)
+                this.extensionAddresses.push({
+                  value: encodedAddress,
+                  text: evmAddress
+                    ? `${account.meta.name}: ${this.shortAddress(
+                        encodedAddress
+                      )} (${this.shortHash(evmAddress)})`
+                    : `${account.meta.name}: ${this.shortAddress(
+                        encodedAddress
+                      )}`,
+                })
+              }
+              if (
+                this.extensionAccounts.length > 0 &&
+                this.extensionAddresses.length > 0
+              ) {
+                for (let i = 0; i < this.extensionAddresses.length; i++) {
+                  if (
+                    this.extensionAddresses[i].value === this.addressOfOwner
+                  ) {
+                    this.selectedAccount = this.extensionAccounts[i]
+                    this.selectedAddress = this.extensionAddresses[i].value
+                    this.isOwner = true
+                  }
+                }
+              } else {
+                this.noAccountsFound = true
+              }
+            }
+          }
+          this.loading = false
+        }
+      },
+    },
+  },
 }
 
 function generateSHA256Hash(inputString) {
@@ -413,5 +450,21 @@ function generateSHA256Hash(inputString) {
       filter: brightness(1.4);
     }
   }
+}
+
+.uploaded_image_view {
+  max-width: 200px;
+  border: 10px solid #eff2f6;
+  border-radius: 100%;
+  margin: 10px;
+  aspect-ratio: 1;
+}
+
+.uploaded_image_container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 250;
 }
 </style>
