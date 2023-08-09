@@ -169,19 +169,27 @@
             </Row>
 
             <Row v-if="solidityScanData">
-              <Cell>SolidityScan Security Score</Cell>
+              <Cell>
+                <img
+                  v-b-tooltip.hover
+                  src="/img/solidity_scan.png"
+                  alt=""
+                  width="20"
+                  class="solidity_scan_logo"
+                  title="SolidityScan"
+                />
+                Threat Score & Vulnerabilities</Cell
+              >
               <Cell wrap>
-                <a
-                  :href="`${solidityScanData.scanner_reference_url}`"
-                  target="_blank"
-                >
-                  {{ solidityScanData.soldityScanScoreV2 }} / 100
-                </a>
+                <div>{{ solidityScanData.solidityScanThreatScore }} / 100</div>
+                <div class="chevron-down" @click="toggleShowSolidityScanData">
+                  <font-awesome-icon icon="chevron-down" />
+                </div>
               </Cell>
             </Row>
 
-            <Row v-if="solidityScanData">
-              <Cell>SolidityScan Critical Vulnerabilities</Cell>
+            <Row v-if="showSolidityScanData">
+              <Cell>Critical Vulnerabilities</Cell>
               <Cell wrap>
                 <div
                   :class="
@@ -192,15 +200,62 @@
                 </div>
               </Cell>
             </Row>
-
-            <Row v-if="solidityScanData">
-              <Cell>SolidityScan High Vulnerabilities</Cell>
+            <Row v-if="showSolidityScanData">
+              <Cell>High Vulnerabilities</Cell>
               <Cell wrap>
                 <div
                   :class="solidityScanData.high > 0 ? 'red-cell' : 'green-cell'"
                 >
                   {{ solidityScanData.high }}
                 </div>
+              </Cell>
+            </Row>
+            <Row v-if="showSolidityScanData">
+              <Cell>Medium Vulnerabilities</Cell>
+              <Cell wrap>
+                <div
+                  :class="
+                    solidityScanData.medium > 0 ? 'red-cell' : 'green-cell'
+                  "
+                >
+                  {{ solidityScanData.medium }}
+                </div>
+              </Cell>
+            </Row>
+            <Row v-if="showSolidityScanData">
+              <Cell>Low Vulnerabilities</Cell>
+              <Cell wrap>
+                <div
+                  :class="solidityScanData.low > 0 ? 'red-cell' : 'green-cell'"
+                >
+                  {{ solidityScanData.low }}
+                </div>
+              </Cell>
+            </Row>
+            <Row v-if="showSolidityScanData">
+              <Cell>Informational Vulnerabilities</Cell>
+              <Cell wrap>
+                <div
+                  :class="
+                    solidityScanData.informational > 0
+                      ? 'red-cell'
+                      : 'green-cell'
+                  "
+                >
+                  {{ solidityScanData.informational }}
+                </div>
+              </Cell>
+            </Row>
+            <Row v-if="showSolidityScanData">
+              <Cell>Vulnerability Report</Cell>
+              <Cell>
+                <a
+                  :href="solidityScanData.scanner_reference_url"
+                  target="_blank"
+                >
+                  <font-awesome-icon :icon="['far', 'eye']" />
+                  View Full Report
+                </a>
               </Cell>
             </Row>
           </Data>
@@ -321,6 +376,7 @@ export default {
       tab: 'general',
       callbackId: null,
       solidityScanData: null,
+      showSolidityScanData: false,
     }
   },
   computed: {
@@ -557,6 +613,9 @@ export default {
     },
   },
   methods: {
+    toggleShowSolidityScanData() {
+      this.showSolidityScanData = !this.showSolidityScanData
+    },
     updateData() {
       this.$apollo.queries.contracts.refetch()
       this.$apollo.queries.verifiedContracts.refetch()
@@ -622,6 +681,22 @@ export default {
 
   .tabs {
     margin: 25px 0;
+  }
+
+  .solidity_scan_logo {
+    width: 20px;
+    padding: 2px;
+    background-color: black;
+    border-radius: 100px;
+    margin-right: 6px;
+  }
+
+  .chevron-down {
+    margin-left: 6px;
+
+    &:hover {
+      cursor: pointer;
+    }
   }
 
   .data {
