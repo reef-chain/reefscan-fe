@@ -17,7 +17,7 @@
       </div>
       <b-button type="submit" variant="primary2">SEND</b-button>
       <b-alert v-if="result !== null" variant="info" class="mt-4" show>
-        {{ result }}
+        <div v-html="formattedResult"></div>
       </b-alert>
     </b-form>
   </div>
@@ -62,6 +62,9 @@ export default {
     }
   },
   computed: {
+    formattedResult() {
+      return this.result.replace(/\n/g, '<br>')
+    },
     functionInputs() {
       return this.contractAbi.find(
         (method) => method.name === this.functionName
@@ -84,6 +87,26 @@ export default {
         this.provider
       )
       this.result = await contract[this.functionName](...this.arguments)
+      console.log(this.result)
+      this.outputParams = this.contractAbi.find(
+        (method) => method.name === this.functionName
+      ).outputs
+      this.outputParams =
+        this.outputParams.length === 0
+          ? this.outputParams[0].components
+          : this.outputParams
+      let resultStr = ''
+      if (this.result) {
+        for (let i = 0; i < this.result.length; i++) {
+          resultStr =
+            resultStr +
+            `
+            ${this.outputParams[i].name} : ${
+              this.result[i].length === 0 ? '[]' : this.result[i]
+            }`
+        }
+        this.result = resultStr
+      }
     },
     onReset() {
       // reset form
