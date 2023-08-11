@@ -16,8 +16,13 @@
         </b-form-group>
       </div>
       <b-button type="submit" variant="primary2">SEND</b-button>
-      <b-alert v-if="result !== null" variant="info" class="mt-4" show>
-        <div v-html="formattedResult"></div>
+      <b-alert
+        v-if="result !== null"
+        variant="info"
+        class="mt-4 multiline-text pb-4"
+        show
+      >
+        {{ result }}
       </b-alert>
     </b-form>
   </div>
@@ -62,9 +67,6 @@ export default {
     }
   },
   computed: {
-    formattedResult() {
-      return this.result.replace(/\n/g, '<br>')
-    },
     functionInputs() {
       return this.contractAbi.find(
         (method) => method.name === this.functionName
@@ -87,12 +89,11 @@ export default {
         this.provider
       )
       this.result = await contract[this.functionName](...this.arguments)
-      console.log(this.result)
       this.outputParams = this.contractAbi.find(
         (method) => method.name === this.functionName
       ).outputs
       this.outputParams =
-        this.outputParams.length === 0
+        this.outputParams.length === 1
           ? this.outputParams[0].components
           : this.outputParams
       let resultStr = ''
@@ -105,7 +106,9 @@ export default {
               this.result[i].length === 0 ? '[]' : this.result[i]
             }`
         }
-        this.result = resultStr
+        if (resultStr !== '') {
+          this.result = resultStr.trim()
+        }
       }
     },
     onReset() {
@@ -117,3 +120,8 @@ export default {
   },
 }
 </script>
+<style>
+.multiline-text {
+  white-space: pre-line;
+}
+</style>
