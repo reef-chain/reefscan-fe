@@ -2,11 +2,11 @@
   <!-- Filter -->
   <div>
     <b-row class="mb-4 search-section">
-      <div class="search-section__alert container">
+<!--      <div class="search-section__alert container">
         <div class="search-section__alert-message">
           Currently experiencing issues loading data. Will be back when normal service is restored.
         </div>
-      </div>
+      </div>-->
       <div class="container">
         <div v-if="label || $slots.label" class="search-section__label-section">
           <label v-if="label" class="search-section__label">{{ label }}</label>
