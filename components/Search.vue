@@ -3,11 +3,11 @@
   <div>
     <b-row class="mb-4 search-section">
       <div class="search-section__alert container">
-        
+        <!--
         <div v-if="network.name == 'Testnet'" class="search-section__alert-message">
           🚨 Testnet network was reset and indexed data here is out of sync for the moment.
         </div>
-        
+        -->
       </div>
       <div class="container">
         <div v-if="label || $slots.label" class="search-section__label-section">
