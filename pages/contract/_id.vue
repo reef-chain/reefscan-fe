@@ -315,6 +315,7 @@ import { network } from '@/frontend.config.js'
 import FileExplorer from '@/components/FileExplorer'
 import File from '@/components/FileExplorer/File'
 import BlockTimeout from '@/utils/polling.js'
+import {toIpfsReefGatewayLink} from "~/utils/ipfs";
 
 export default {
   components: {
@@ -560,10 +561,7 @@ export default {
           this.verified = data.verifiedContracts[0]
           this.iconUrl =
             this.verified.contractData.iconUrl !== undefined
-              ? this.verified.contractData.iconUrl.replace(
-                  'ipfs://',
-                  'https://reef.infura-ipfs.io/ipfs/'
-                )
+              ? toIpfsReefGatewayLink(this.verified.contractData.iconUrl)
               : undefined
           this.verified.compiler_version = this.verified.compilerVersion
           this.verified.compiled_data = this.verified.compiledData
