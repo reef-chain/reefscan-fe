@@ -3,10 +3,11 @@
   <div>
     <b-row class="mb-4 search-section">
       <div class="search-section__alert container">
-        <!--        <div class="search-section__alert-message">
-          Reef indexing system is getting major upgrade. Some data on this site
-          is currently not updated.
-        </div>-->
+        <!--
+        <div v-if="network.name == 'Testnet'" class="search-section__alert-message">
+          🚨 Testnet network was reset and indexed data here is out of sync for the moment.
+        </div>
+        -->
       </div>
       <div class="container">
         <div v-if="label || $slots.label" class="search-section__label-section">
@@ -40,6 +41,7 @@
 import Chain from '@/components/Chain.vue'
 import bubbles from '@/components/BubblesAnimation.vue'
 import { EventBus } from '~/utils/eventBus'
+import { network } from '@/frontend.config.js'
 
 export default {
   components: { bubbles, Chain },
@@ -55,6 +57,7 @@ export default {
   },
   data() {
     return {
+      network,
       maintainingIndexer: false,
     }
   },
