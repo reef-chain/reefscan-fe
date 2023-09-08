@@ -8,7 +8,12 @@
         <NotFound v-else-if="!contract" text="Contract not found" />
         <Card v-else class="contract-details">
           <div class="contract-details__identicon">
-            <eth-identicon :address="address" :size="80" />
+            <eth-identicon v-if="!iconUrl" :address="address" :size="80" />
+            <img
+              v-if="iconUrl"
+              :src="iconUrl"
+              style="width: 80px; height: 80px"
+            />
           </div>
 
           <Headline>{{
@@ -75,7 +80,20 @@
             <Row v-if="tokenData">
               <Cell>Token</Cell>
               <Cell>
-                <eth-identicon :address="tokenData.address" :size="16" />
+                <div class="token__identicon">
+                  <eth-identicon
+                    v-if="!iconUrl"
+                    :address="address"
+                    :size="16"
+                  />
+                  <nuxt-link :to="`/token/${tokenData.address}`">
+                    <img
+                      v-if="iconUrl"
+                      :src="iconUrl"
+                      style="width: 16px; height: 16px"
+                    />
+                  </nuxt-link>
+                </div>
                 <nuxt-link :to="`/token/${tokenData.address}`">
                   {{ tokenData.fullName }}
                 </nuxt-link>
@@ -352,6 +370,7 @@ import { network } from '@/frontend.config.js'
 import FileExplorer from '@/components/FileExplorer'
 import File from '@/components/FileExplorer/File'
 import BlockTimeout from '@/utils/polling.js'
+import {toIpfsReefGatewayLink} from "~/utils/ipfs";
 
 export default {
   components: {
@@ -579,6 +598,7 @@ export default {
             name
             type
             compilerVersion
+            contractData
             compiledData
             source
             optimization
@@ -595,6 +615,10 @@ export default {
       async result({ data }) {
         if (data.verifiedContracts[0]) {
           this.verified = data.verifiedContracts[0]
+          this.iconUrl =
+            this.verified.contractData.iconUrl !== undefined
+              ? toIpfsReefGatewayLink(this.verified.contractData.iconUrl)
+              : undefined
           this.verified.compiler_version = this.verified.compilerVersion
           this.verified.compiled_data = this.verified.compiledData
           this.verified.abi =
@@ -681,6 +705,13 @@ export default {
 
   .tabs {
     margin: 25px 0;
+  }
+
+  .token__identicon {
+    background-color: #eaedf3;
+    margin-right: 4px;
+    border-radius: 50px;
+    border: 2px solid white;
   }
 
   .solidity_scan_logo {

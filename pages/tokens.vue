@@ -110,6 +110,7 @@ import Loading from '@/components/Loading.vue'
 import Search from '@/components/Search'
 import { paginationOptions } from '@/frontend.config.js'
 import BlockTimeout from '@/utils/polling.js'
+import {toIpfsReefGatewayLink} from "~/utils/ipfs";
 
 const FIRST_BATCH_QUERY = gql`
   query tokens($first: Int = 10, $where: VerifiedContractWhereInput = {}) {
@@ -289,10 +290,7 @@ export default {
               },
               contract_data: token.contractData,
               token_icon: token.contractData.iconUrl
-                ? token.contractData.iconUrl.replace(
-                    'ipfs://',
-                    'https://reef.infura-ipfs.io/ipfs/'
-                  )
+                ? toIpfsReefGatewayLink(token.contractData.iconUrl)
                 : undefined,
             }
           })

@@ -179,6 +179,7 @@ import commonMixin from '@/mixins/commonMixin.js'
 import TokenHolders from '@/components/TokenHolders'
 import TokenTransfers from '@/components/TokenTransfers'
 import BlockTimeout from '@/utils/polling.js'
+import {toIpfsReefGatewayLink} from "~/utils/ipfs";
 
 export default {
   components: {
@@ -300,10 +301,7 @@ export default {
           this.contract = contract
           this.iconUrl =
             contractData.iconUrl !== undefined
-              ? contractData.iconUrl.replace(
-                  'ipfs://',
-                  'https://reef.infura-ipfs.io/ipfs/'
-                )
+              ? toIpfsReefGatewayLink(contractData.iconUrl)
               : undefined
           this.contract.extrinsic.block_id = contract.extrinsic.block.height
           this.contract.verified_contract = data.verifiedContracts[0]
