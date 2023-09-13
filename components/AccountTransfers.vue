@@ -48,9 +48,10 @@
             <font-awesome-icon :icon="['fas', 'arrow-up']" />
           </Cell>
 
-          <Cell :link="`/transfer/${item.block_id}/${item.extrinsic_index}`">{{
-            shortHash(item.extrinsic_hash)
-          }}</Cell>
+          <Cell
+            :link="`/transfer/${item.block_id}/${item.extrinsic_index}/${item.event_index}`"
+            >{{ shortHash(item.extrinsic_hash) }}</Cell
+          >
 
           <Cell :link="`/block?blockNumber=${item.block_id}`"
             ># {{ formatNumber(item.block_id) }}</Cell
@@ -146,10 +147,12 @@ const GQL_QUERY = gql`
           block {
             height
           }
+          event {
+            index
+          }
           extrinsic {
             index
             section
-            method
             hash
             status
             signedData
@@ -295,6 +298,7 @@ export default {
             isNft: t.nftId !== null,
             fee_amount: t.extrinsic.signedData.fee.partialFee,
             error_message: t.errorMessage,
+            event_index: t.event.index,
             symbol: t.token.verified_contract?.contract_data?.symbol, // TODO: verified contract info isn't in the token table anymore, it's separate
             decimals: t.token.verified_contract?.contract_data?.decimals, // TODO
           }))
