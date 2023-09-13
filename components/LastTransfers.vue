@@ -22,9 +22,10 @@
         <Cell>Success</Cell>
       </THead>
       <Row v-for="(item, index) in transfers" :key="'item-' + index">
-        <Cell :link="`/transfer/${item.height}/${item.index}`">{{
-          shortHash(item.hash)
-        }}</Cell>
+        <Cell
+          :link="`/transfer/${item.height}/${item.index}/${item.eventIndex}`"
+          >{{ shortHash(item.hash) }}</Cell
+        >
 
         <Cell
           :link="{ url: `/token/${item.tokenAddress}`, fill: false }"
@@ -147,6 +148,9 @@ export default {
             edges {
               node {
                 nftId
+                event {
+                  index
+                }
                 extrinsic {
                   id
                   hash
@@ -212,6 +216,7 @@ export default {
                 ? transfer.from.id
                 : transfer.from.evmAddress,
             extrinsicId: transfer.extrinsic.id,
+            eventIndex: transfer.event.index,
           }))
           const repaird = processed.map(async (transfer) => {
             if (transfer.to !== 'deleted' && transfer.from !== 'deleted') {
