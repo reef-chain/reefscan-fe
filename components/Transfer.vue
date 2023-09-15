@@ -1,6 +1,26 @@
 <template>
   <Card v-if="transfer" class="list-view transfer-details">
     <Headline> Transfer {{ shortHash($route.params.hash) }} </Headline>
+    <div v-if="transfer.isNft" class="nft-icon">
+      <img
+        v-if="nftUrl && !isVideo"
+        :src="`${nftUrl}`"
+        style="width: 30%; height: 30%"
+      />
+      <video
+        v-else-if="nftUrl && isVideo"
+        controls
+        style="width: 30%; height: auto; border-radius: 20px"
+      >
+        <source :src="`${nftUrl}`" type="video/mp4" />
+      </video>
+      <div v-else>
+        <div class="loading text-center">
+          <div></div>
+          <div></div>
+        </div>
+      </div>
+    </div>
 
     <Data>
       <Row>
@@ -73,12 +93,15 @@
 
       <Row class="transfer-details__deamon">
         <Cell>Token name</Cell>
-        <Cell>
+        <Cell v-if="!transfer.isNft">
           <div v-if="transfer.denom && transfer.token_address">
             <nuxt-link :to="`/token/${transfer.token_address}`">
               {{ transfer.tokenName || transfer.denom }}
             </nuxt-link>
           </div>
+        </Cell>
+        <Cell>
+          {{ nftName }}
         </Cell>
       </Row>
 
@@ -135,8 +158,57 @@
 </template>
 
 <script>
+import { ethers } from 'ethers'
+import { gql } from 'graphql-tag'
+import { Provider } from '@reef-defi/evm-provider'
+import { WsProvider } from '@polkadot/api'
 import { toChecksumAddress } from 'web3-utils'
+import axios from 'axios'
 import commonMixin from '@/mixins/commonMixin.js'
+import { network } from '~/frontend.config'
+
+const extractIpfsHash = (ipfsUri) => {
+  const ipfsProtocol = 'ipfs://'
+  if (ipfsUri?.startsWith(ipfsProtocol)) {
+    return ipfsUri.substring(ipfsProtocol.length)
+  }
+  return null
+}
+
+const toIpfsProviderUrl = (ipfsUriStr) => {
+  const ipfsHash = extractIpfsHash(ipfsUriStr)
+  if (ipfsHash) {
+    return `https://cloudflare-ipfs.com/ipfs/${ipfsHash}`
+  }
+  return null
+}
+
+const resolveUriToUrl = (uri, nftId) => {
+  const ipfsUrl = toIpfsProviderUrl(uri)
+  if (ipfsUrl) {
+    return ipfsUrl
+  }
+
+  const idPlaceholder = '{id}'
+  if (nftId != null && uri.includes(idPlaceholder) > -1) {
+    let replaceValue = nftId
+    try {
+      replaceValue = parseInt(nftId, 10).toString(16).padStart(64, '0')
+    } catch (e) {}
+    return uri.replace(idPlaceholder, replaceValue)
+  }
+  return uri
+}
+
+const resolveImageData = (metadata, nft, ipfsUrlResolver) => {
+  const imageUriVal = metadata?.image ? metadata.image : metadata.toString()
+  return {
+    iconUrl: resolveUriToUrl(imageUriVal, nft, ipfsUrlResolver),
+    name: metadata.name,
+    mimetype: metadata.mimetype,
+  }
+}
+
 export default {
   components: {},
   mixins: [commonMixin],
@@ -146,15 +218,91 @@ export default {
       default: () => undefined,
     },
   },
+  data() {
+    return {
+      nftUrl: null,
+      isVideo: false,
+      nftName: '',
+    }
+  },
   methods: {
     toChecksumAddress(address) {
       return toChecksumAddress(address)
+    },
+  },
+  apollo: {
+    verifiedContracts: {
+      query: gql`
+        query verified_contract($address: String!) {
+          verifiedContracts(
+            where: { id_containsInsensitive: $address }
+            limit: 1
+          ) {
+            name
+            contractData
+            compiledData
+          }
+        }
+      `,
+      variables() {
+        return {
+          address: this.transfer.token_address,
+        }
+      },
+      async result({ data }) {
+        if (data.verifiedContracts[0]) {
+          this.verified = data.verifiedContracts[0]
+          this.verified.compiled_data = this.verified.compiledData
+          this.verified.abi =
+            this.verified.compiled_data &&
+            this.verified.compiled_data[this.verified.name]
+              ? this.verified.compiled_data[this.verified.name]
+              : []
+          const provider = new Provider({
+            provider: new WsProvider(network.nodeWs),
+          })
+          await provider.api.isReady
+          this.provider = provider
+          const contractInstance = new ethers.Contract(
+            this.transfer.token_address,
+            this.verified.abi,
+            provider
+          )
+          if (this.transfer.isNft) {
+            const urlPromise = this.verified.abi.some((fn) => fn.name === 'uri')
+              ? contractInstance.uri(this.transfer.nftId)
+              : contractInstance.tokenURI(this.transfer.nftId)
+            const nftDetails = await urlPromise
+              .then((metadataUri) =>
+                resolveUriToUrl(metadataUri, this.transfer.nftId)
+              )
+              .then(axios.get)
+              .then((jsonStr) =>
+                resolveImageData(jsonStr.data, this.transfer.nftId)
+              )
+              .then((nftUri) => nftUri)
+            this.nftUrl = nftDetails.iconUrl
+            this.isVideo = nftDetails.mimetype.includes('video')
+            this.nftName = nftDetails.name
+          }
+        }
+      },
     },
   },
 }
 </script>
 
 <style lang="scss">
+.nft-icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 20px;
+  img {
+    border-radius: 10px;
+  }
+}
+
 .transfer-details {
   .transfer-details__from,
   .transfer-details__to {
