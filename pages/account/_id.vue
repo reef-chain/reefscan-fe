@@ -205,6 +205,8 @@
             :account-id="accountId"
           />
 
+          <AccountNFTs v-if="tab === 'nfts'" :account-id="accountId" />
+
           <Activity v-if="tab === 'activity'" :account-id="accountId" />
           <StakingRewards v-if="tab === 'rewards'" :account-id="accountId" />
         </Card>
@@ -240,6 +242,7 @@ export default {
   tabs: {
     transfers: 'Transfers',
     tokens: 'Tokens',
+    nfts: 'NFTs',
     activity: 'Activity',
     rewards: 'Rewards',
     // slashes: 'Slashes',
