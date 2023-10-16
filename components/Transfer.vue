@@ -273,17 +273,27 @@ export default {
               ? contractInstance.uri(this.transfer.nftId)
               : contractInstance.tokenURI(this.transfer.nftId)
             const nftDetails = await urlPromise
-              .then((metadataUri) =>
-                resolveUriToUrl(metadataUri, this.transfer.nftId)
-              )
+              .then((metadataUri) => {
+                if (metadataUri.startsWith('http')) {
+                  this.nftUrl = metadataUri
+                } else {
+                  const ipfsHash = extractIpfsHash(metadataUri)
+                  this.nftUrl = `https://cloudflare-ipfs.com/ipfs/${ipfsHash}`
+                }
+                return resolveUriToUrl(metadataUri, this.transfer.nftId)
+              })
               .then(axios.get)
               .then((jsonStr) =>
                 resolveImageData(jsonStr.data, this.transfer.nftId)
               )
               .then((nftUri) => nftUri)
-            this.nftUrl = nftDetails.iconUrl
-            this.isVideo = nftDetails.mimetype.includes('video')
-            this.nftName = nftDetails.name
+            try {
+              this.nftUrl = nftDetails.iconUrl.startsWith('http')
+                ? nftDetails.iconUrl
+                : this.nftUrl
+              this.isVideo = nftDetails.mimetype.includes('video')
+              this.nftName = nftDetails.name
+            } catch (error) {}
           }
         }
       },
