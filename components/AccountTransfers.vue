@@ -166,9 +166,9 @@ const GQL_QUERY = gql`
             evmAddress
           }
           amount
-          denom
           token {
             id
+            contractData
           }
           feeAmount
           errorMessage
@@ -299,8 +299,8 @@ export default {
             fee_amount: t.extrinsic.signedData.fee.partialFee,
             error_message: t.errorMessage,
             event_index: t.event.index,
-            symbol: t.token.verified_contract?.contract_data?.symbol, // TODO: verified contract info isn't in the token table anymore, it's separate
-            decimals: t.token.verified_contract?.contract_data?.decimals, // TODO
+            symbol: t.token.contractData?.symbol, // TODO: verified contract info isn't in the token table anymore, it's separate
+            decimals: t.token.contractData?.decimals, // TODO
           }))
           this.totalRows = this.transfers.length
           this.loading = false
