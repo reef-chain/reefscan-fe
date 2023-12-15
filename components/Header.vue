@@ -13,7 +13,8 @@
           </nuxt-link>
         </div>
 
-        <div class="header__links">
+        <div>
+          <div class="header__links">
           <nuxt-link to="/" exact>Explore</nuxt-link>
           <nuxt-link to="/blocks">Blocks</nuxt-link>
           <nuxt-link to="/accounts">Accounts</nuxt-link>
@@ -42,8 +43,19 @@
             >
           </b-dropdown>
         </div>
-
+          <div
+            v-if="network.name == 'Testnet'"
+            style="
+              background-color: darkmagenta;
+              color: white;
+              border-radius: 10em;
+              text-align: center;
+          ">⚠️ Testnet data under maintenance ⚠️</div>
+        </div>
         <ReefPrice />
+      </div>
+      <div>
+        <p>Testnet data is under maintenance</p>
       </div>
     </div>
   </div>
