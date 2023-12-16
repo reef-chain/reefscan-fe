@@ -54,9 +54,6 @@
         </div>
         <ReefPrice />
       </div>
-      <div>
-        <p>Testnet data is under maintenance</p>
-      </div>
     </div>
   </div>
 </template>
