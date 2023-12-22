@@ -103,7 +103,6 @@
 
 <script>
 import { BigNumber } from 'bignumber.js'
-import { gql } from 'graphql-tag'
 import commonMixin from '../mixins/commonMixin.js'
 import { network } from '../frontend.config.js'
 import BlockTimeout from '@/utils/polling.js'
@@ -125,62 +124,6 @@ export default {
       callbackId: null,
     }
   },
-  apollo: {
-    finalized: {
-      query: gql`
-        query blocks {
-          finalized: blocksConnection(
-            first: 1
-            orderBy: height_DESC
-            where: { finalized_eq: true }
-          ) {
-            edges {
-              node {
-                height
-              }
-            }
-          }
-        }
-      `,
-      fetchPolicy: 'network-only',
-      result({ data }) {
-        const dataArr = []
-        if (data.finalized.edges) {
-          for (let idx = 0; idx < data.finalized.edges.length; idx++) {
-            dataArr.push(data.finalized.edges[idx].node)
-          }
-          data.finalized = dataArr
-          this.finalized = dataArr
-        }
-        this.lastFinalizedBlock = data.finalized[0].height
-      },
-    },
-    lastBlock: {
-      query: gql`
-        query blocks {
-          lastBlock: blocksConnection(first: 1, orderBy: height_DESC) {
-            edges {
-              node {
-                height
-              }
-            }
-          }
-        }
-      `,
-      fetchPolicy: 'network-only',
-      result({ data }) {
-        const dataArr = []
-        if (data.lastBlock.edges) {
-          for (let idx = 0; idx < data.lastBlock.edges.length; idx++) {
-            dataArr.push(data.lastBlock.edges[idx].node)
-          }
-          data.lastBlock = dataArr
-          this.lastBlock = dataArr
-        }
-        this.lastBlock = data.lastBlock[0].height
-      },
-    },
-  },
   created() {
     // force fetch the latest data
     this.updateData()
@@ -192,7 +135,7 @@ export default {
   methods: {
     async updateData() {
       // chain info query
-      const response = await axiosInstance.post('', {
+      const chainInfoResponse = await axiosInstance.post('', {
         query: `
           query chain_info {
             chainInfo: chainInfos(limit: 10) {
@@ -202,7 +145,7 @@ export default {
           }
         `,
       })
-      const chainInfoData = response.data.data
+      const chainInfoData = chainInfoResponse.data.data
 
       this.totalAccounts = this.findCount(chainInfoData.chainInfo, 'accounts')
       this.totalContracts = this.findCount(chainInfoData.chainInfo, 'contracts')
@@ -212,8 +155,59 @@ export default {
         'extrinsics'
       )
       this.totalTransfers = this.findCount(chainInfoData.chainInfo, 'transfers')
-      this.$apollo.queries.finalized.refetch()
-      this.$apollo.queries.lastBlock.refetch()
+      // chain finalized
+      const finalizedResponse = await axiosInstance.post('', {
+        query: `
+          query blocks {
+            finalized: blocksConnection(
+              first: 1
+              orderBy: height_DESC
+              where: { finalized_eq: true }
+            ) {
+              edges {
+                node {
+                  height
+                }
+              }
+            }
+          }
+        `,
+      })
+      const finalizedData = finalizedResponse.data.data
+
+      const dataArr = []
+      if (finalizedData.finalized.edges) {
+        for (let idx = 0; idx < finalizedData.finalized.edges.length; idx++) {
+          dataArr.push(finalizedData.finalized.edges[idx].node)
+        }
+        finalizedData.finalized = dataArr
+        this.finalized = dataArr
+      }
+      this.lastFinalizedBlock = finalizedData.finalized[0].height
+      // chain lastBlock
+      const lastBlockResponse = await axiosInstance.post('', {
+        query: `
+          query blocks {
+            lastBlock: blocksConnection(first: 1, orderBy: height_DESC) {
+              edges {
+                node {
+                  height
+                }
+              }
+            }
+          }
+        `,
+      })
+      const lastBlockData = lastBlockResponse.data.data
+      const lastBlockDataArr = []
+      if (lastBlockData.lastBlock.edges) {
+        for (let idx = 0; idx < lastBlockData.lastBlock.edges.length; idx++) {
+          lastBlockDataArr.push(lastBlockData.lastBlock.edges[idx].node)
+        }
+        lastBlockData.lastBlock = lastBlockDataArr
+        this.lastBlock = lastBlockDataArr
+      }
+      this.lastBlock = lastBlockData.lastBlock[0].height
     },
     formatAmount(amount) {
       return `${new BigNumber(amount)
