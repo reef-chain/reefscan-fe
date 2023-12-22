@@ -55,7 +55,7 @@
   </div>
 </template>
 
-<script>
+<!-- <script>
 import { gql } from 'graphql-tag'
 import JsonCSV from 'vue-json-csv'
 import commonMixin from '@/mixins/commonMixin.js'
@@ -185,6 +185,137 @@ export default {
           this.loading = false
         }
       },
+    },
+  },
+}
+</script>
+
+<style>
+.account-token-balances {
+  background-color: white;
+}
+.spinner {
+  color: #d3d2d2;
+}
+</style> -->
+
+<script>
+import JsonCSV from 'vue-json-csv'
+import axiosInstance from '@/utils/axios'
+import commonMixin from '@/mixins/commonMixin.js'
+import Loading from '@/components/Loading.vue'
+import { paginationOptions } from '@/frontend.config.js'
+import Input from '@/components/Input'
+import tableUtils from '@/mixins/tableUtils'
+import BlockTimeout from '@/utils/polling.js'
+
+export default {
+  components: {
+    JsonCSV,
+    Loading,
+    Input,
+  },
+  mixins: [commonMixin, tableUtils],
+  props: {
+    accountId: {
+      type: String,
+      required: true,
+    },
+  },
+  data() {
+    return {
+      loading: true,
+      balances: [],
+      filter: null,
+      filterOn: [],
+      tableOptions: paginationOptions,
+      perPage: null,
+      currentPage: 1,
+      totalRows: 1,
+      callbackId: null,
+    }
+  },
+  computed: {
+    searchResults() {
+      const list = this.balances || []
+
+      if (!this.filter) return list
+
+      return list.filter((item) => {
+        const filter = this.filter.toLowerCase()
+        const name = item.token_name ? item.token_name.toLowerCase() : ''
+        const address = item.contract_id ? item.contract_id.toLowerCase() : ''
+
+        return name.includes(filter) || address.includes(filter)
+      })
+    },
+    list() {
+      return this.paginate(
+        this.sort(this.searchResults),
+        this.perPage,
+        this.currentPage
+      )
+    },
+  },
+  created() {
+    this.updateData()
+    BlockTimeout.addCallback(this.updateData)
+  },
+  destroyed() {
+    BlockTimeout.removeCallback(this.updateData)
+  },
+  methods: {
+    handleNumFields(num) {
+      localStorage.paginationOptions = num
+      this.perPage = parseInt(num)
+    },
+    async updateData() {
+      try {
+        const response = await axiosInstance.post('', {
+          query: `
+            query signer_nfts($accountId: String) {
+              tokenHolders(
+                orderBy: balance_DESC
+                limit: 199
+                where: {
+                  AND: {
+                    nftId_isNull: false
+                    token: { id_isNull: false }
+                    signer: { id_eq: $accountId }
+                    balance_gt: "0"
+                  }
+                  type_eq: Account
+                }
+              ) {
+                token {
+                  id
+                  type
+                }
+                balance
+                nftId
+              }
+            }
+          `,
+          variables: {
+            accountId: this.accountId,
+          },
+        })
+
+        this.balances = response.data.data.tokenHolders
+        this.totalRows = this.balances.length
+        this.loading = false
+      } catch (error) {
+        this.setPerPage(20)
+        this.$bvToast.toast(`Exceeds the size limit`, {
+          title: 'Encountered an Error',
+          variant: 'danger',
+          autoHideDelay: 5000,
+          appendToast: false,
+        })
+      }
+    },
+    setPerPage(value) {
+      this.perPage = value
     },
   },
 }
