@@ -67,6 +67,7 @@
 import { gql } from 'graphql-tag'
 import commonMixin from '@/mixins/commonMixin.js'
 import BlockTimeout from '@/utils/polling.js'
+import axiosInstance from '~/utils/axios'
 
 const FIRST_BATCH_QUERY = gql`
   query evm_event_qry($contractAddress: String!, $first: Int!) {
@@ -162,37 +163,20 @@ export default {
     BlockTimeout.removeCallback(this.updateData)
   },
   methods: {
-    updateData() {
-      this.$apollo.queries.transactions.refetch()
-      this.$apollo.queries.total_transactions.refetch()
-    },
-    setPerPage(value) {
-      this.perPage = value
-    },
-  },
-  apollo: {
-    transactions: {
-      query: function () {
-        return this.queryToExecute
-      },
-      variables() {
-        return {
-          contractAddress: this.toContractAddress(this.contractId),
-          first: this.perPage,
-          after: ((this.currentPage - 1) * this.perPage + 1).toString(),
-        }
-      },
-      fetchPolicy: 'network-only',
-      result({ data, error }) {
-        if (error) {
-          this.setPerPage(20)
-          this.$bvToast.toast(`Exceeds the size limit`, {
-            title: 'Encountered an Error',
-            variant: 'danger',
-            autoHideDelay: 5000,
-            appendToast: false,
-          })
-        } else {
+    async updateData() {
+      // transactions query
+      try {
+        const transactionsQueryResponse = await axiosInstance.post('', {
+          query: this.currentPage === 1 ? FIRST_BATCH_QUERY : NEXT_BATCH_QUERY,
+          variables: {
+            contractAddress: this.toContractAddress(this.contractId),
+            first: this.perPage,
+            after: ((this.currentPage - 1) * this.perPage + 1).toString(),
+          },
+        })
+        if (transactionsQueryResponse.data.data) {
+          const data = transactionsQueryResponse.data.data
+
           const dataArr = []
           if (data.transactions.edges) {
             for (let idx = 0; idx < data.transactions.edges.length; idx++) {
@@ -210,8 +194,22 @@ export default {
           }
           this.loading = false
         }
-      },
+      } catch (error) {
+        this.setPerPage(20)
+        this.$bvToast.toast(`Exceeds the size limit`, {
+          title: 'Encountered an Error',
+          variant: 'danger',
+          autoHideDelay: 5000,
+          appendToast: false,
+        })
+      }
+      this.$apollo.queries.total_transactions.refetch()
     },
+    setPerPage(value) {
+      this.perPage = value
+    },
+  },
+  apollo: {
     // TODO: needs to be implemented in the backend
     total_transactions: {
       // this is purely for having some kind of call
