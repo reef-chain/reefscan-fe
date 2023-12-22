@@ -107,6 +107,7 @@ import { gql } from 'graphql-tag'
 import commonMixin from '../mixins/commonMixin.js'
 import { network } from '../frontend.config.js'
 import BlockTimeout from '@/utils/polling.js'
+import axiosInstance from '~/utils/axios'
 
 export default {
   mixins: [commonMixin],
@@ -125,24 +126,6 @@ export default {
     }
   },
   apollo: {
-    chainInfo: {
-      query: gql`
-        query chain_info {
-          chainInfo: chainInfos(limit: 10) {
-            id
-            count
-          }
-        }
-      `,
-      fetchPolicy: 'network-only',
-      result({ data }) {
-        this.totalAccounts = this.findCount(data.chainInfo, 'accounts')
-        this.totalContracts = this.findCount(data.chainInfo, 'contracts')
-        this.totalEvents = this.findCount(data.chainInfo, 'events')
-        this.totalExtrinsics = this.findCount(data.chainInfo, 'extrinsics')
-        this.totalTransfers = this.findCount(data.chainInfo, 'transfers')
-      },
-    },
     finalized: {
       query: gql`
         query blocks {
@@ -207,8 +190,28 @@ export default {
     BlockTimeout.removeCallback(this.updateData)
   },
   methods: {
-    updateData() {
-      this.$apollo.queries.chainInfo.refetch()
+    async updateData() {
+      // chain info query
+      const response = await axiosInstance.post('', {
+        query: `
+          query chain_info {
+            chainInfo: chainInfos(limit: 10) {
+              id
+              count
+            }
+          }
+        `,
+      })
+      const chainInfoData = response.data.data
+
+      this.totalAccounts = this.findCount(chainInfoData.chainInfo, 'accounts')
+      this.totalContracts = this.findCount(chainInfoData.chainInfo, 'contracts')
+      this.totalEvents = this.findCount(chainInfoData.chainInfo, 'events')
+      this.totalExtrinsics = this.findCount(
+        chainInfoData.chainInfo,
+        'extrinsics'
+      )
+      this.totalTransfers = this.findCount(chainInfoData.chainInfo, 'transfers')
       this.$apollo.queries.finalized.refetch()
       this.$apollo.queries.lastBlock.refetch()
     },
