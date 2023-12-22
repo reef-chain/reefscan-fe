@@ -64,41 +64,14 @@
 </template>
 
 <script>
-import { gql } from 'graphql-tag'
 import JsonCSV from 'vue-json-csv'
+import axiosInstance from '@/utils/axios'
 import commonMixin from '@/mixins/commonMixin.js'
 import Loading from '@/components/Loading.vue'
 import { paginationOptions } from '@/frontend.config.js'
 import Input from '@/components/Input'
 import tableUtils from '@/mixins/tableUtils'
 import BlockTimeout from '@/utils/polling.js'
-
-const GQL_QUERY = gql`
-  query token_holder($accountId: String!) {
-    tokenHolders: tokenHoldersConnection(
-      orderBy: balance_DESC
-      where: {
-        signer: { id_eq: $accountId }
-        AND: { token: { type_eq: ERC20 } }
-      }
-      first: 50
-    ) {
-      edges {
-        node {
-          signer {
-            id
-            evmAddress
-          }
-          balance
-          token {
-            id
-            contractData
-          }
-        }
-      }
-    }
-  }
-`
 
 export default {
   components: {
@@ -149,7 +122,6 @@ export default {
     },
   },
   created() {
-    // force fetch the latest data
     this.updateData()
     BlockTimeout.addCallback(this.updateData)
   },
@@ -161,44 +133,43 @@ export default {
       localStorage.paginationOptions = num
       this.perPage = parseInt(num)
     },
-    updateData() {
-      this.$apollo.queries.tokenHolders.refetch()
-    },
-    setPerPage(value) {
-      this.perPage = value
-    },
-  },
-  apollo: {
-    tokenHolders: {
-      query: GQL_QUERY,
-      variables() {
-        return {
-          accountId: this.accountId,
-        }
-      },
-      skip() {
-        return !this.accountId
-      },
-      fetchPolicy: 'network-only',
-      result({ data, error }) {
-        if (error) {
-          this.setPerPage(20)
-          this.$bvToast.toast(`Exceeds the size limit`, {
-            title: 'Encountered an Error',
-            variant: 'danger',
-            autoHideDelay: 5000,
-            appendToast: false,
-          })
-        } else {
-          const dataArr = []
-          if (data.tokenHolders.edges) {
-            for (let idx = 0; idx < data.tokenHolders.edges.length; idx++) {
-              dataArr.push(data.tokenHolders.edges[idx].node)
+    async updateData() {
+      try {
+        const response = await axiosInstance.post('', {
+          query: `
+            query token_holder($accountId: String!) {
+              tokenHolders: tokenHoldersConnection(
+                orderBy: balance_DESC
+                where: {
+                  signer: { id_eq: $accountId }
+                  AND: { token: { type_eq: ERC20 } }
+                }
+                first: 50
+              ) {
+                edges {
+                  node {
+                    signer {
+                      id
+                      evmAddress
+                    }
+                    balance
+                    token {
+                      id
+                      contractData
+                    }
+                  }
+                }
+              }
             }
-            data.tokenHolders = dataArr
-            this.tokenHolders = dataArr
-          }
-          this.balances = data.tokenHolders.map((balance) => ({
+          `,
+          variables: {
+            accountId: this.accountId,
+          },
+        })
+
+        this.balances = response.data.data.tokenHolders.edges.map((edge) => {
+          const balance = edge.node
+          return {
             contract_id: balance.token.id,
             holder_account_id: balance.signer.id,
             holder_evm_address: balance.signer.evmAddress,
@@ -208,11 +179,17 @@ export default {
             token_name: balance.token.contractData?.name,
             token_symbol: balance.token.contractData?.symbol,
             token_decimals: balance.token.contractData?.decimals,
-          }))
-          this.totalRows = this.balances.length
-          this.loading = false
-        }
-      },
+          }
+        })
+
+        this.totalRows = this.balances.length
+        this.loading = false
+      } catch (error) {
+        // Handle error
+      }
+    },
+    setPerPage(value) {
+      this.perPage = value
     },
   },
 }
