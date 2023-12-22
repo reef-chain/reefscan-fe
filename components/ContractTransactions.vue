@@ -203,37 +203,20 @@ export default {
           appendToast: false,
         })
       }
-      this.$apollo.queries.total_transactions.refetch()
+      // total transactions query
+      const totalTransactionsResponse = await axiosInstance.post('', {
+        query: `
+          query evm_event_count_aggregation {
+            total_transactions: chainInfos(where: { id_eq: "contracts" }) {
+              count
+            }
+          }
+        `,
+      })
+      if (totalTransactionsResponse.data.data) this.totalRows = 1
     },
     setPerPage(value) {
       this.perPage = value
-    },
-  },
-  apollo: {
-    // TODO: needs to be implemented in the backend
-    total_transactions: {
-      // this is purely for having some kind of call
-      query: gql`
-        query evm_event_count_aggregation {
-          total_transactions: chainInfos(where: { id_eq: "contracts" }) {
-            count
-          }
-        }
-      `,
-      variables() {
-        // return {
-        //   contractAddress: {
-        //     _ilike: this.toContractAddress(this.contractId),
-        //   },
-        // }
-        return {}
-      },
-      fetchPolicy: 'network-only',
-      result({ data }) {
-        // this.totalRows = data.evm_event_aggregate.aggregate.count
-        // TODO: needs to be implemented in the backend
-        this.totalRows = 1
-      },
     },
   },
 }
