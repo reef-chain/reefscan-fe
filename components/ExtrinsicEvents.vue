@@ -64,7 +64,6 @@ export default {
   },
   methods: {
     async updateData() {
-      // this.$apollo.queries.events.refetch()
       const GQL_QUERY = `
         query events($extrinsic_index: Int!, $block_height: Int!) {
           events: eventsConnection(
