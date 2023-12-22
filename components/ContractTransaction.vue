@@ -148,9 +148,9 @@
 
 <script>
 import { ethers } from 'ethers'
-import { gql } from 'graphql-tag'
 import commonMixin from '@/mixins/commonMixin.js'
 import erc20Abi from '@/assets/erc20Abi.json'
+import axiosInstance from '~/utils/axios'
 export default {
   components: {},
   mixins: [commonMixin],
@@ -190,17 +190,19 @@ export default {
       return decoded
     },
     async getEVMAddress(accountId) {
-      const client = this.$apolloProvider.defaultClient
-      const query = gql`
-          query account {
-            accounts(where: { id_eq: "${accountId}" }) {
-              evmAddress
-            }
+      const GQL_QUERY = `
+        query account {
+          accounts(where: {id_containsInsensitive: "${accountId}"}, limit: 1) {
+            evmAddress
           }
-        `
-      const response = await client.query({ query })
-      if (response.data.accounts.length > 0) {
-        const evmAddress = response.data.accounts[0].evmAddress
+        }
+      `
+      const response = await axiosInstance.post('', {
+        query: GQL_QUERY,
+      })
+      const data = response.data.data
+      if (data.account && data.account.length > 0) {
+        const evmAddress = data.account[0].evmAddress
         if (evmAddress) {
           return evmAddress
         } else {
