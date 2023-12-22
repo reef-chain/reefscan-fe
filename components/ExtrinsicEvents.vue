@@ -27,9 +27,9 @@
 </template>
 
 <script>
-import { gql } from 'graphql-tag'
 import commonMixin from '@/mixins/commonMixin.js'
 import BlockTimeout from '@/utils/polling.js'
+import axiosInstance from '~/utils/axios'
 
 export default {
   mixins: [commonMixin],
@@ -63,16 +63,9 @@ export default {
     BlockTimeout.removeCallback(this.updateData)
   },
   methods: {
-    updateData() {
-      this.$apollo.queries.events.refetch()
-    },
-    setPerPage(value) {
-      this.perPage = value
-    },
-  },
-  apollo: {
-    events: {
-      query: gql`
+    async updateData() {
+      // this.$apollo.queries.events.refetch()
+      const GQL_QUERY = `
         query events($extrinsic_index: Int!, $block_height: Int!) {
           events: eventsConnection(
             orderBy: index_ASC
@@ -101,41 +94,42 @@ export default {
             }
           }
         }
-      `,
-      variables() {
-        return {
-          // extrinsic_id: this.extrinsicId.toString (),
-          block_height: this.extrinsicBlockHeight,
-          extrinsic_index: this.extrinsicIndex,
-        }
-      },
-      fetchPolicy: 'network-only',
-      result({ data, error }) {
-        if (error) {
-          this.setPerPage(20)
-          this.$bvToast.toast(`Exceeds the size limit`, {
-            title: 'Encountered an Error',
-            variant: 'danger',
-            autoHideDelay: 5000,
-            appendToast: false,
-          })
-        } else {
-          const dataArr = []
-          if (data.events.edges) {
-            for (let idx = 0; idx < data.events.edges.length; idx++) {
-              dataArr.push(data.events.edges[idx].node)
-            }
-            data.events = dataArr
-            this.events = dataArr
+      `
+      try {
+        const response = await axiosInstance.post('', {
+          query: GQL_QUERY,
+          variables: {
+            block_height: this.extrinsicBlockHeight,
+            extrinsic_index: this.extrinsicIndex,
+          },
+        })
+        const data = response.data.data
+        const dataArr = []
+        if (data.events.edges) {
+          for (let idx = 0; idx < data.events.edges.length; idx++) {
+            dataArr.push(data.events.edges[idx].node)
           }
-          data.events = data.events.map((item) => {
-            item.extrinsic.block_id = item.extrinsic.block.height
-            return item
-          })
-          this.events = data.events
-          this.loading = false
+          data.events = dataArr
+          this.events = dataArr
         }
-      },
+        data.events = data.events.map((item) => {
+          item.extrinsic.block_id = item.extrinsic.block.height
+          return item
+        })
+        this.events = data.events
+        this.loading = false
+      } catch (error) {
+        this.setPerPage(20)
+        this.$bvToast.toast(`Exceeds the size limit`, {
+          title: 'Encountered an Error',
+          variant: 'danger',
+          autoHideDelay: 5000,
+          appendToast: false,
+        })
+      }
+    },
+    setPerPage(value) {
+      this.perPage = value
     },
   },
 }
