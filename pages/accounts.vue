@@ -181,6 +181,7 @@ import Search from '@/components/Search'
 import Loading from '@/components/Loading.vue'
 import commonMixin from '@/mixins/commonMixin.js'
 import BlockTimeout from '@/utils/polling.js'
+import axiosInstance from '~/utils/axios'
 
 const FIRST_BATCH_QUERY = gql`
   query account($first: Int!, $where: AccountWhereInput) {
@@ -227,6 +228,21 @@ const NEXT_BATCH_QUERY = gql`
     }
   }
 `
+
+const FAVORITE_ACCOUNTS_QUERY = `
+        query favoriteAccount($addresses: [String!]) {
+          favoriteAccounts: accounts(
+            orderBy: freeBalance_DESC
+            where: { id_in: $addresses }
+          ) {
+            id
+            freeBalance
+            evmAddress
+            lockedBalance
+            availableBalance
+          }
+        }
+      `
 export default {
   components: {
     Loading,
@@ -300,8 +316,37 @@ export default {
     BlockTimeout.removeCallback(this.updateData)
   },
   methods: {
-    updateData() {
-      this.$apollo.queries.favoriteAccounts.refetch()
+    async updateData() {
+      // this.$apollo.queries.favoriteAccounts.refetch()
+      try {
+        const response = await axiosInstance.post('', {
+          query: FAVORITE_ACCOUNTS_QUERY,
+          variables: {
+            addresses: this.favorites,
+          },
+        })
+        const data = response.data.data
+        if (data && data.favoriteAccounts) {
+          this.favoriteAccounts = data.favoriteAccounts.map((account) => ({
+            ...account,
+            address: account.id,
+            free_balance: account.freeBalance,
+            evm_address: account.evmAddress,
+            locked_balance: account.lockedBalance,
+            available_balance: account.availableBalance,
+            favorite: true,
+          }))
+        }
+        this.updateFavoritesRank()
+      } catch (error) {
+        this.setPerPage(50)
+        this.$bvToast.toast(`Exceeds the size limit`, {
+          title: 'Encountered an Error',
+          variant: 'danger',
+          autoHideDelay: 5000,
+          appendToast: false,
+        })
+      }
       this.$apollo.queries.accounts.refetch()
     },
     toggleFavorite(accountId) {
@@ -413,52 +458,6 @@ export default {
         this.nAccounts = data.totalAccounts[0].count
         this.totalRows = this.nAccounts
         if (!this.forceLoad) this.loading = false
-      },
-    },
-    favoriteAccounts: {
-      query: gql`
-        query favoriteAccount($addresses: [String!]) {
-          favoriteAccounts: accounts(
-            orderBy: freeBalance_DESC
-            where: { id_in: $addresses }
-          ) {
-            id
-            freeBalance
-            evmAddress
-            lockedBalance
-            availableBalance
-          }
-        }
-      `,
-      variables() {
-        return {
-          addresses: this.favorites,
-        }
-      },
-      fetchPolicy: 'network-only',
-      result({ data, error }) {
-        if (error) {
-          this.setPerPage(50)
-          this.$bvToast.toast(`Exceeds the size limit`, {
-            title: 'Encountered an Error',
-            variant: 'danger',
-            autoHideDelay: 5000,
-            appendToast: false,
-          })
-        } else {
-          if (data && data.favoriteAccounts) {
-            this.favoriteAccounts = data.favoriteAccounts.map((account) => ({
-              ...account,
-              address: account.id,
-              free_balance: account.freeBalance,
-              evm_address: account.evmAddress,
-              locked_balance: account.lockedBalance,
-              available_balance: account.availableBalance,
-              favorite: true,
-            }))
-          }
-          this.updateFavoritesRank()
-        }
       },
     },
   },
