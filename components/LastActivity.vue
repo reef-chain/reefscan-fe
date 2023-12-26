@@ -33,9 +33,9 @@
 </template>
 
 <script>
-import { gql } from 'graphql-tag'
 import commonMixin from '@/mixins/commonMixin.js'
 import BlockTimeout from '@/utils/polling.js'
+import axiosInstance from '~/utils/axios'
 
 export default {
   mixins: [commonMixin],
@@ -71,60 +71,55 @@ export default {
     BlockTimeout.removeCallback(this.updateData)
   },
   methods: {
-    updateData() {
-      this.$apollo.queries.extrinsic.refetch()
+    async updateData() {
+      try {
+        const response = await axiosInstance.post('', {
+          query: `
+            query extrinsics {
+              extrinsic: extrinsicsConnection(
+                orderBy: { block_id: desc }
+                where: { type: { _eq: "signed" } }
+                first: 10
+              ) {
+                edges {
+                  node {
+                    id
+                    block_id
+                    index
+                    type
+                    signer
+                    section
+                    method
+                    hash
+                    docs
+                  }
+                }
+              }
+            }
+          `,
+        })
+        const data = response.data.data
+        const dataArr = []
+        if (data.extrinsic.edges) {
+          for (let idx = 0; idx < data.extrinsic.edges.length; idx++) {
+            dataArr.push(data.extrinsic.edges[idx].node)
+          }
+          data.extrinsic = dataArr
+          this.extrinsic = dataArr
+        }
+        this.extrinsics = data.extrinsic
+      } catch (error) {
+        this.setPerPage(20)
+        this.$bvToast.toast(`Exceeds the size limit`, {
+          title: 'Encountered an Error',
+          variant: 'danger',
+          autoHideDelay: 5000,
+          appendToast: false,
+        })
+      }
     },
     setPerPage(value) {
       this.perPage = value
-    },
-  },
-  apollo: {
-    extrinsic: {
-      query: gql`
-        query extrinsics {
-          extrinsic: extrinsicsConnection(
-            orderBy: { block_id: desc }
-            where: { type: { _eq: "signed" } }
-            first: 10
-          ) {
-            edges {
-              node {
-                id
-                block_id
-                index
-                type
-                signer
-                section
-                method
-                hash
-                docs
-              }
-            }
-          }
-        }
-      `,
-      fetchPolicy: 'network-only',
-      result({ data, error }) {
-        if (error) {
-          this.setPerPage(20)
-          this.$bvToast.toast(`Exceeds the size limit`, {
-            title: 'Encountered an Error',
-            variant: 'danger',
-            autoHideDelay: 5000,
-            appendToast: false,
-          })
-        } else {
-          const dataArr = []
-          if (data.extrinsic.edges) {
-            for (let idx = 0; idx < data.extrinsic.edges.length; idx++) {
-              dataArr.push(data.extrinsic.edges[idx].node)
-            }
-            data.extrinsic = dataArr
-            this.extrinsic = dataArr
-          }
-          this.extrinsics = data.extrinsic
-        }
-      },
     },
   },
 }
