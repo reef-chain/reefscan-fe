@@ -87,14 +87,14 @@
 </template>
 
 <script>
-import { gql } from 'graphql-tag'
 import commonMixin from '@/mixins/commonMixin.js'
 import ReefIdenticon from '@/components/ReefIdenticon.vue'
 // import { network } from '@/frontend.config'
 import Loading from '@/components/Loading.vue'
 import BlockTimeout from '@/utils/polling.js'
+import axiosInstance from '~/utils/axios'
 
-const GET_TRANSFER_EXTRINSIC_EVENTS = gql`
+const GET_TRANSFER_EXTRINSIC_EVENTS = `
   query extrinsic($exId: bigint!) {
     extrinsic(where: { id: { _eq: $exId } }) {
       id
@@ -129,121 +129,118 @@ export default {
     BlockTimeout.removeCallback(this.updateData)
   },
   methods: {
-    updateData() {
-      this.$apollo.queries.lastTransfers.refetch()
-    },
-    setPerPage(value) {
-      this.perPage = value
-    },
-  },
-  apollo: {
-    lastTransfers: {
-      // TODO: broken until we have a way to get the token info
-      query: gql`
-        query transfer {
-          lastTransfers: transfersConnection(
-            first: 10
-            orderBy: timestamp_DESC
-          ) {
-            edges {
-              node {
-                nftId
-                event {
-                  index
-                }
-                extrinsic {
-                  id
-                  hash
-                  index
-                  block {
-                    height
+    async updateData() {
+      try {
+        // TODO: broken until we have a way to get the token info
+        const response = await axiosInstance.post('', {
+          query: `
+            query transfer {
+              lastTransfers: transfersConnection(
+                first: 10
+                orderBy: timestamp_DESC
+              ) {
+                edges {
+                  node {
+                    nftId
+                    event {
+                      index
+                    }
+                    extrinsic {
+                      id
+                      hash
+                      index
+                      block {
+                        height
+                      }
+                    }
+                    from {
+                      id
+                      evmAddress
+                    }
+                    to {
+                      id
+                      evmAddress
+                    }
+                    token {
+                      id
+                    }
+                    success
+                    amount
+                    timestamp
                   }
                 }
-                from {
-                  id
-                  evmAddress
-                }
-                to {
-                  id
-                  evmAddress
-                }
-                token {
-                  id
-                }
-                success
-                amount
-                timestamp
               }
             }
+          `,
+        })
+        const data = response.data.data
+        const dataArr = []
+        if (data.lastTransfers.edges) {
+          for (let idx = 0; idx < data.lastTransfers.edges.length; idx++) {
+            dataArr.push(data.lastTransfers.edges[idx].node)
           }
+          data.lastTransfers = dataArr
+          this.lastTransfers = dataArr
         }
-      `,
-      fetchPolicy: 'network-only',
-      async result({ data, error }) {
-        if (error) {
-          this.setPerPage(20)
-          this.$bvToast.toast(`Exceeds the size limit`, {
-            title: 'Encountered an Error',
-            variant: 'danger',
-            autoHideDelay: 5000,
-            appendToast: false,
-          })
-        } else {
-          const dataArr = []
-          if (data.lastTransfers.edges) {
-            for (let idx = 0; idx < data.lastTransfers.edges.length; idx++) {
-              dataArr.push(data.lastTransfers.edges[idx].node)
-            }
-            data.lastTransfers = dataArr
-            this.lastTransfers = dataArr
+        const processed = data.lastTransfers.map((transfer) => ({
+          amount: transfer.amount,
+          success: transfer.success,
+          hash: transfer.extrinsic.hash,
+          height: transfer.extrinsic.block.height,
+          index: transfer.extrinsic.index,
+          timestamp: transfer.timestamp,
+          tokenAddress: transfer.token.id,
+          isNft: transfer.nftId !== null,
+          symbol:
+            transfer.token.verified_contract?.contract_data?.symbol || ' ',
+          decimals:
+            transfer.token.verified_contract?.contract_data?.decimals || 18,
+          to: transfer.to !== null ? transfer.to.id : transfer.to.evmAddress,
+          from:
+            transfer.from !== null
+              ? transfer.from.id
+              : transfer.from.evmAddress,
+          extrinsicId: transfer.extrinsic.id,
+          eventIndex: transfer.event.index,
+        }))
+        const repaird = processed.map(async (transfer) => {
+          if (transfer.to !== 'deleted' && transfer.from !== 'deleted') {
+            return transfer
           }
-          const processed = data.lastTransfers.map((transfer) => ({
-            amount: transfer.amount,
-            success: transfer.success,
-            hash: transfer.extrinsic.hash,
-            height: transfer.extrinsic.block.height,
-            index: transfer.extrinsic.index,
-            timestamp: transfer.timestamp,
-            tokenAddress: transfer.token.id,
-            isNft: transfer.nftId !== null,
-            symbol:
-              transfer.token.verified_contract?.contract_data?.symbol || ' ',
-            decimals:
-              transfer.token.verified_contract?.contract_data?.decimals || 18,
-            to: transfer.to !== null ? transfer.to.id : transfer.to.evmAddress,
-            from:
-              transfer.from !== null
-                ? transfer.from.id
-                : transfer.from.evmAddress,
-            extrinsicId: transfer.extrinsic.id,
-            eventIndex: transfer.event.index,
-          }))
-          const repaird = processed.map(async (transfer) => {
-            if (transfer.to !== 'deleted' && transfer.from !== 'deleted') {
-              return transfer
-            }
-            const res = await this.$apollo.provider.defaultClient.query({
+          const res = (
+            await axiosInstance.post('', {
               query: GET_TRANSFER_EXTRINSIC_EVENTS,
               variables: {
                 exId: transfer.extrinsicId,
               },
             })
-            if (
-              res.data &&
-              res.data.extrinsic.length > 0 &&
-              res.data.extrinsic[0].events &&
-              res.data.extrinsic[0].events.length > 0 &&
-              res.data.extrinsic[0].events[0].data
-            ) {
-              const [to, from] = res.data.extrinsic[0].events[0].data
-              return { ...transfer, to, from }
-            }
-            return transfer
-          })
-          this.transfers = await Promise.all(repaird)
-          this.loading = false
-        }
-      },
+          ).data
+          if (
+            res.data &&
+            res.data.extrinsic.length > 0 &&
+            res.data.extrinsic[0].events &&
+            res.data.extrinsic[0].events.length > 0 &&
+            res.data.extrinsic[0].events[0].data
+          ) {
+            const [to, from] = res.data.extrinsic[0].events[0].data
+            return { ...transfer, to, from }
+          }
+          return transfer
+        })
+        this.transfers = await Promise.all(repaird)
+        this.loading = false
+      } catch (error) {
+        this.setPerPage(20)
+        this.$bvToast.toast(`Exceeds the size limit`, {
+          title: 'Encountered an Error',
+          variant: 'danger',
+          autoHideDelay: 5000,
+          appendToast: false,
+        })
+      }
+    },
+    setPerPage(value) {
+      this.perPage = value
     },
   },
 }
