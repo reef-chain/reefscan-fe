@@ -64,12 +64,11 @@
 </template>
 
 <script>
-import { gql } from 'graphql-tag'
 import commonMixin from '@/mixins/commonMixin.js'
 import BlockTimeout from '@/utils/polling.js'
 import axiosInstance from '~/utils/axios'
 
-const FIRST_BATCH_QUERY = gql`
+const FIRST_BATCH_QUERY = `
   query evm_event_qry($contractAddress: String!, $first: Int!) {
     transactions: evmEventsConnection(
       first: $first
@@ -95,7 +94,7 @@ const FIRST_BATCH_QUERY = gql`
     }
   }
 `
-const NEXT_BATCH_QUERY = gql`
+const NEXT_BATCH_QUERY = `
   query evm_event_qry(
     $contractAddress: String!
     $first: Int!
@@ -144,15 +143,6 @@ export default {
       perPage: 20,
       callbackId: null,
     }
-  },
-  computed: {
-    queryToExecute() {
-      if (this.currentPage === 1) {
-        return FIRST_BATCH_QUERY
-      } else {
-        return NEXT_BATCH_QUERY
-      }
-    },
   },
   created() {
     // force fetch

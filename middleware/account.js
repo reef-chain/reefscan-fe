@@ -1,5 +1,5 @@
-import { gql } from 'graphql-tag'
 import { toChecksumAddress } from 'web3-utils'
+import axiosInstance from '~/utils/axios'
 export default async function ({ app, route, store, redirect }) {
   const id = route.params.id
 
@@ -15,15 +15,14 @@ export default async function ({ app, route, store, redirect }) {
   }
 
   if (id.match(/0x*/)) {
-    const client = app.apolloProvider.defaultClient
-    const query = gql`
+    const query = `
       query account {
         accounts(where: {evmAddress_eq: "${checkAddress()}"}) {
           id
         }
       }
     `
-    const response = await client.query({ query })
+    const response = (await axiosInstance.post('', { query })).data
     if (response.data.accounts.length > 0) {
       const accountId = response.data.account[0].id
       if (accountId) {

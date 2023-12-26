@@ -58,7 +58,6 @@ export default {
   },
   methods: {
     async updateData() {
-      // this.$apollo.queries.accounts.refetch()
       try {
         const response = await axiosInstance.post('', {
           query: `
