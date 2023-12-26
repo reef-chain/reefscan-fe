@@ -32,10 +32,10 @@
 </template>
 
 <script>
-import { gql } from 'graphql-tag'
 import commonMixin from '@/mixins/commonMixin.js'
 import Loading from '@/components/Loading.vue'
 import BlockTimeout from '@/utils/polling.js'
+import axiosInstance from '~/utils/axios'
 
 export default {
   components: {
@@ -57,67 +57,63 @@ export default {
     BlockTimeout.removeCallback(this.updateData)
   },
   methods: {
-    updateData() {
-      this.$apollo.queries.events.refetch()
+    async updateData() {
+      try {
+        const response = await axiosInstance.post('', {
+          query: `
+            query events {
+              events: eventsConnection(orderBy: id_DESC, where: {}, first: 10) {
+                edges {
+                  node {
+                    extrinsic {
+                      id
+                      block {
+                        height
+                      }
+                      index
+                    }
+                    index
+                    data
+                    method
+                    phase
+                    section
+                  }
+                }
+              }
+            }
+          `,
+        })
+        const data = response.data.data
+        const dataArr = []
+        if (data.events.edges) {
+          for (let idx = 0; idx < data.events.edges.length; idx++) {
+            dataArr.push(data.events.edges[idx].node)
+          }
+          data.events = dataArr
+          this.events = dataArr
+        }
+        this.events = data.events.map((event) => {
+          return {
+            ...event,
+            extrinsic: {
+              ...event.extrinsic,
+              block_id: event.extrinsic.block.height,
+            },
+          }
+        })
+        this.loading = false
+      } catch (error) {
+        this.setPerPage(20)
+        this.$bvToast.toast(`Exceeds the size limit`, {
+          title: 'Encountered an Error',
+          variant: 'danger',
+          autoHideDelay: 5000,
+          appendToast: false,
+        })
+      }
     },
     setPerPage(value) {
       this.perPage = value
-    },
-  },
-  apollo: {
-    events: {
-      query: gql`
-        query events {
-          events: eventsConnection(orderBy: id_DESC, where: {}, first: 10) {
-            edges {
-              node {
-                extrinsic {
-                  id
-                  block {
-                    height
-                  }
-                  index
-                }
-                index
-                data
-                method
-                phase
-                section
-              }
-            }
-          }
-        }
-      `,
-      result({ data, error }) {
-        if (error) {
-          this.setPerPage(20)
-          this.$bvToast.toast(`Exceeds the size limit`, {
-            title: 'Encountered an Error',
-            variant: 'danger',
-            autoHideDelay: 5000,
-            appendToast: false,
-          })
-        } else {
-          const dataArr = []
-          if (data.events.edges) {
-            for (let idx = 0; idx < data.events.edges.length; idx++) {
-              dataArr.push(data.events.edges[idx].node)
-            }
-            data.events = dataArr
-            this.events = dataArr
-          }
-          this.events = data.events.map((event) => {
-            return {
-              ...event,
-              extrinsic: {
-                ...event.extrinsic,
-                block_id: event.extrinsic.block.height,
-              },
-            }
-          })
-          this.loading = false
-        }
-      },
     },
   },
 }
