@@ -329,7 +329,7 @@ export default {
         }
         this.updateFavoritesRank()
       } catch (error) {
-        this.setPerPage(50)
+        this.setPerPage(10)
         this.$bvToast.toast(`Exceeds the size limit`, {
           title: 'Encountered an Error',
           variant: 'danger',
@@ -373,7 +373,6 @@ export default {
           variables: getVariables(),
         })
         const data = response.data.data
-        console.log('here i am')
         const dataArr = []
         if (data.accounts.edges) {
           for (let idx = 0; idx < data.accounts.edges.length; idx++) {
@@ -407,7 +406,13 @@ export default {
         this.totalRows = this.nAccounts
         if (!this.forceLoad) this.loading = false
       } catch (error) {
-        console.log(error)
+        this.setPerPage(10)
+        this.$bvToast.toast(`Exceeds the size limit`, {
+          title: 'Encountered an Error',
+          variant: 'danger',
+          autoHideDelay: 5000,
+          appendToast: false,
+        })
       }
     },
     toggleFavorite(accountId) {
