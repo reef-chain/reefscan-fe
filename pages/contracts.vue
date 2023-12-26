@@ -98,14 +98,14 @@
 </template>
 
 <script>
-import { gql } from 'graphql-tag'
 import commonMixin from '@/mixins/commonMixin.js'
 import Loading from '@/components/Loading.vue'
 import Search from '@/components/Search'
 import { paginationOptions } from '@/frontend.config.js'
 import BlockTimeout from '@/utils/polling.js'
+import axiosInstance from '~/utils/axios'
 
-const FIRST_BATCH_QUERY = gql`
+const FIRST_BATCH_QUERY = `
   query contract($where: ContractWhereInput!, $first: Int!) {
     contracts: contractsConnection(
       first: $first
@@ -127,7 +127,7 @@ const FIRST_BATCH_QUERY = gql`
   }
 `
 
-const NEXT_BATCH_QUERY = gql`
+const NEXT_BATCH_QUERY = `
   query contract($where: ContractWhereInput!, $first: Int!, $after: String!) {
     contracts: contractsConnection(
       first: $first
@@ -171,15 +171,6 @@ export default {
       forceLoad: false,
     }
   },
-  computed: {
-    queryToExecute() {
-      if (this.currentPage === 1) {
-        return FIRST_BATCH_QUERY
-      } else {
-        return NEXT_BATCH_QUERY
-      }
-    },
-  },
   watch: {
     currentPage() {
       if (this.currentPage === 1) {
@@ -188,9 +179,7 @@ export default {
           this.loading = true // set loading to true before refetching
           this.forceLoad = true
           setTimeout(() => {
-            this.$apollo.queries.contracts.refetch()
-            this.$apollo.queries.verifiedContracts.refetch()
-            this.$apollo.queries.totalContracts.refetch()
+            this.updateData()
             this.forceLoad = false
           }, 100)
         }
@@ -198,6 +187,7 @@ export default {
       } else {
         BlockTimeout.removeCallback(this.updateData)
       }
+      this.updateData()
     },
   },
   created() {
@@ -207,21 +197,10 @@ export default {
     BlockTimeout.removeCallback(this.updateData)
   },
   methods: {
-    updateData() {
-      this.$apollo.queries.contracts.refetch()
-      this.$apollo.queries.verifiedContracts.refetch()
-      this.$apollo.queries.totalContracts.refetch()
-    },
-    setPerPage(value) {
-      this.perPage = value
-    },
-  },
-  apollo: {
-    contracts: {
-      query: function () {
-        return this.queryToExecute
-      },
-      variables() {
+    async updateData() {
+      // this.$apollo.queries.contracts.refetch()
+      // fetching contracts
+      const fetchContractQueryVariables = () => {
         let where = {}
         if (this.isBlockNumber(this.filter)) {
           where = {
@@ -242,54 +221,59 @@ export default {
           after: ((this.currentPage - 1) * this.perPage).toString(),
         }
         return newVar
-      },
-      fetchPolicy: 'network-only',
-      result({ data, error }) {
-        if (error) {
-          this.setPerPage(50)
-          this.$bvToast.toast(`Exceeds the size limit`, {
-            title: 'Encountered an Error',
-            variant: 'danger',
-            autoHideDelay: 5000,
-            appendToast: false,
-          })
-        } else {
-          const dataArr = []
-          if (data.contracts.edges) {
-            for (let idx = 0; idx < data.contracts.edges.length; idx++) {
-              dataArr.push(data.contracts.edges[idx].node)
+      }
+      try {
+        const response = await axiosInstance.post('', {
+          query: this.currentPage === 1 ? FIRST_BATCH_QUERY : NEXT_BATCH_QUERY,
+          variables: fetchContractQueryVariables(),
+        })
+        const data = response.data.data
+        const dataArr = []
+        if (data.contracts.edges) {
+          for (let idx = 0; idx < data.contracts.edges.length; idx++) {
+            dataArr.push(data.contracts.edges[idx].node)
+          }
+          data.contracts = dataArr
+          this.contracts = dataArr
+        }
+        data.contracts.forEach((contract) => {
+          contract.address = contract.id
+          contract.extrinsic.block_id = contract.extrinsic.block.height
+        })
+        this.totalRows = this.filter ? this.contracts.length : this.nContracts
+        if (!this.forceLoad) this.loading = false
+      } catch (error) {
+        this.setPerPage(50)
+        this.$bvToast.toast(`Exceeds the size limit`, {
+          title: 'Encountered an Error',
+          variant: 'danger',
+          autoHideDelay: 5000,
+          appendToast: false,
+        })
+      }
+      try {
+        const VERIFIED_CONTRACTS_QUERY = `
+          query verifiedContracts($limit: Int!, $contracts: [String!]) {
+            verifiedContracts(limit: $limit, where: { id_in: $contracts }) {
+              id
+              name
+              type
             }
-            data.contracts = dataArr
-            this.contracts = dataArr
           }
-          data.contracts.forEach((contract) => {
-            contract.address = contract.id
-            contract.extrinsic.block_id = contract.extrinsic.block.height
-          })
-          this.totalRows = this.filter ? this.contracts.length : this.nContracts
-          if (!this.forceLoad) this.loading = false
-        }
-      },
-    },
-    verifiedContracts: {
-      query: gql`
-        query verifiedContracts($limit: Int!, $contracts: [String!]) {
-          verifiedContracts(limit: $limit, where: { id_in: $contracts }) {
-            id
-            name
-            type
+        `
+
+        const getVariables = () => {
+          const contracts = this.contracts.map((contract) => contract.address)
+          return {
+            limit: contracts.length,
+            contracts,
           }
         }
-      `,
-      variables() {
-        const contracts = this.contracts.map((contract) => contract.address)
-        return {
-          limit: contracts.length,
-          contracts,
-        }
-      },
-      fetchPolicy: 'network-only',
-      result({ data }) {
+        const response = await axiosInstance.post('', {
+          query: VERIFIED_CONTRACTS_QUERY,
+          variables: getVariables(),
+        })
+        const data = response.data.data
         data.verifiedContracts.forEach((verifiedContract) => {
           const contract = this.contracts.find(
             (contract) => contract.address === verifiedContract.id
@@ -300,21 +284,25 @@ export default {
         if (data.verifiedContracts.length) {
           this.$forceUpdate()
         }
-      },
-    },
-    totalContracts: {
-      query: gql`
-        query total {
-          totalContracts: chainInfos(where: { id_eq: "contracts" }) {
-            count
+      } catch (error) {}
+      try {
+        const TOTAL_CONTRACTS_QUERY = `
+          query total {
+            totalContracts: chainInfos(where: { id_eq: "contracts" }) {
+              count
+            }
           }
-        }
-      `,
-      fetchPolicy: 'network-only',
-      result({ data }) {
+        `
+        const response = await axiosInstance.post('', {
+          query: TOTAL_CONTRACTS_QUERY,
+        })
+        const data = response.data.data
         this.nContracts = data.totalContracts[0].count
         this.totalRows = this.nContracts
-      },
+      } catch (error) {}
+    },
+    setPerPage(value) {
+      this.perPage = value
     },
   },
 }
