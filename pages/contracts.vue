@@ -291,23 +291,6 @@ export default {
           appendToast: false,
         })
       }
-      // try {
-      //   const response = await axiosInstance.post('', {
-      //     query: VERIFIED_CONTRACTS_QUERY,
-      //     variables: getVariables(),
-      //   })
-      //   const data = response.data.data
-      //   data.verifiedContracts.forEach((verifiedContract) => {
-      //     const contract = this.contracts.find(
-      //       (contract) => contract.address === verifiedContract.id
-      //     )
-      //     contract.verified_contract = verifiedContract
-      //   })
-      //   // TODO: this is probably hacky
-      //   if (data.verifiedContracts.length) {
-      //     this.$forceUpdate()
-      //   }
-      // } catch (error) {}
       try {
         const response = await axiosInstance.post('', {
           query: TOTAL_CONTRACTS_QUERY,
