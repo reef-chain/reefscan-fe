@@ -174,7 +174,6 @@
   </div>
 </template>
 <script>
-import { gql } from 'graphql-tag'
 import JsonCSV from 'vue-json-csv'
 import ReefIdenticon from '@/components/ReefIdenticon.vue'
 import Search from '@/components/Search'
@@ -183,7 +182,7 @@ import commonMixin from '@/mixins/commonMixin.js'
 import BlockTimeout from '@/utils/polling.js'
 import axiosInstance from '~/utils/axios'
 
-const FIRST_BATCH_QUERY = gql`
+const FIRST_BATCH_QUERY = `
   query account($first: Int!, $where: AccountWhereInput) {
     accounts: accountsConnection(
       orderBy: freeBalance_DESC
@@ -205,7 +204,7 @@ const FIRST_BATCH_QUERY = gql`
     }
   }
 `
-const NEXT_BATCH_QUERY = gql`
+const NEXT_BATCH_QUERY = `
   query account($first: Int!, $after: String!, $where: AccountWhereInput) {
     accounts: accountsConnection(
       orderBy: freeBalance_DESC
@@ -271,15 +270,6 @@ export default {
       forceLoad: false,
     }
   },
-  computed: {
-    queryToExecute() {
-      if (this.currentPage === 1) {
-        return FIRST_BATCH_QUERY
-      } else {
-        return NEXT_BATCH_QUERY
-      }
-    },
-  },
   watch: {
     favorites(val) {
       this.$cookies.set('favorites', val, {
@@ -294,7 +284,7 @@ export default {
           this.loading = true // set loading to true before refetching
           this.forceLoad = true
           setTimeout(() => {
-            this.$apollo.queries.accounts.refetch()
+            this.updateData()
             this.forceLoad = false
           }, 100)
         }
@@ -302,6 +292,7 @@ export default {
       } else {
         BlockTimeout.removeCallback(this.updateData)
       }
+      this.updateData()
     },
   },
   created() {
@@ -317,7 +308,6 @@ export default {
   },
   methods: {
     async updateData() {
-      // this.$apollo.queries.favoriteAccounts.refetch()
       try {
         const response = await axiosInstance.post('', {
           query: FAVORITE_ACCOUNTS_QUERY,
@@ -347,7 +337,78 @@ export default {
           appendToast: false,
         })
       }
-      this.$apollo.queries.accounts.refetch()
+      const getVariables = () => {
+        let where = {}
+        if (this.isAddress(this.filter)) {
+          where = { id_eq: this.filter }
+        } else if (this.isContractId(this.filter)) {
+          where = {
+            evmAddress_eq: this.toContractAddress(this.filter),
+          }
+        }
+        const variables =
+          this.currentPage === 1
+            ? {
+                first: this.perPage,
+                where,
+              }
+            : {
+                first: this.perPage,
+                after: ((this.currentPage - 1) * this.perPage).toString(),
+                where,
+              }
+        return variables
+      }
+
+      const queryToExecute = () => {
+        if (this.currentPage === 1) {
+          return FIRST_BATCH_QUERY
+        } else {
+          return NEXT_BATCH_QUERY
+        }
+      }
+      try {
+        const response = await axiosInstance.post('', {
+          query: queryToExecute(),
+          variables: getVariables(),
+        })
+        const data = response.data.data
+        console.log('here i am')
+        const dataArr = []
+        if (data.accounts.edges) {
+          for (let idx = 0; idx < data.accounts.edges.length; idx++) {
+            dataArr.push(data.accounts.edges[idx].node)
+          }
+          data.accounts = dataArr
+          this.accounts = dataArr
+        }
+        if (data && data.accounts) {
+          data.accounts = data.accounts.map((account) => ({
+            ...account,
+            address: account.id,
+            free_balance: account.freeBalance,
+            evm_address: account.evmAddress,
+            locked_balance: account.lockedBalance,
+            available_balance: account.availableBalance,
+          }))
+          this.allAccounts = data.accounts.map((account, index) => ({
+            ...account,
+            favorite: this.favorites.includes(account.address),
+            rank: index + (this.currentPage - 1) * this.perPage + 1,
+          }))
+          if (!this.filter) {
+            this.updateFavoritesRank()
+            this.totalRows = this.nAccounts
+          } else {
+            this.totalRows = this.allAccounts.length
+          }
+        }
+        this.nAccounts = data.totalAccounts[0].count
+        this.totalRows = this.nAccounts
+        if (!this.forceLoad) this.loading = false
+      } catch (error) {
+        console.log(error)
+      }
     },
     toggleFavorite(accountId) {
       const includes = this.favorites.includes(accountId)
@@ -395,70 +456,6 @@ export default {
           }))
         }
       }
-    },
-  },
-  apollo: {
-    accounts: {
-      query: function () {
-        return this.queryToExecute
-      },
-      variables() {
-        let where = {}
-        if (this.isAddress(this.filter)) {
-          where = { id_eq: this.filter }
-        } else if (this.isContractId(this.filter)) {
-          where = {
-            evmAddress_eq: this.toContractAddress(this.filter),
-          }
-        }
-        const variables =
-          this.currentPage === 1
-            ? {
-                first: this.perPage,
-                where,
-              }
-            : {
-                first: this.perPage,
-                after: ((this.currentPage - 1) * this.perPage).toString(),
-                where,
-              }
-        return variables
-      },
-      fetchPolicy: 'network-only',
-      result({ data }) {
-        const dataArr = []
-        if (data.accounts.edges) {
-          for (let idx = 0; idx < data.accounts.edges.length; idx++) {
-            dataArr.push(data.accounts.edges[idx].node)
-          }
-          data.accounts = dataArr
-          this.accounts = dataArr
-        }
-        if (data && data.accounts) {
-          data.accounts = data.accounts.map((account) => ({
-            ...account,
-            address: account.id,
-            free_balance: account.freeBalance,
-            evm_address: account.evmAddress,
-            locked_balance: account.lockedBalance,
-            available_balance: account.availableBalance,
-          }))
-          this.allAccounts = data.accounts.map((account, index) => ({
-            ...account,
-            favorite: this.favorites.includes(account.address),
-            rank: index + (this.currentPage - 1) * this.perPage + 1,
-          }))
-          if (!this.filter) {
-            this.updateFavoritesRank()
-            this.totalRows = this.nAccounts
-          } else {
-            this.totalRows = this.allAccounts.length
-          }
-        }
-        this.nAccounts = data.totalAccounts[0].count
-        this.totalRows = this.nAccounts
-        if (!this.forceLoad) this.loading = false
-      },
     },
   },
 }
