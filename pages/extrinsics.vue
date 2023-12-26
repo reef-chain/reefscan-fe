@@ -149,6 +149,7 @@ export default {
     },
   },
   created() {
+    this.updateData()
     BlockTimeout.addCallback(this.updateData)
   },
   destroyed() {
