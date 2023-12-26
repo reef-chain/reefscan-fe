@@ -70,14 +70,14 @@
 </template>
 
 <script>
-import { gql } from 'graphql-tag'
 import commonMixin from '@/mixins/commonMixin.js'
 import Search from '@/components/Search'
 import Loading from '@/components/Loading.vue'
 import { paginationOptions } from '@/frontend.config.js'
 import BlockTimeout from '@/utils/polling.js'
+import axiosInstance from '~/utils/axios'
 
-const GQL_QUERY = gql`
+const GQL_QUERY = `
   query extrinsics(
     $blockNumber: BlockWhereInput!
     $first: Int!
@@ -138,8 +138,6 @@ export default {
           this.loading = true // set loading to true before refetching
           this.forceLoad = true
           setTimeout(() => {
-            this.$apollo.queries.extrinsics.refetch()
-            this.$apollo.queries.totalExtrinsics.refetch()
             this.forceLoad = false
           }, 100)
         }
@@ -147,6 +145,7 @@ export default {
       } else {
         BlockTimeout.removeCallback(this.updateData)
       }
+      this.updateData()
     },
   },
   created() {
@@ -156,58 +155,16 @@ export default {
     BlockTimeout.removeCallback(this.updateData)
   },
   methods: {
-    updateData() {
-      this.$apollo.queries.extrinsics.refetch()
-      this.$apollo.queries.totalExtrinsics.refetch()
-    },
-    setPerPage(value) {
-      this.perPage = value
-    },
-  },
-  apollo: {
-    extrinsics: {
-      query: GQL_QUERY,
-      variables() {
+    async updateData() {
+      const getVariables = () => {
         const offs = (this.currentPage - 1) * this.perPage + 1
         return {
           blockNumber: this.filter ? { height_eq: parseInt(this.filter) } : {},
           first: this.perPage,
           after: offs.toString(),
         }
-      },
-      fetchPolicy: 'network-only',
-      result({ data, error }) {
-        if (error) {
-          this.setPerPage(50)
-          this.$bvToast.toast(`Exceeds the size limit`, {
-            title: 'Encountered an Error',
-            variant: 'danger',
-            autoHideDelay: 5000,
-            appendToast: false,
-          })
-        } else {
-          const dataArr = []
-          if (data.extrinsics.edges) {
-            for (let idx = 0; idx < data.extrinsics.edges.length; idx++) {
-              dataArr.push(data.extrinsics.edges[idx].node)
-            }
-            data.extrinsics = dataArr
-            this.extrinsics = dataArr
-          }
-          data.extrinsics.forEach((item) => {
-            item.block_id = item.block.height
-            item.error_message = item.errorMessage
-          })
-          this.extrinsics = data.extrinsics
-          this.totalRows = this.filter
-            ? this.extrinsics.length
-            : this.nExtrinsics
-          if (!this.forceLoad) this.loading = false
-        }
-      },
-    },
-    totalExtrinsics: {
-      query: gql`
+      }
+      const TOTAL_EXTRINSICS_QUERY = `
         query total {
           totalExtrinsics: chainInfos(
             where: { id_eq: "extrinsics" }
@@ -216,12 +173,50 @@ export default {
             count
           }
         }
-      `,
-      fetchPolicy: 'network-only',
-      result({ data }) {
-        this.nExtrinsics = data.totalExtrinsics[0].count
+      `
+      try {
+        const [extrinsicsResponse, totalExtrinsicsResponse] = await Promise.all(
+          [
+            axiosInstance.post('', {
+              query: GQL_QUERY,
+              variables: getVariables(),
+            }),
+            axiosInstance.post('', {
+              query: TOTAL_EXTRINSICS_QUERY,
+            }),
+          ]
+        )
+        const data = extrinsicsResponse.data.data
+        const dataArr = []
+        if (data.extrinsics.edges) {
+          for (let idx = 0; idx < data.extrinsics.edges.length; idx++) {
+            dataArr.push(data.extrinsics.edges[idx].node)
+          }
+          data.extrinsics = dataArr
+          this.extrinsics = dataArr
+        }
+        data.extrinsics.forEach((item) => {
+          item.block_id = item.block.height
+          item.error_message = item.errorMessage
+        })
+        this.extrinsics = data.extrinsics
+        this.totalRows = this.filter ? this.extrinsics.length : this.nExtrinsics
+        this.nExtrinsics =
+          totalExtrinsicsResponse.data.data.totalExtrinsics[0].count
         this.totalRows = this.nExtrinsics
-      },
+        if (!this.forceLoad) this.loading = false
+      } catch (error) {
+        this.setPerPage(50)
+        this.$bvToast.toast(`Exceeds the size limit`, {
+          title: 'Encountered an Error',
+          variant: 'danger',
+          autoHideDelay: 5000,
+          appendToast: false,
+        })
+      }
+    },
+    setPerPage(value) {
+      this.perPage = value
     },
   },
 }

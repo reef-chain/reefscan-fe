@@ -167,7 +167,6 @@ export default {
   },
   methods: {
     async updateData() {
-      // this.$apollo.queries.blocks.refetch()
       try {
         const response = await axiosInstance.post('', {
           query: this.currentPage === 1 ? FIRST_BATCH_QUERY : NEXT_BATCH_QUERY,
