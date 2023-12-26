@@ -53,8 +53,6 @@ export default {
     '@nuxtjs/axios',
     // https://i18n.nuxtjs.org
     'nuxt-i18n',
-    // https://github.com/nuxt-community/apollo-module
-    '@nuxtjs/apollo',
     // https://github.com/nuxt-community/fontawesome-module
     '@nuxtjs/fontawesome',
     // https://www.npmjs.com/package/nuxt-clipboard2
@@ -77,11 +75,6 @@ export default {
         en: require('./locales/en.json'),
         es: require('./locales/es.json'),
       },
-    },
-  },
-  apollo: {
-    clientConfigs: {
-      default: `~/plugins/apollo-config.js`,
     },
   },
   bootstrapVue: {
@@ -118,7 +111,50 @@ export default {
         },
         {
           test: /\.js$/,
+          exclude: (filePath) => {
+            return (
+              /node_modules\/@ethereumjs\/util\/dist\/provider\.js/.test(
+                filePath
+              ) ||
+              /node_modules\/@ethereumjs\/util\/dist\/bytes\.js/.test(
+                filePath
+              ) ||
+              /node_modules\/@ethereumjs\/util\/dist\/asyncEventEmitter\.js/.test(
+                filePath
+              ) ||
+              /node_modules\/micro-ftch\/index\.js/.test(filePath) ||
+              /node_modules\/@noble\/curves\/abstract\/weierstrass\.js/.test(
+                filePath
+              )
+            )
+          },
           loader: require.resolve('@open-wc/webpack-import-meta-loader'),
+        },
+        {
+          include: (filePath) => {
+            return (
+              /node_modules\/@ethereumjs\/util\/dist\/provider\.js/.test(
+                filePath
+              ) ||
+              /node_modules\/@ethereumjs\/util\/dist\/bytes\.js/.test(
+                filePath
+              ) ||
+              /node_modules\/@ethereumjs\/util\/dist\/asyncEventEmitter\.js/.test(
+                filePath
+              ) ||
+              /node_modules\/micro-ftch\/index\.js/.test(filePath) ||
+              /node_modules\/@noble\/curves\/abstract\/weierstrass\.js/.test(
+                filePath
+              )
+            )
+          },
+          use: {
+            loader: 'babel-loader',
+            options: {
+              presets: ['@babel/preset-env'],
+              plugins: ['@babel/plugin-proposal-optional-chaining'],
+            },
+          },
         }
       )
       // https://github.com/nuxt/nuxt.js/issues/1142
