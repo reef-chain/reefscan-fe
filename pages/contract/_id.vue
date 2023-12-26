@@ -484,31 +484,79 @@ export default {
     },
     async updateData() {
       try {
-        const contractsResponse = await axiosInstance.post('', {
-          query: `
-            query contracts($address: String!) {
-              contracts(where: { id_containsInsensitive: $address }, limit: 1) {
-                id
-                extrinsic {
-                  block {
-                    height
+        const [contractsResponse, verifiedContractsResponse] =
+          await Promise.all([
+            axiosInstance.post('', {
+              query: `
+                query contracts($address: String!) {
+                  contracts(where: { id_containsInsensitive: $address }, limit: 1) {
+                    id
+                    extrinsic {
+                      block {
+                        height
+                      }
+                      status
+                    }
+                    timestamp
+                    bytecode
+                    bytecodeContext
+                    bytecodeArguments
+                    signer {
+                      id
+                    }
                   }
-                  status
                 }
-                timestamp
-                bytecode
-                bytecodeContext
-                bytecodeArguments
-                signer {
-                  id
+              `,
+              variables: {
+                address: this.address,
+              },
+            }),
+            axiosInstance.post('', {
+              query: `
+                query verified_contract($address: String!) {
+                  verifiedContracts(
+                    where: { id_containsInsensitive: $address }
+                    limit: 1
+                  ) {
+                    id
+                    name
+                    type
+                    compilerVersion
+                    contractData
+                    compiledData
+                    source
+                    optimization
+                    runs
+                    target
+                  }
                 }
-              }
-            }
-          `,
-          variables: {
-            address: this.address,
-          },
-        })
+              `,
+              variables: {
+                address: this.address,
+              },
+            }),
+          ])
+        if (verifiedContractsResponse.data.data.verifiedContracts[0]) {
+          this.verified =
+            verifiedContractsResponse.data.data.verifiedContracts[0]
+          this.iconUrl =
+            this.verified.contractData.iconUrl !== undefined
+              ? toIpfsReefGatewayLink(this.verified.contractData.iconUrl)
+              : undefined
+          this.verified.compiler_version = this.verified.compilerVersion
+          this.verified.compiled_data = this.verified.compiledData
+          this.verified.abi =
+            this.verified.compiled_data &&
+            this.verified.compiled_data[this.verified.name]
+              ? this.verified.compiled_data[this.verified.name]
+              : []
+          try {
+            const resp = await axiosInstance.get(
+              `${network.solidityScanApi}/${this.address}`
+            )
+            this.solidityScanData = resp.data.data
+          } catch (error) {}
+        }
 
         if (contractsResponse.data.data.contracts[0]) {
           contractsResponse.data.data.contracts[0].address =
@@ -568,55 +616,6 @@ export default {
         await provider.api.disconnect()
         this.balance = balance.toString()
         this.loading = false
-      } catch (error) {}
-
-      try {
-        const verifiedContractsResponse = await axiosInstance.post('', {
-          query: `
-            query verified_contract($address: String!) {
-              verifiedContracts(
-                where: { id_containsInsensitive: $address }
-                limit: 1
-              ) {
-                id
-                name
-                type
-                compilerVersion
-                contractData
-                compiledData
-                source
-                optimization
-                runs
-                target
-              }
-            }
-          `,
-          variables: {
-            address: this.address,
-          },
-        })
-
-        if (verifiedContractsResponse.data.data.verifiedContracts[0]) {
-          this.verified =
-            verifiedContractsResponse.data.data.verifiedContracts[0]
-          this.iconUrl =
-            this.verified.contractData.iconUrl !== undefined
-              ? toIpfsReefGatewayLink(this.verified.contractData.iconUrl)
-              : undefined
-          this.verified.compiler_version = this.verified.compilerVersion
-          this.verified.compiled_data = this.verified.compiledData
-          this.verified.abi =
-            this.verified.compiled_data &&
-            this.verified.compiled_data[this.verified.name]
-              ? this.verified.compiled_data[this.verified.name]
-              : []
-          try {
-            const resp = await axiosInstance.get(
-              `${network.solidityScanApi}/${this.address}`
-            )
-            this.solidityScanData = resp.data.data
-          } catch (error) {}
-        }
       } catch (error) {}
     },
     getIpfsHash() {
