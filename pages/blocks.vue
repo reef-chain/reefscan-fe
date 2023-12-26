@@ -67,14 +67,14 @@
 </template>
 
 <script>
-import { gql } from 'graphql-tag'
 import commonMixin from '@/mixins/commonMixin.js'
 import Search from '@/components/Search'
 import Loading from '@/components/Loading.vue'
 import { paginationOptions } from '@/frontend.config.js'
 import BlockTimeout from '@/utils/polling.js'
+import axiosInstance from '~/utils/axios'
 
-const NEXT_BATCH_QUERY = gql`
+const NEXT_BATCH_QUERY = `
   query blocks($where: BlockWhereInput, $first: Int!, $after: String!) {
     blocks: blocksConnection(
       after: $after
@@ -98,7 +98,7 @@ const NEXT_BATCH_QUERY = gql`
   }
 `
 
-const FIRST_BATCH_QUERY = gql`
+const FIRST_BATCH_QUERY = `
   query blocks($where: BlockWhereInput, $first: Int!) {
     blocks: blocksConnection(
       first: $first
@@ -141,15 +141,6 @@ export default {
       forceLoad: false,
     }
   },
-  computed: {
-    queryToExecute() {
-      if (this.currentPage === 1) {
-        return FIRST_BATCH_QUERY
-      } else {
-        return NEXT_BATCH_QUERY
-      }
-    },
-  },
   watch: {
     currentPage() {
       if (this.currentPage === 1) {
@@ -158,7 +149,6 @@ export default {
           this.loading = true // set loading to true before refetching
           this.forceLoad = true
           setTimeout(() => {
-            this.$apollo.queries.blocks.refetch()
             this.forceLoad = false
           }, 100)
         }
@@ -166,6 +156,7 @@ export default {
       } else {
         BlockTimeout.removeCallback(this.updateData)
       }
+      this.updateData()
     },
   },
   created() {
@@ -175,58 +166,50 @@ export default {
     BlockTimeout.removeCallback(this.updateData)
   },
   methods: {
-    updateData() {
-      this.$apollo.queries.blocks.refetch()
+    async updateData() {
+      // this.$apollo.queries.blocks.refetch()
+      try {
+        const response = await axiosInstance.post('', {
+          query: this.currentPage === 1 ? FIRST_BATCH_QUERY : NEXT_BATCH_QUERY,
+          variables: {
+            where: this.isBlockNumber(this.filter)
+              ? { height_eq: parseInt(this.filter) }
+              : {},
+            first: this.perPage,
+            after: ((this.currentPage - 1) * this.perPage).toString(),
+          },
+        })
+        const data = response.data.data
+        const blocksArr = []
+        if (data.blocks.edges) {
+          for (let idx = 0; idx < data.blocks.edges.length; idx++) {
+            blocksArr.push(data.blocks.edges[idx].node)
+          }
+          data.blocks = blocksArr
+          this.blocks = blocksArr
+        }
+        this.blocks = this.blocks.map((block) => {
+          block.id = block.height
+          return block
+        })
+        if (this.filter) {
+          this.totalRows = this.blocks.length
+        } else {
+          this.totalRows = data.totalBlocks[0].count
+        }
+        if (!this.forceLoad) this.loading = false
+      } catch (error) {
+        this.setPerPage(20)
+        this.$bvToast.toast(`Exceeds the size limit`, {
+          title: 'Encountered an Error',
+          variant: 'danger',
+          autoHideDelay: 5000,
+          appendToast: false,
+        })
+      }
     },
     setPerPage(value) {
       this.perPage = value
-    },
-  },
-  apollo: {
-    blocks: {
-      query: function () {
-        return this.queryToExecute
-      },
-      variables() {
-        return {
-          where: this.isBlockNumber(this.filter)
-            ? { height_eq: parseInt(this.filter) }
-            : {},
-          first: this.perPage,
-          after: ((this.currentPage - 1) * this.perPage).toString(),
-        }
-      },
-      fetchPolicy: 'network-only', // force fetch data from the server
-      result({ data, error }) {
-        if (error) {
-          this.setPerPage(20)
-          this.$bvToast.toast(`Exceeds the size limit`, {
-            title: 'Encountered an Error',
-            variant: 'danger',
-            autoHideDelay: 5000,
-            appendToast: false,
-          })
-        } else {
-          const blocksArr = []
-          if (data.blocks.edges) {
-            for (let idx = 0; idx < data.blocks.edges.length; idx++) {
-              blocksArr.push(data.blocks.edges[idx].node)
-            }
-            data.blocks = blocksArr
-            this.blocks = blocksArr
-          }
-          this.blocks = this.blocks.map((block) => {
-            block.id = block.height
-            return block
-          })
-          if (this.filter) {
-            this.totalRows = this.blocks.length
-          } else {
-            this.totalRows = data.totalBlocks[0].count
-          }
-          if (!this.forceLoad) this.loading = false
-        }
-      },
     },
   },
 }
