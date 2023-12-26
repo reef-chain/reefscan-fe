@@ -159,13 +159,13 @@
 
 <script>
 import { ethers } from 'ethers'
-import { gql } from 'graphql-tag'
 import { Provider } from '@reef-defi/evm-provider'
 import { WsProvider } from '@polkadot/api'
 import { toChecksumAddress } from 'web3-utils'
 import axios from 'axios'
 import commonMixin from '@/mixins/commonMixin.js'
 import { network } from '~/frontend.config'
+import axiosInstance from '~/utils/axios'
 
 const extractIpfsHash = (ipfsUri) => {
   const ipfsProtocol = 'ipfs://'
@@ -229,10 +229,8 @@ export default {
     toChecksumAddress(address) {
       return toChecksumAddress(address)
     },
-  },
-  apollo: {
-    verifiedContracts: {
-      query: gql`
+    async updateData() {
+      const VERIFIED_CONTRACTS_QUERY = `
         query verified_contract($address: String!) {
           verifiedContracts(
             where: { id_containsInsensitive: $address }
@@ -243,13 +241,15 @@ export default {
             compiledData
           }
         }
-      `,
-      variables() {
-        return {
-          address: this.transfer.token_address,
-        }
-      },
-      async result({ data }) {
+      `
+      try {
+        const response = await axiosInstance.post('', {
+          query: VERIFIED_CONTRACTS_QUERY,
+          variables: {
+            address: this.transfer.token_address,
+          },
+        })
+        const data = response.data.data
         if (data.verifiedContracts[0]) {
           this.verified = data.verifiedContracts[0]
           this.verified.compiled_data = this.verified.compiledData
@@ -296,7 +296,7 @@ export default {
             } catch (error) {}
           }
         }
-      },
+      } catch (error) {}
     },
   },
 }
