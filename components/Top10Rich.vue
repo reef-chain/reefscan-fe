@@ -35,10 +35,10 @@
 </template>
 
 <script>
-import { gql } from 'graphql-tag'
 import commonMixin from '@/mixins/commonMixin.js'
 import ReefIdenticon from '@/components/ReefIdenticon.vue'
 import BlockTimeout from '@/utils/polling.js'
+import axiosInstance from '~/utils/axios'
 
 export default {
   components: {
@@ -76,13 +76,8 @@ export default {
     BlockTimeout.removeCallback(this.updateData)
   },
   methods: {
-    updateData() {
-      this.$apollo.queries.account.refetch()
-    },
-  },
-  apollo: {
-    account: {
-      query: gql`
+    async updateData() {
+      const ACCOUNTS_QUERY = `
         query accounts {
           account(order_by: { free_balance: desc }, where: {}, limit: 10) {
             account_id
@@ -91,11 +86,16 @@ export default {
             nonce
           }
         }
-      `,
-      fetchPolicy: 'network-only',
-      result({ data }) {
+      `
+      try {
+        const response = await axiosInstance.post('', {
+          query: ACCOUNTS_QUERY,
+        })
+        const data = await response.data.data
         this.richList = data.account
-      },
+      } catch (error) {
+        // Handle error, if needed
+      }
     },
   },
 }
