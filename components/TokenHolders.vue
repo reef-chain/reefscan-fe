@@ -70,12 +70,12 @@
 </template>
 
 <script>
-import { gql } from 'graphql-tag'
 import commonMixin from '@/mixins/commonMixin.js'
 import Loading from '@/components/Loading.vue'
 import { paginationOptions } from '@/frontend.config.js'
 import tableUtils from '@/mixins/tableUtils'
 import BlockTimeout from '@/utils/polling.js'
+import axiosInstance from '~/utils/axios'
 
 export default {
   components: {
@@ -118,39 +118,8 @@ export default {
     BlockTimeout.removeCallback(this.updateData)
   },
   methods: {
-    updateData() {
-      this.$apollo.queries.tokenHolders.refetch()
-    },
-    setPerPage(value) {
-      this.perPage = value
-    },
-    handleNumFields(num) {
-      localStorage.paginationOptions = num
-      this.perPage = parseInt(num)
-    },
-    getBalance(holder) {
-      return this.formatTokenAmount(holder.balance, this.decimals, this.symbol)
-    },
-  },
-  apollo: {
-    tokenHolders: {
-      // query: gql`
-      //   subscription token_holder($tokenId: String!) {
-      //     token_holder(
-      //       order_by: { token_address: desc }
-      //       where: { token_address: { _eq: $tokenId } }
-      //     ) {
-      //       token_address
-      //       signer
-      //       balance
-      //       account {
-      //         address
-      //         evm_address
-      //       }
-      //     }
-      //   }
-      // `,
-      query: gql`
+    async updateData() {
+      const TOKEN_HOLDERS_QUERY = `
         query token_holder($tokenId: String!) {
           tokenHolders(
             limit: 120
@@ -169,43 +138,45 @@ export default {
             }
           }
         }
-      `,
-      variables() {
-        return {
-          tokenId: this.tokenId,
-        }
-      },
-      skip() {
-        return !this.tokenId
-      },
-      fetchPolicy: 'network-only',
-      result({ data, error }) {
-        if (error) {
-          this.setPerPage(20)
-          this.$bvToast.toast(`Exceeds the size limit`, {
-            title: 'Encountered an Error',
-            variant: 'danger',
-            autoHideDelay: 5000,
-            appendToast: false,
-          })
-        } else {
-          this.holders = data.tokenHolders.map((holder) => {
-            return {
-              ...holder,
-              token_address: holder.token.id,
-              balance: holder.balance,
-              account: {
-                address: holder.signer ? holder.signer.id : holder.evmAddress,
-                evm_address: holder.signer
-                  ? holder.signer.evmAddress
-                  : holder.evmAddress,
-              },
-            }
-          })
-          this.totalRows = this.holders.length
-          this.loading = false
-        }
-      },
+      `
+      try {
+        const response = await axiosInstance.post('', {
+          query: TOKEN_HOLDERS_QUERY,
+          variables: {
+            tokenId: this.tokenId,
+          },
+        })
+        const data = await response.data.data
+        this.holders = data.tokenHolders.map((holder) => {
+          return {
+            ...holder,
+            token_address: holder.token.id,
+            balance: holder.balance,
+            account: {
+              address: holder.signer ? holder.signer.id : holder.evmAddress,
+              evm_address: holder.signer
+                ? holder.signer.evmAddress
+                : holder.evmAddress,
+            },
+          }
+        })
+        this.totalRows = this.holders.length
+        this.loading = false
+      } catch (error) {
+        this.setPerPage(20)
+        this.$bvToast.toast(`Exceeds the size limit`, {
+          title: 'Encountered an Error',
+          variant: 'danger',
+          autoHideDelay: 5000,
+          appendToast: false,
+        })
+      }
+    },
+    setPerPage(value) {
+      this.perPage = value
+    },
+    getBalance(holder) {
+      return this.formatTokenAmount(holder.balance, this.decimals, this.symbol)
     },
   },
 }
