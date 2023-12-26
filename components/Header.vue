@@ -15,34 +15,34 @@
 
         <div>
           <div class="header__links">
-          <nuxt-link to="/" exact>Explore</nuxt-link>
-          <nuxt-link to="/blocks">Blocks</nuxt-link>
-          <nuxt-link to="/accounts">Accounts</nuxt-link>
-          <nuxt-link to="/transfers">Transfers</nuxt-link>
-          <nuxt-link to="/contracts">Contracts</nuxt-link>
-          <nuxt-link to="/tokens">Tokens</nuxt-link>
+            <nuxt-link to="/" exact>Explore</nuxt-link>
+            <nuxt-link to="/blocks">Blocks</nuxt-link>
+            <nuxt-link to="/accounts">Accounts</nuxt-link>
+            <nuxt-link to="/transfers">Transfers</nuxt-link>
+            <nuxt-link to="/contracts">Contracts</nuxt-link>
+            <nuxt-link to="/tokens">Tokens</nuxt-link>
 
-          <div class="header__links-group">
-            <span class="header__links-group-label">Other</span>
+            <div class="header__links-group">
+              <span class="header__links-group-label">Other</span>
 
-            <div class="header__links-group-links">
-              <nuxt-link to="/extrinsics">Extrinsics</nuxt-link>
-              <nuxt-link to="/events">Events</nuxt-link>
+              <div class="header__links-group-links">
+                <nuxt-link to="/extrinsics">Extrinsics</nuxt-link>
+                <nuxt-link to="/events">Events</nuxt-link>
+              </div>
             </div>
-          </div>
 
-          <b-dropdown class="header__network">
-            <template #button-content>
-              {{ network.name }}
-            </template>
-            <b-dropdown-item href="https://reefscan.com"
-              >Mainnet</b-dropdown-item
-            >
-            <b-dropdown-item href="https://testnet.reefscan.com"
-              >Testnet</b-dropdown-item
-            >
-          </b-dropdown>
-        </div>
+            <b-dropdown class="header__network">
+              <template #button-content>
+                {{ network.name }}
+              </template>
+              <b-dropdown-item href="https://reefscan.com"
+                >Mainnet</b-dropdown-item
+              >
+              <b-dropdown-item href="https://testnet.reefscan.com"
+                >Testnet</b-dropdown-item
+              >
+            </b-dropdown>
+          </div>
           <div
             v-if="network.name == 'Testnet'"
             style="
@@ -50,7 +50,10 @@
               color: white;
               border-radius: 10em;
               text-align: center;
-          ">⚠️ Testnet data under maintenance ⚠️</div>
+            "
+          >
+            ⚠️ Testnet data under maintenance ⚠️
+          </div>
         </div>
         <ReefPrice />
       </div>
