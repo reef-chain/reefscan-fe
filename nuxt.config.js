@@ -98,6 +98,13 @@ export default {
   // Build Configuration (https://go.nuxtjs.dev/config-build)
   build: {
     extend(config) {
+      const commonNodeModulesPatterns = [
+        /node_modules\/@ethereumjs\/util\/dist\/provider\.js/,
+        /node_modules\/@ethereumjs\/util\/dist\/bytes\.js/,
+        /node_modules\/@ethereumjs\/util\/dist\/asyncEventEmitter\.js/,
+        /node_modules\/micro-ftch\/index\.js/,
+        /node_modules\/@noble\/curves\/abstract\/weierstrass\.js/,
+      ]
       if (config.resolve.extensions) {
         config.resolve.extensions.push('.mjs')
       } else {
@@ -112,20 +119,8 @@ export default {
         {
           test: /\.js$/,
           exclude: (filePath) => {
-            return (
-              /node_modules\/@ethereumjs\/util\/dist\/provider\.js/.test(
-                filePath
-              ) ||
-              /node_modules\/@ethereumjs\/util\/dist\/bytes\.js/.test(
-                filePath
-              ) ||
-              /node_modules\/@ethereumjs\/util\/dist\/asyncEventEmitter\.js/.test(
-                filePath
-              ) ||
-              /node_modules\/micro-ftch\/index\.js/.test(filePath) ||
-              /node_modules\/@noble\/curves\/abstract\/weierstrass\.js/.test(
-                filePath
-              )
+            return commonNodeModulesPatterns.some((pattern) =>
+              pattern.test(filePath)
             )
           },
           loader: require.resolve('@open-wc/webpack-import-meta-loader'),
