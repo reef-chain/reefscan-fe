@@ -127,20 +127,8 @@ export default {
         },
         {
           include: (filePath) => {
-            return (
-              /node_modules\/@ethereumjs\/util\/dist\/provider\.js/.test(
-                filePath
-              ) ||
-              /node_modules\/@ethereumjs\/util\/dist\/bytes\.js/.test(
-                filePath
-              ) ||
-              /node_modules\/@ethereumjs\/util\/dist\/asyncEventEmitter\.js/.test(
-                filePath
-              ) ||
-              /node_modules\/micro-ftch\/index\.js/.test(filePath) ||
-              /node_modules\/@noble\/curves\/abstract\/weierstrass\.js/.test(
-                filePath
-              )
+            return commonNodeModulesPatterns.some((pattern) =>
+              pattern.test(filePath)
             )
           },
           use: {
