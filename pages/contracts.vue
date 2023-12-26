@@ -198,8 +198,22 @@ export default {
   },
   methods: {
     async updateData() {
-      // this.$apollo.queries.contracts.refetch()
-      // fetching contracts
+      const VERIFIED_CONTRACTS_QUERY = `
+          query verifiedContracts($limit: Int!, $contracts: [String!]) {
+            verifiedContracts(limit: $limit, where: { id_in: $contracts }) {
+              id
+              name
+              type
+            }
+          }
+        `
+      const TOTAL_CONTRACTS_QUERY = `
+        query total {
+          totalContracts: chainInfos(where: { id_eq: "contracts" }) {
+            count
+          }
+        }
+      `
       const fetchContractQueryVariables = () => {
         let where = {}
         if (this.isBlockNumber(this.filter)) {
@@ -222,12 +236,27 @@ export default {
         }
         return newVar
       }
+      const getVariables = () => {
+        const contracts = this.contracts.map((contract) => contract.address)
+        return {
+          limit: contracts.length,
+          contracts,
+        }
+      }
       try {
-        const response = await axiosInstance.post('', {
-          query: this.currentPage === 1 ? FIRST_BATCH_QUERY : NEXT_BATCH_QUERY,
-          variables: fetchContractQueryVariables(),
-        })
-        const data = response.data.data
+        const [contractResponse, verifiedContractResponse] = await Promise.all([
+          axiosInstance.post('', {
+            query:
+              this.currentPage === 1 ? FIRST_BATCH_QUERY : NEXT_BATCH_QUERY,
+            variables: fetchContractQueryVariables(),
+          }),
+          axiosInstance.post('', {
+            query: VERIFIED_CONTRACTS_QUERY,
+            variables: getVariables(),
+          }),
+        ])
+
+        let data = contractResponse.data.data
         const dataArr = []
         if (data.contracts.edges) {
           for (let idx = 0; idx < data.contracts.edges.length; idx++) {
@@ -241,39 +270,7 @@ export default {
           contract.extrinsic.block_id = contract.extrinsic.block.height
         })
         this.totalRows = this.filter ? this.contracts.length : this.nContracts
-        if (!this.forceLoad) this.loading = false
-      } catch (error) {
-        this.setPerPage(50)
-        this.$bvToast.toast(`Exceeds the size limit`, {
-          title: 'Encountered an Error',
-          variant: 'danger',
-          autoHideDelay: 5000,
-          appendToast: false,
-        })
-      }
-      try {
-        const VERIFIED_CONTRACTS_QUERY = `
-          query verifiedContracts($limit: Int!, $contracts: [String!]) {
-            verifiedContracts(limit: $limit, where: { id_in: $contracts }) {
-              id
-              name
-              type
-            }
-          }
-        `
-
-        const getVariables = () => {
-          const contracts = this.contracts.map((contract) => contract.address)
-          return {
-            limit: contracts.length,
-            contracts,
-          }
-        }
-        const response = await axiosInstance.post('', {
-          query: VERIFIED_CONTRACTS_QUERY,
-          variables: getVariables(),
-        })
-        const data = response.data.data
+        data = verifiedContractResponse.data.data
         data.verifiedContracts.forEach((verifiedContract) => {
           const contract = this.contracts.find(
             (contract) => contract.address === verifiedContract.id
@@ -284,15 +281,34 @@ export default {
         if (data.verifiedContracts.length) {
           this.$forceUpdate()
         }
-      } catch (error) {}
+        if (!this.forceLoad) this.loading = false
+      } catch (error) {
+        this.setPerPage(50)
+        this.$bvToast.toast(`Exceeds the size limit`, {
+          title: 'Encountered an Error',
+          variant: 'danger',
+          autoHideDelay: 5000,
+          appendToast: false,
+        })
+      }
+      // try {
+      //   const response = await axiosInstance.post('', {
+      //     query: VERIFIED_CONTRACTS_QUERY,
+      //     variables: getVariables(),
+      //   })
+      //   const data = response.data.data
+      //   data.verifiedContracts.forEach((verifiedContract) => {
+      //     const contract = this.contracts.find(
+      //       (contract) => contract.address === verifiedContract.id
+      //     )
+      //     contract.verified_contract = verifiedContract
+      //   })
+      //   // TODO: this is probably hacky
+      //   if (data.verifiedContracts.length) {
+      //     this.$forceUpdate()
+      //   }
+      // } catch (error) {}
       try {
-        const TOTAL_CONTRACTS_QUERY = `
-          query total {
-            totalContracts: chainInfos(where: { id_eq: "contracts" }) {
-              count
-            }
-          }
-        `
         const response = await axiosInstance.post('', {
           query: TOTAL_CONTRACTS_QUERY,
         })
