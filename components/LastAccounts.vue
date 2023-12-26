@@ -32,10 +32,10 @@
 </template>
 
 <script>
-import { gql } from 'graphql-tag'
 import commonMixin from '@/mixins/commonMixin.js'
 import Loading from '@/components/Loading.vue'
 import BlockTimeout from '@/utils/polling.js'
+import axiosInstance from '~/utils/axios'
 
 export default {
   components: {
@@ -57,63 +57,59 @@ export default {
     BlockTimeout.removeCallback(this.updateData)
   },
   methods: {
-    updateData() {
-      this.$apollo.queries.accounts.refetch()
+    async updateData() {
+      // this.$apollo.queries.accounts.refetch()
+      try {
+        const response = await axiosInstance.post('', {
+          query: `
+            query accounts {
+              accounts: accountsConnection(
+                orderBy: timestamp_DESC
+                where: {}
+                first: 10
+              ) {
+                edges {
+                  node {
+                    id
+                    block {
+                      height
+                    }
+                    freeBalance
+                  }
+                }
+              }
+            }
+          `,
+        })
+        const data = response.data.data
+        const dataArr = []
+        if (data.accounts.edges) {
+          for (let idx = 0; idx < data.accounts.edges.length; idx++) {
+            dataArr.push(data.accounts.edges[idx].node)
+          }
+          data.accounts = dataArr
+          this.accounts = dataArr
+        }
+        this.accounts = data.accounts.map((item) => {
+          return {
+            address: item.id,
+            block_id: item.block.height,
+            free_balance: item.freeBalance,
+          }
+        })
+        this.loading = false
+      } catch (error) {
+        this.setPerPage(20)
+        this.$bvToast.toast(`Exceeds the size limit`, {
+          title: 'Encountered an Error',
+          variant: 'danger',
+          autoHideDelay: 5000,
+          appendToast: false,
+        })
+      }
     },
     setPerPage(value) {
       this.perPage = value
-    },
-  },
-  apollo: {
-    accounts: {
-      query: gql`
-        query accounts {
-          accounts: accountsConnection(
-            orderBy: timestamp_DESC
-            where: {}
-            first: 10
-          ) {
-            edges {
-              node {
-                id
-                block {
-                  height
-                }
-                freeBalance
-              }
-            }
-          }
-        }
-      `,
-      fetchPolicy: 'network-only',
-      result({ data, error }) {
-        if (error) {
-          this.setPerPage(20)
-          this.$bvToast.toast(`Exceeds the size limit`, {
-            title: 'Encountered an Error',
-            variant: 'danger',
-            autoHideDelay: 5000,
-            appendToast: false,
-          })
-        } else {
-          const dataArr = []
-          if (data.accounts.edges) {
-            for (let idx = 0; idx < data.accounts.edges.length; idx++) {
-              dataArr.push(data.accounts.edges[idx].node)
-            }
-            data.accounts = dataArr
-            this.accounts = dataArr
-          }
-          this.accounts = data.accounts.map((item) => {
-            return {
-              address: item.id,
-              block_id: item.block.height,
-              free_balance: item.freeBalance,
-            }
-          })
-          this.loading = false
-        }
-      },
     },
   },
 }
