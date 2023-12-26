@@ -354,10 +354,8 @@
   </div>
 </template>
 <script>
-import { gql } from 'graphql-tag'
 import VueJsonPretty from 'vue-json-pretty'
 import { ethers, Contract } from 'ethers'
-// import { Promised } from 'vue-promised'
 import { Provider } from '@reef-defi/evm-provider'
 import { WsProvider } from '@polkadot/api'
 import ERC20Abi from '../../assets/erc20Abi.json'
@@ -370,7 +368,8 @@ import { network } from '@/frontend.config.js'
 import FileExplorer from '@/components/FileExplorer'
 import File from '@/components/FileExplorer/File'
 import BlockTimeout from '@/utils/polling.js'
-import {toIpfsReefGatewayLink} from "~/utils/ipfs";
+import { toIpfsReefGatewayLink } from '~/utils/ipfs'
+import axiosInstance from '~/utils/axios'
 
 export default {
   components: {
@@ -410,7 +409,6 @@ export default {
           transactions: 'Transactions',
         }
       }
-
       return {
         general: 'General',
         transactions: 'Transactions',
@@ -418,7 +416,6 @@ export default {
     },
     tokenData() {
       const data = this.verified?.contractData
-
       if (!data) {
         return null
       }
@@ -426,7 +423,6 @@ export default {
         data.name && data.symbol
           ? `${data.name} (${data.symbol})`
           : this.verified.name
-
       return {
         ...data,
         fullName,
@@ -440,17 +436,13 @@ export default {
         this.contract.bytecode_arguments
       ) {
         try {
-          // get constructor arguments types array
           const constructor = this.verified.abi.find(
             ({ type }) => type === 'constructor'
           )
           if (!constructor) {
             return ''
           }
-
           const constructorTypes = constructor.inputs.map((input) => input.type)
-
-          // decode constructor arguments
           const abiCoder = new ethers.utils.AbiCoder()
           const decoded = abiCoder.decode(
             constructorTypes,
@@ -464,29 +456,6 @@ export default {
       return null
     },
     decodedMetadata() {
-      /* TODO Ziga
-      if (this.contract.bytecode_context) {
-        let encodedMetadata = ''
-        const endSeq1 = '0033'
-        const endSeqIndex1 = this.contract.bytecode_context.indexOf(endSeq1)
-        const endSeq2 = '0032'
-        const endSeqIndex2 = this.contract.bytecode_context.indexOf(endSeq2)
-        if (this.contract.bytecode_context.includes(endSeq1)) {
-          encodedMetadata = this.contract.bytecode_context.slice(
-            0,
-            endSeqIndex1
-          )
-        }
-        if (this.contract.bytecode_context.includes(endSeq2)) {
-          encodedMetadata = this.contract.bytecode_context.slice(
-            0,
-            endSeqIndex2
-          )
-        }
-        // metadata is CBOR encoded (http://cbor.me/)
-        const decodedMetadata = cbor.decode(encodedMetadata)
-        return decodedMetadata
-      } */
       return null
     },
     decodedSolcVersion() {
@@ -509,58 +478,72 @@ export default {
   destroyed() {
     BlockTimeout.removeCallback(this.updateData)
   },
-  apollo: {
-    contracts: {
-      // ClickUp Task /contract/0xd4112Be340b43Fbb700C31C625c1Ae92C60599d4  -  success value missing - comment out for now
-      query: gql`
-        query contracts($address: String!) {
-          contracts(where: { id_containsInsensitive: $address }, limit: 1) {
-            id
-            extrinsic {
-              block {
-                height
+  methods: {
+    toggleShowSolidityScanData() {
+      this.showSolidityScanData = !this.showSolidityScanData
+    },
+    async updateData() {
+      try {
+        const contractsResponse = await axiosInstance.post('', {
+          query: `
+            query contracts($address: String!) {
+              contracts(where: { id_containsInsensitive: $address }, limit: 1) {
+                id
+                extrinsic {
+                  block {
+                    height
+                  }
+                  status
+                }
+                timestamp
+                bytecode
+                bytecodeContext
+                bytecodeArguments
+                signer {
+                  id
+                }
               }
-              status
             }
-            timestamp
-            bytecode
-            bytecodeContext
-            bytecodeArguments
-            signer {
-              id
-            }
-          }
-        }
-      `,
-      variables() {
-        return {
-          address: this.address,
-        }
-      },
-      async result({ data }) {
-        if (data.contracts[0]) {
-          data.contracts[0].address = data.contracts[0].id
-          data.contracts[0].extrinsic.block_id =
-            data.contracts[0].extrinsic.block.height
-          data.contracts[0].bytecode_context = data.contracts[0].bytecodeContext
-          data.contracts[0].bytecode_arguments =
-            data.contracts[0].bytecodeArguments
-          data.contracts[0].signerId = data.contracts[0].signer?.id
-          data.contracts[0].statusResponse = data.contracts[0].extrinsic.status
-          this.contract = data.contracts[0]
-          const name = data.contracts[0].verified_contract?.name
+          `,
+          variables: {
+            address: this.address,
+          },
+        })
+
+        if (contractsResponse.data.data.contracts[0]) {
+          contractsResponse.data.data.contracts[0].address =
+            contractsResponse.data.data.contracts[0].id
+          contractsResponse.data.data.contracts[0].extrinsic.block_id =
+            contractsResponse.data.data.contracts[0].extrinsic.block.height
+          contractsResponse.data.data.contracts[0].bytecode_context =
+            contractsResponse.data.data.contracts[0].bytecodeContext
+          contractsResponse.data.data.contracts[0].bytecode_arguments =
+            contractsResponse.data.data.contracts[0].bytecodeArguments
+          contractsResponse.data.data.contracts[0].signerId =
+            contractsResponse.data.data.contracts[0].signer?.id
+          contractsResponse.data.data.contracts[0].statusResponse =
+            contractsResponse.data.data.contracts[0].extrinsic.status
+          this.contract = contractsResponse.data.data.contracts[0]
+          const name =
+            contractsResponse.data.data.contracts[0].verified_contract?.name
 
           this.contract.abi =
-            data.contracts[0].verified_contract &&
-            data.contracts[0].verified_contract.compiled_data &&
-            data.contracts[0].verified_contract.compiled_data[name]
-              ? data.contract[0].verified_contract.compiled_data[name]
+            contractsResponse.data.data.contracts[0].verified_contract &&
+            contractsResponse.data.data.contracts[0].verified_contract
+              .compiled_data &&
+            contractsResponse.data.data.contracts[0].verified_contract
+              .compiled_data[name]
+              ? contractsResponse.data.data.contracts[0].verified_contract
+                  .compiled_data[name]
               : []
 
-          if (data.contracts[0].verified_contract) {
+          if (contractsResponse.data.data.contracts[0].verified_contract) {
             this.contract.source = Object.keys(
-              data.contracts[0].verified_contract.source
-            ).reduce(this.sourceCode(data), [])
+              contractsResponse.data.data.contracts[0].verified_contract.source
+            ).reduce(
+              this.sourceCode(contractsResponse.data.data.contracts[0]),
+              []
+            )
           }
 
           if (
@@ -585,36 +568,37 @@ export default {
         await provider.api.disconnect()
         this.balance = balance.toString()
         this.loading = false
-      },
-    },
-    verifiedContracts: {
-      query: gql`
-        query verified_contract($address: String!) {
-          verifiedContracts(
-            where: { id_containsInsensitive: $address }
-            limit: 1
-          ) {
-            id
-            name
-            type
-            compilerVersion
-            contractData
-            compiledData
-            source
-            optimization
-            runs
-            target
-          }
-        }
-      `,
-      variables() {
-        return {
-          address: this.address,
-        }
-      },
-      async result({ data }) {
-        if (data.verifiedContracts[0]) {
-          this.verified = data.verifiedContracts[0]
+      } catch (error) {}
+
+      try {
+        const verifiedContractsResponse = await axiosInstance.post('', {
+          query: `
+            query verified_contract($address: String!) {
+              verifiedContracts(
+                where: { id_containsInsensitive: $address }
+                limit: 1
+              ) {
+                id
+                name
+                type
+                compilerVersion
+                contractData
+                compiledData
+                source
+                optimization
+                runs
+                target
+              }
+            }
+          `,
+          variables: {
+            address: this.address,
+          },
+        })
+
+        if (verifiedContractsResponse.data.data.verifiedContracts[0]) {
+          this.verified =
+            verifiedContractsResponse.data.data.verifiedContracts[0]
           this.iconUrl =
             this.verified.contractData.iconUrl !== undefined
               ? toIpfsReefGatewayLink(this.verified.contractData.iconUrl)
@@ -627,33 +611,19 @@ export default {
               ? this.verified.compiled_data[this.verified.name]
               : []
           try {
-            const resp = await this.$axios.get(
+            const resp = await axiosInstance.get(
               `${network.solidityScanApi}/${this.address}`
             )
             this.solidityScanData = resp.data.data
           } catch (error) {}
         }
-      },
+      } catch (error) {}
     },
-  },
-  methods: {
-    toggleShowSolidityScanData() {
-      this.showSolidityScanData = !this.showSolidityScanData
+    getIpfsHash() {
+      return null
     },
-    updateData() {
-      this.$apollo.queries.contracts.refetch()
-      this.$apollo.queries.verifiedContracts.refetch()
-    },
-    // TODO: fix this
-    async getIpfsHash() {
-      // decode hash from uint8 array
-      // return await Hash.of(this.decodedMetadata?.ipfs)
-      return await null
-    },
-    async getBzzr1Hash() {
-      // decode hash from uint8 array
-      // return await Hash.of(this.decodedMetadata?.bzzr1)
-      return await null
+    getBzzr1Hash() {
+      return null
     },
   },
 }

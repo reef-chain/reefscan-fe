@@ -18,10 +18,10 @@
   </div>
 </template>
 <script>
-import { gql } from 'graphql-tag'
 import Loading from '@/components/Loading.vue'
 import Block from '@/components/Block.vue'
 import BlockTimeout from '@/utils/polling.js'
+import axiosInstance from '~/utils/axios'
 
 export default {
   components: {
@@ -53,6 +53,7 @@ export default {
   watch: {
     $route() {
       this.blockNumber = this.$route.query.blockNumber
+      this.updateData()
     },
   },
   created() {
@@ -63,108 +64,95 @@ export default {
     BlockTimeout.removeCallback(this.updateData)
   },
   methods: {
-    updateData() {
-      this.$apollo.queries.blocks.refetch()
-      this.$apollo.queries.events.refetch()
-      this.$apollo.queries.extrinsics.refetch()
-    },
-  },
-  apollo: {
-    blocks: {
-      query: gql`
-        query blocks($id: Int!) {
-          blocks(where: { height_eq: $id }, limit: 1) {
-            finalized
-            hash
-            height
-            id
-            extrinsicRoot
-            parentHash
-            stateRoot
-            timestamp
-            author
-          }
-        }
-      `,
-      variables() {
-        return {
-          id: Number(this.$route.query.blockNumber),
-        }
-      },
-      fetchPolicy: 'network-only',
-      result({ data }) {
-        if (data.blocks[0]) {
-          this.parsedBlock = data.blocks[0]
-        }
-        this.loading = false
-      },
-    },
-    events: {
-      query: gql`
-        query event($block_height: Int!) {
-          events(where: { block: { height_eq: $block_height } }, limit: 50) {
-            data
-            block {
-              height
-            }
-            index
-            method
-            section
-            phase
-          }
-        }
-      `,
-      variables() {
-        return {
-          block_height: Number(this.$route.query.blockNumber),
-        }
-      },
-      fetchPolicy: 'network-only',
-      result({ data }) {
-        data.events = data.events.map((event) => {
+    async updateData() {
+      try {
+        const [blocksResponse, eventsResponse, extrinsicsResponse] =
+          await Promise.all([
+            axiosInstance.post('', {
+              query: `
+                query blocks($id: Int!) {
+                  blocks(where: { height_eq: $id }, limit: 1) {
+                    finalized
+                    hash
+                    height
+                    id
+                    extrinsicRoot
+                    parentHash
+                    stateRoot
+                    timestamp
+                    author
+                  }
+                }
+              `,
+              variables: {
+                id: Number(this.$route.query.blockNumber),
+              },
+            }),
+            axiosInstance.post('', {
+              query: `
+                query event($block_height: Int!) {
+                  events(where: { block: { height_eq: $block_height } }, limit: 50) {
+                    data
+                    block {
+                      height
+                    }
+                    index
+                    method
+                    section
+                    phase
+                  }
+                }
+              `,
+              variables: {
+                block_height: Number(this.$route.query.blockNumber),
+              },
+            }),
+            axiosInstance.post('', {
+              query: `
+                query extrinsic($block_height: Int!) {
+                  extrinsics(
+                    where: { block: { height_eq: $block_height } }
+                    limit: 50
+                  ) {
+                    id
+                    block {
+                      height
+                    }
+                    index
+                    signer
+                    section
+                    method
+                    args
+                    hash
+                    docs
+                    type
+                    status
+                  }
+                }
+              `,
+              variables: {
+                block_height: Number(this.$route.query.blockNumber),
+              },
+            }),
+          ])
+
+        this.parsedBlock = blocksResponse.data.data.blocks[0]
+
+        const events = eventsResponse.data.data.events || []
+        this.parsedEvents = events.map((event) => {
           event.block_id = event.block.height
           return event
         })
-        this.parsedEvents = data.events
-      },
-    },
-    extrinsics: {
-      query: gql`
-        query extrinsic($block_height: Int!) {
-          extrinsics(
-            where: { block: { height_eq: $block_height } }
-            limit: 50
-          ) {
-            id
-            block {
-              height
-            }
-            index
-            signer
-            section
-            method
-            args
-            hash
-            docs
-            type
-            status
-          }
-        }
-      `,
-      variables() {
-        return {
-          block_height: Number(this.$route.query.blockNumber),
-        }
-      },
-      fetchPolicy: 'network-only',
-      result({ data }) {
-        data.extrinsics = data.extrinsics.map((extrinsic) => {
+
+        const extrinsics = extrinsicsResponse.data.data.extrinsics || []
+        this.parsedExtrinsics = extrinsics.map((extrinsic) => {
           extrinsic.block_id = extrinsic.block.height
           extrinsic.success = extrinsic.status === 'success'
           return extrinsic
         })
-        this.parsedExtrinsics = data.extrinsics
-      },
+
+        this.loading = false
+      } catch (error) {}
     },
   },
 }

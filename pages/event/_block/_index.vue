@@ -12,10 +12,10 @@
   </div>
 </template>
 <script>
-import { gql } from 'graphql-tag'
 import Loading from '@/components/Loading.vue'
 import commonMixin from '@/mixins/commonMixin.js'
 import Event from '@/components/Event.vue'
+import axiosInstance from '~/utils/axios'
 
 export default {
   components: {
@@ -26,14 +26,15 @@ export default {
   data() {
     return {
       loading: true,
-      extrinsicId: this.$route.params.block,
-      eventIndex: this.$route.params.index,
+      blockId: this.$route.params.block,
+      extrinsicIndex: this.$route.params.extrinsicIndex,
+      eventIndex: this.$route.params.eventIndex,
       parsedEvent: undefined,
     }
   },
   head() {
     return {
-      title: 'Reef chain block explorer',
+      title: 'Reef block explorer',
       meta: [
         {
           hid: 'description',
@@ -45,53 +46,70 @@ export default {
   },
   watch: {
     $route() {
-      this.extrinsicId = this.$route.params.block
-      this.eventIndex = this.$route.params.index
+      this.blockId = this.$route.params.block
+      this.extrinsicIndex = this.$route.params.extrinsicIndex
+      this.eventIndex = this.$route.params.eventIndex
+      this.updateData()
     },
   },
-  apollo: {
-    event: {
-      query: gql`
-        query event($extrinsic_id: bigint!, $index: bigint!) {
-          event(
-            where: {
-              extrinsic_id: { _eq: $extrinsic_id }
-              index: { _eq: $index }
+  created() {
+    this.updateData()
+  },
+  methods: {
+    async updateData() {
+      try {
+        const response = await axiosInstance.post('', {
+          query: `
+            query events(
+              $block_id: Int!
+              $extrinsic_index: Int!
+              $event_index: Int!
+            ) {
+              events(
+                where: {
+                  block: { height_eq: $block_id }
+                  index_eq: $event_index
+                  extrinsic: { index_eq: $extrinsic_index }
+                }
+                limit: 1
+              ) {
+                id
+                block {
+                  height
+                }
+                extrinsic {
+                  id
+                  block {
+                    height
+                  }
+                  index
+                }
+                index
+                data
+                method
+                phase
+                section
+                timestamp
+              }
             }
-          ) {
-            id
-            extrinsic {
-              id
-              block_id
-              index
-            }
-            index
-            data
-            method
-            phase
-            section
-            timestamp
-          }
+          `,
+          variables: {
+            block_id: parseInt(this.blockId),
+            extrinsic_index: parseInt(this.extrinsicIndex),
+            event_index: parseInt(this.eventIndex),
+          },
+        })
+
+        const data = response.data.data
+        if (data && data.events && data.events[0]) {
+          this.parsedEvent = data.events[0]
+          this.parsedEvent.block_id = this.parsedEvent.block.height
+          this.parsedEvent.extrinsic.block_id =
+            this.parsedEvent.extrinsic.block.height
         }
-      `,
-      skip() {
-        return !this.extrinsicId || !this.eventIndex
-      },
-      variables() {
-        return {
-          extrinsic_id: parseInt(this.extrinsicId),
-          index: parseInt(this.eventIndex),
-        }
-      },
-      fetchPolicy: 'network-only',
-      result({ data }) {
-        try {
-          this.parsedEvent = data.event[0]
-          this.loading = false
-        } catch (error) {
-          this.loading = false
-        }
-      },
+
+        this.loading = false
+      } catch (error) {}
     },
   },
 }
