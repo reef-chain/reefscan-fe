@@ -150,6 +150,16 @@ const NEXT_BATCH_QUERY = `
   }
 `
 
+const VERIFIED_CONTRACTS_QUERY = `
+  query verifiedContracts($limit: Int!, $contracts: [String!]) {
+    verifiedContracts(limit: $limit, where: { id_in: $contracts }) {
+      id
+      name
+      type
+    }
+  }
+`
+
 export default {
   components: {
     Loading,
@@ -201,23 +211,6 @@ export default {
   },
   methods: {
     async updateData() {
-      const VERIFIED_CONTRACTS_QUERY = `
-        query verifiedContracts($limit: Int!, $contracts: [String!]) {
-          verifiedContracts(limit: $limit, where: { id_in: $contracts }) {
-            id
-            name
-            type
-          }
-        }
-      `
-      const getVerifiedContractsVariables = () => {
-        const contracts = this.contracts.map((contract) => contract.address)
-        return {
-          limit: contracts.length,
-          contracts,
-        }
-      }
-
       const CONTRACTS_QUERY =
         this.currentPage === 1 ? FIRST_BATCH_QUERY : NEXT_BATCH_QUERY
 
@@ -252,11 +245,27 @@ export default {
         }
       `
 
+      const getVerifiedContractsVariables = () => {
+        const contracts = this.contracts.map((contract) => contract.address)
+        return {
+          limit: contracts.length,
+          contracts,
+        }
+      }
+
       try {
-        const [contractsResponse, totalContractsResponse] = await Promise.all([
+        const [
+          contractsResponse,
+          verifiedContractsResponse,
+          totalContractsResponse,
+        ] = await Promise.all([
           axiosInstance.post('', {
             query: CONTRACTS_QUERY,
             variables: getContractsVariables(),
+          }),
+          axiosInstance.post('', {
+            query: VERIFIED_CONTRACTS_QUERY,
+            variables: getVerifiedContractsVariables(),
           }),
           axiosInstance.post('', {
             query: TOTAL_CONTRACTS_QUERY,
@@ -284,10 +293,6 @@ export default {
         })
         this.totalRows = this.filter ? this.contracts.length : this.nContracts
         if (!this.forceLoad) this.loading = false
-        const verifiedContractsResponse = await axiosInstance.post('', {
-          query: VERIFIED_CONTRACTS_QUERY,
-          variables: getVerifiedContractsVariables(),
-        })
         const verifiedConstractsData = verifiedContractsResponse.data.data
         verifiedConstractsData.verifiedContracts.forEach((verifiedContract) => {
           const contract = this.contracts.find(
