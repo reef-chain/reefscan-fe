@@ -179,7 +179,6 @@ export default {
           this.loading = true // set loading to true before refetching
           this.forceLoad = true
           setTimeout(() => {
-            this.updateData()
             this.forceLoad = false
           }, 100)
         }
@@ -200,22 +199,26 @@ export default {
   methods: {
     async updateData() {
       const VERIFIED_CONTRACTS_QUERY = `
-          query verifiedContracts($limit: Int!, $contracts: [String!]) {
-            verifiedContracts(limit: $limit, where: { id_in: $contracts }) {
-              id
-              name
-              type
-            }
-          }
-        `
-      const TOTAL_CONTRACTS_QUERY = `
-        query total {
-          totalContracts: chainInfos(where: { id_eq: "contracts" }) {
-            count
+        query verifiedContracts($limit: Int!, $contracts: [String!]) {
+          verifiedContracts(limit: $limit, where: { id_in: $contracts }) {
+            id
+            name
+            type
           }
         }
       `
-      const fetchContractQueryVariables = () => {
+      const getVerifiedContractsVariables = () => {
+        const contracts = this.contracts.map((contract) => contract.address)
+        return {
+          limit: contracts.length,
+          contracts,
+        }
+      }
+
+      const CONTRACTS_QUERY =
+        this.currentPage === 1 ? FIRST_BATCH_QUERY : NEXT_BATCH_QUERY
+
+      const getContractsVariables = () => {
         let where = {}
         if (this.isBlockNumber(this.filter)) {
           where = {
@@ -237,52 +240,66 @@ export default {
         }
         return newVar
       }
-      const getVariables = () => {
-        const contracts = this.contracts.map((contract) => contract.address)
-        return {
-          limit: contracts.length,
-          contracts,
+
+      const TOTAL_CONTRACTS_QUERY = `
+        query total {
+          totalContracts: chainInfos(where: { id_eq: "contracts" }) {
+            count
+          }
         }
-      }
+      `
+
       try {
-        const [contractResponse, verifiedContractResponse] = await Promise.all([
+        const [contractsResponse, totalContractsResponse] = await Promise.all([
           axiosInstance.post('', {
-            query:
-              this.currentPage === 1 ? FIRST_BATCH_QUERY : NEXT_BATCH_QUERY,
-            variables: fetchContractQueryVariables(),
+            query: CONTRACTS_QUERY,
+            variables: getContractsVariables(),
           }),
           axiosInstance.post('', {
-            query: VERIFIED_CONTRACTS_QUERY,
-            variables: getVariables(),
+            query: TOTAL_CONTRACTS_QUERY,
+            variables: getVerifiedContractsVariables(),
           }),
         ])
 
-        let data = contractResponse.data.data
+        const constractsData = contractsResponse.data.data
+        const totalContractsData = totalContractsResponse.data.data
         const dataArr = []
-        if (data.contracts.edges) {
-          for (let idx = 0; idx < data.contracts.edges.length; idx++) {
-            dataArr.push(data.contracts.edges[idx].node)
+        if (constractsData.contracts.edges) {
+          for (
+            let idx = 0;
+            idx < constractsData.contracts.edges.length;
+            idx++
+          ) {
+            dataArr.push(constractsData.contracts.edges[idx].node)
           }
-          data.contracts = dataArr
+          constractsData.contracts = dataArr
           this.contracts = dataArr
         }
-        data.contracts.forEach((contract) => {
+        constractsData.contracts.forEach((contract) => {
           contract.address = contract.id
           contract.extrinsic.block_id = contract.extrinsic.block.height
         })
         this.totalRows = this.filter ? this.contracts.length : this.nContracts
-        data = verifiedContractResponse.data.data
-        data.verifiedContracts.forEach((verifiedContract) => {
+        if (!this.forceLoad) this.loading = false
+        const verifiedContractsResponse = await axiosInstance.post('', {
+          query: VERIFIED_CONTRACTS_QUERY,
+          variables: getVerifiedContractsVariables(),
+        })
+        const verifiedConstractsData = verifiedContractsResponse.data.data
+        verifiedConstractsData.verifiedContracts.forEach((verifiedContract) => {
           const contract = this.contracts.find(
             (contract) => contract.address === verifiedContract.id
           )
-          contract.verified_contract = verifiedContract
+          if (contract) {
+            contract.verified_contract = verifiedContract
+          }
         })
         // TODO: this is probably hacky
-        if (data.verifiedContracts.length) {
+        if (verifiedConstractsData.verifiedContracts.length) {
           this.$forceUpdate()
         }
-        if (!this.forceLoad) this.loading = false
+        this.nContracts = totalContractsData.totalContracts[0].count
+        this.totalRows = this.nContracts
       } catch (error) {
         this.setPerPage(50)
         this.$bvToast.toast(`Exceeds the size limit`, {
@@ -292,14 +309,6 @@ export default {
           appendToast: false,
         })
       }
-      try {
-        const response = await axiosInstance.post('', {
-          query: TOTAL_CONTRACTS_QUERY,
-        })
-        const data = response.data.data
-        this.nContracts = data.totalContracts[0].count
-        this.totalRows = this.nContracts
-      } catch (error) {}
     },
     setPerPage(value) {
       this.perPage = value
