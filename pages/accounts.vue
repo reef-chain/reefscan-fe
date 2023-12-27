@@ -294,6 +294,9 @@ export default {
       }
       this.updateData()
     },
+    perPage() {
+      this.updateData()
+    },
   },
   created() {
     this.updateData()
@@ -461,6 +464,9 @@ export default {
           }))
         }
       }
+    },
+    setPerPage(value) {
+      this.perPage = value
     },
   },
 }

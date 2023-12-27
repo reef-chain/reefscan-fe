@@ -147,6 +147,9 @@ export default {
       }
       this.updateData()
     },
+    perPage() {
+      this.updateData()
+    },
   },
   created() {
     this.updateData()

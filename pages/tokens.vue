@@ -227,6 +227,9 @@ export default {
       }
       this.updateData()
     },
+    perPage() {
+      this.updateData()
+    },
   },
   created() {
     this.updateData()
@@ -304,6 +307,9 @@ export default {
       if (supply === '0.00') return ''
 
       return supply
+    },
+    setPerPage(value) {
+      this.perPage = value
     },
   },
 }
