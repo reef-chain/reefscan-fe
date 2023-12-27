@@ -54,7 +54,6 @@ export default {
   watch: {
     $route() {
       this.blockHash = this.$route.params.hash
-      this.updateData()
     },
   },
   created() {
@@ -66,93 +65,108 @@ export default {
   },
   methods: {
     async updateData() {
+      const BLOCKS_QUERY = `
+        query blocks($block_hash: String!) {
+          blocks(where: { hash_eq: $block_hash }, limit: 1) {
+            author
+            finalized
+            id
+            hash
+            height
+            parentHash
+            stateRoot
+            extrinsicRoot
+            timestamp
+          }
+        }
+      `
+      const BLOCKS_VARIABLES = {
+        block_hash: this.blockHash,
+      }
+
+      const EVENTS_QUERY = `
+        query event($block_height: Int!) {
+          events(where: { block: { height_eq: $block_height } }, limit: 50) {
+            data
+            block {
+              height
+            }
+            index
+            method
+            section
+            phase
+          }
+        }
+      `
+      const EXTRINSICS_QUERY = `
+        query extrinsic($block_height: Int!) {
+          extrinsics(
+            where: { block: { height_eq: $block_height } }
+            limit: 50
+          ) {
+            id
+            block {
+              height
+            }
+            index
+            signer
+            section
+            method
+            args
+            hash
+            docs
+            type
+            status
+          }
+        }
+      `
       try {
-        const [blocksResponse, eventsResponse, extrinsicsResponse] =
-          await Promise.all([
+        const blocksResponse = await axiosInstance.post('', {
+          query: BLOCKS_QUERY,
+          variables: BLOCKS_VARIABLES,
+        })
+        const blocksData = blocksResponse.data.data
+        if (blocksData.blocks[0]) {
+          this.blockNumber = Number(blocksData.blocks[0].height)
+          this.parsedBlock = blocksData.blocks[0]
+        }
+      } catch (error) {}
+      try {
+        if (this.blockNumber) {
+          const EXTRINSICS_VARIABLES = {
+            block_height: this.blockNumber,
+          }
+          const EVENTS_VARIABLES = {
+            block_height: this.blockNumber,
+          }
+          const [eventsResponse, extrinsicsResponse] = await Promise.all([
             axiosInstance.post('', {
-              query: `
-                query blocks($block_hash: String!) {
-                  blocks(where: { hash_eq: $block_hash }, limit: 1) {
-                    author
-                    finalized
-                    id
-                    hash
-                    height
-                    parentHash
-                    stateRoot
-                    extrinsicRoot
-                    timestamp
-                  }
-                }
-              `,
-              variables: {
-                block_hash: this.blockHash,
-              },
+              query: EVENTS_QUERY,
+              variables: EVENTS_VARIABLES,
             }),
             axiosInstance.post('', {
-              query: `
-                query event($block_height: Int!) {
-                  events(where: { block: { height_eq: $block_height } }, limit: 50) {
-                    data
-                    block {
-                      height
-                    }
-                    index
-                    method
-                    section
-                    phase
-                  }
-                }
-              `,
-              variables: {
-                block_height: Number(this.blockNumber),
-              },
-            }),
-            axiosInstance.post('', {
-              query: `
-                query extrinsic($block_height: Int!) {
-                  extrinsics(
-                    where: { block: { height_eq: $block_height } }
-                    limit: 50
-                  ) {
-                    id
-                    block {
-                      height
-                    }
-                    index
-                    signer
-                    section
-                    method
-                    args
-                    hash
-                    docs
-                    type
-                    status
-                  }
-                }
-              `,
-              variables: {
-                block_height: Number(this.blockNumber),
-              },
+              query: EXTRINSICS_QUERY,
+              variables: EXTRINSICS_VARIABLES,
             }),
           ])
+          const eventsData = eventsResponse.data.data
+          eventsData.events = eventsData.events.map((event) => {
+            event.block_id = event.block.height
+            return event
+          })
+          this.parsedEvents = eventsData.events
 
-        this.parsedBlock = blocksResponse.data.data.blocks[0]
-
-        const events = eventsResponse.data.data.events || []
-        this.parsedEvents = events.map((event) => {
-          event.block_id = event.block.height
-          return event
-        })
-
-        const extrinsics = extrinsicsResponse.data.data.extrinsics || []
-        this.parsedExtrinsics = extrinsics.map((extrinsic) => {
-          extrinsic.block_id = extrinsic.block.height
-          extrinsic.success = extrinsic.status === 'success'
-          return extrinsic
-        })
-
-        this.loading = false
+          const extrinsicsData = extrinsicsResponse.data.data
+          extrinsicsData.extrinsics = extrinsicsData.extrinsics.map(
+            (extrinsic) => {
+              extrinsic.block_id = extrinsic.block.height
+              extrinsic.success = extrinsic.status === 'success'
+              return extrinsic
+            }
+          )
+          this.parsedExtrinsics = extrinsicsData.extrinsics
+          this.loading = false
+        }
       } catch (error) {}
     },
   },
