@@ -219,7 +219,11 @@ import ReefIdenticon from '@/components/ReefIdenticon.vue'
 import Loading from '@/components/Loading.vue'
 import commonMixin from '@/mixins/commonMixin.js'
 import { network } from '@/frontend.config.js'
+// import Activity from '@/components/Activity.vue'
 import AccountTransfers from '@/components/AccountTransfers.vue'
+// import StakingRewards from '@/components/StakingRewards.vue'
+// import StakingSlashes from '@/components/StakingSlashes.vue'
+// import AccountTokenBalances from '@/components/AccountTokenBalances.vue'
 import BlockTimeout from '@/utils/polling.js'
 import axiosInstance from '~/utils/axios'
 
@@ -227,10 +231,22 @@ export default {
   components: {
     ReefIdenticon,
     Loading,
+    // Activity,
     AccountTransfers,
+    // StakingRewards,
+    // StakingSlashes,
+    // AccountTokenBalances,
   },
   mixins: [commonMixin],
   middleware: ['account'],
+  tabs: {
+    transfers: 'Transfers',
+    tokens: 'Tokens',
+    nfts: 'NFTs',
+    activity: 'Activity',
+    rewards: 'Rewards',
+    // slashes: 'Slashes',
+  },
   data() {
     return {
       network,
@@ -256,42 +272,43 @@ export default {
   },
   methods: {
     async updateData() {
-      try {
-        const response = await axiosInstance.post('', {
-          query: `
-            query account($address: String!) {
-              accounts(
-                where: {
-                  OR: {
-                    id_containsInsensitive: $address
-                    OR: { evmAddress_containsInsensitive: $address }
-                  }
-                }
-                limit: 1
-              ) {
-                id
-                freeBalance
-                evmAddress
-                lockedBalance
-                availableBalance
-                timestamp
-                nonce
-                identity
-                evmNonce
-                vestedBalance
-                votingBalance
-                reservedBalance
-                block {
-                  height
-                }
+      const query = `
+        query account($address: String!) {
+          accounts(
+            where: {
+              OR: {
+                id_containsInsensitive: $address
+                OR: { evmAddress_containsInsensitive: $address }
               }
             }
-          `,
-          variables: {
-            address: this.accountId,
-          },
+            limit: 1
+          ) {
+            id
+            freeBalance
+            evmAddress
+            lockedBalance
+            availableBalance
+            timestamp
+            nonce
+            identity
+            evmNonce
+            vestedBalance
+            votingBalance
+            reservedBalance
+            block {
+              height
+            }
+          }
+        }
+      `
+      const variables = {
+        address: this.accountId,
+      }
+      try {
+        const response = await axiosInstance.post('', {
+          query,
+          variables,
         })
-
         const data = response.data.data
         if (data && data.accounts && data.accounts.length > 0) {
           this.parsedAccount = data.accounts[0]
