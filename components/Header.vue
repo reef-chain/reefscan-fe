@@ -43,14 +43,14 @@
             >
           </b-dropdown>
         </div>
-          <div
+<!--          <div
             v-if="network.name == 'Testnet'"
             style="
               background-color: darkmagenta;
               color: white;
               border-radius: 10em;
               text-align: center;
-          ">⚠️ Testnet data under maintenance ⚠️</div>
+          ">⚠️ Testnet data under maintenance ⚠️</div>-->
         </div>
         <ReefPrice />
       </div>
