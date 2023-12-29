@@ -161,9 +161,6 @@ const FIRST_BATCH_QUERY = gql`
             status
             errorMessage
           }
-          event {
-            id
-          }
           id
           amount
           timestamp
@@ -335,7 +332,7 @@ export default {
               hash: transfer.extrinsic.hash,
               idx: transfer.extrinsic.index,
               extrinsicId: transfer.extrinsic.id,
-              index: parseInt(transfer.event.id.split('-')[2]),
+              index: parseInt(transfer.id.split('-')[2]),
               block_id: transfer.extrinsic.block.height,
               isNft: transfer.nftId !== null,
               to:
@@ -374,6 +371,7 @@ export default {
             return transfer
           })
           this.transfers = await Promise.all(repared)
+          console.log(this.transfers)
           this.totalRows = this.filter ? this.transfers.length : this.nTransfers
           if (!this.forceLoad) this.loading = false
         }
