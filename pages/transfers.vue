@@ -108,14 +108,13 @@
 </template>
 
 <script>
-import { gql } from 'graphql-tag'
 import commonMixin from '@/mixins/commonMixin.js'
 import Loading from '@/components/Loading.vue'
 import ReefIdenticon from '@/components/ReefIdenticon.vue'
 import { paginationOptions } from '@/frontend.config.js'
 import BlockTimeout from '@/utils/polling.js'
 
-const GET_TRANSFER_EXTRINSIC_EVENTS = gql`
+const GET_TRANSFER_EXTRINSIC_EVENTS = `
   query extrinsic($exId: bigint!) {
     extrinsic(where: { id: { _eq: $exId } }) {
       id
@@ -128,7 +127,7 @@ const GET_TRANSFER_EXTRINSIC_EVENTS = gql`
     }
   }
 `
-const FIRST_BATCH_QUERY = gql`
+const FIRST_BATCH_QUERY = `
   query transfer($first: Int!, $where: TransferWhereInput) {
     extrinsic: transfersConnection(
       first: $first
@@ -170,7 +169,7 @@ const FIRST_BATCH_QUERY = gql`
     }
   }
 `
-const NEXT_BATCH_QUERY = gql`
+const NEXT_BATCH_QUERY = `
   query transfer($first: Int!, $after: String!, $where: TransferWhereInput) {
     extrinsic: transfersConnection(
       first: $first
@@ -377,7 +376,7 @@ export default {
       },
     },
     totalTransfers: {
-      query: gql`
+      query: `
         query total {
           totalTransfers: chainInfos(where: { id_eq: "transfers" }) {
             count
