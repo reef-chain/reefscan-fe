@@ -371,7 +371,6 @@ export default {
             return transfer
           })
           this.transfers = await Promise.all(repared)
-          console.log(this.transfers)
           this.totalRows = this.filter ? this.transfers.length : this.nTransfers
           if (!this.forceLoad) this.loading = false
         }
