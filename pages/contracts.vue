@@ -293,7 +293,14 @@ export default {
         })
         this.totalRows = this.filter ? this.contracts.length : this.nContracts
         if (!this.forceLoad) this.loading = false
-        const verifiedConstractsData = verifiedContractsResponse.data.data
+        let verifiedConstractsData = verifiedContractsResponse.data.data
+        if (this.currentPage !== 1) {
+          const verifiedContractResponse = await axiosInstance.post('', {
+            query: VERIFIED_CONTRACTS_QUERY,
+            variables: getVerifiedContractsVariables(),
+          })
+          verifiedConstractsData = verifiedContractResponse.data.data
+        }
         verifiedConstractsData.verifiedContracts.forEach((verifiedContract) => {
           const contract = this.contracts.find(
             (contract) => contract.address === verifiedContract.id
