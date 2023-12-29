@@ -161,6 +161,9 @@ const FIRST_BATCH_QUERY = gql`
             status
             errorMessage
           }
+          event {
+            id
+          }
           id
           amount
           timestamp
@@ -332,7 +335,7 @@ export default {
               hash: transfer.extrinsic.hash,
               idx: transfer.extrinsic.index,
               extrinsicId: transfer.extrinsic.id,
-              index: parseInt(transfer.id.split('-')[1]),
+              index: parseInt(transfer.event.id.split('-')[2]),
               block_id: transfer.extrinsic.block.height,
               isNft: transfer.nftId !== null,
               to:
