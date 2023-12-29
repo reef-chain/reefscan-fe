@@ -104,15 +104,15 @@
 </template>
 
 <script>
-import { gql } from 'graphql-tag'
 import commonMixin from '@/mixins/commonMixin.js'
 import Loading from '@/components/Loading.vue'
 import Search from '@/components/Search'
 import { paginationOptions } from '@/frontend.config.js'
 import BlockTimeout from '@/utils/polling.js'
-import {toIpfsReefGatewayLink} from "~/utils/ipfs";
+import { toIpfsReefGatewayLink } from '~/utils/ipfs'
+import axiosInstance from '~/utils/axios'
 
-const FIRST_BATCH_QUERY = gql`
+const FIRST_BATCH_QUERY = `
   query tokens($first: Int = 10, $where: VerifiedContractWhereInput = {}) {
     verifiedContracts: verifiedContractsConnection(
       first: $first
@@ -148,7 +148,7 @@ const FIRST_BATCH_QUERY = gql`
   }
 `
 
-const NEXT_BATCH_QUERY = gql`
+const NEXT_BATCH_QUERY = `
   query tokens(
     $after: String!
     $first: Int = 10
@@ -210,15 +210,6 @@ export default {
       forceLoad: false,
     }
   },
-  computed: {
-    queryToExecute() {
-      if (this.currentPage === 1) {
-        return FIRST_BATCH_QUERY
-      } else {
-        return NEXT_BATCH_QUERY
-      }
-    },
-  },
   watch: {
     currentPage() {
       if (this.currentPage === 1) {
@@ -227,7 +218,6 @@ export default {
           this.loading = true // set loading to true before refetching
           this.forceLoad = true
           setTimeout(() => {
-            this.$apollo.queries.verifiedContracts.refetch()
             this.forceLoad = false
           }, 100)
         }
@@ -235,20 +225,22 @@ export default {
       } else {
         BlockTimeout.removeCallback(this.updateData)
       }
+      this.updateData()
+    },
+    perPage() {
+      this.updateData()
     },
   },
   created() {
+    this.updateData()
     BlockTimeout.addCallback(this.updateData)
   },
   destroyed() {
     BlockTimeout.removeCallback(this.updateData)
   },
-  apollo: {
-    verifiedContracts: {
-      query: function () {
-        return this.queryToExecute
-      },
-      variables() {
+  methods: {
+    async updateData() {
+      const getVariables = () => {
         const where = {
           type_not_eq: 'other',
         }
@@ -260,9 +252,13 @@ export default {
           after: ((this.currentPage - 1) * this.perPage).toString(),
           where,
         }
-      },
-      fetchPolicy: 'network-only',
-      result({ data }) {
+      }
+      try {
+        const response = await axiosInstance.post('', {
+          query: this.currentPage === 1 ? FIRST_BATCH_QUERY : NEXT_BATCH_QUERY,
+          variables: getVariables(),
+        })
+        const data = response.data.data
         const dataArr = []
         if (data.verifiedContracts.edges) {
           for (let idx = 0; idx < data.verifiedContracts.edges.length; idx++) {
@@ -299,12 +295,7 @@ export default {
           this.totalRows = this.nTokens
         }
         this.loading = false
-      },
-    },
-  },
-  methods: {
-    updateData() {
-      this.$apollo.queries.verifiedContracts.refetch()
+      } catch (error) {}
     },
     getItemSupply(item) {
       const supply = this.formatTokenAmount(
@@ -316,6 +307,9 @@ export default {
       if (supply === '0.00') return ''
 
       return supply
+    },
+    setPerPage(value) {
+      this.perPage = value
     },
   },
 }

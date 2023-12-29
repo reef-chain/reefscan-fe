@@ -55,7 +55,6 @@
 <script>
 import { ethers } from 'ethers'
 import { Signer } from '@reef-defi/evm-provider'
-import { gql } from 'graphql-tag'
 import {
   web3Accounts,
   web3Enable,
@@ -64,6 +63,7 @@ import {
 import { encodeAddress } from '@polkadot/keyring'
 import { network } from '@/frontend.config.js'
 import commonMixin from '@/mixins/commonMixin.js'
+import axiosInstance from '~/utils/axios'
 
 export default {
   mixins: [commonMixin],
@@ -224,17 +224,19 @@ export default {
       this.arguments[index] = event
     },
     async getEVMAddress(accountId) {
-      const client = this.$apolloProvider.defaultClient
-      const query = gql`
+      const GQL_QUERY = `
         query account {
           accounts(where: {id_containsInsensitive: "${accountId}"}, limit: 1) {
             evmAddress
           }
         }
       `
-      const response = await client.query({ query })
-      if (response.data.account && response.data.account.length > 0) {
-        const evmAddress = response.data.account[0].evmAddress
+      const response = await axiosInstance.post('', {
+        query: GQL_QUERY,
+      })
+      const data = response.data.data
+      if (data.account && data.account.length > 0) {
+        const evmAddress = data.account[0].evmAddress
         if (evmAddress) {
           return evmAddress
         } else {

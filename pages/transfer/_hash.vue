@@ -12,9 +12,9 @@
   </div>
 </template>
 <script>
-import { gql } from 'graphql-tag'
 import Loading from '@/components/Loading.vue'
 import commonMixin from '@/mixins/commonMixin.js'
+import axiosInstance from '~/utils/axios'
 
 export default {
   components: {
@@ -45,56 +45,58 @@ export default {
       this.hash = this.$route.params.hash
     },
   },
-  apollo: {
-    transfers: {
-      query: gql`
-        query transfers($hash: String!) {
-          transfers(where: { extrinsic: { hash_eq: $hash } }, limit: 1) {
-            amount
-            denom
-            nftId
-            block {
-              height
-            }
-            to {
-              id
-              evmAddress
-            }
-            from {
-              id
-              evmAddress
-            }
-            timestamp
-            extrinsic {
-              id
-              hash
-              index
-              errorMessage
-              status
-              events(where: { method_eq: "Transfer" }, limit: 50) {
-                data
+  created() {
+    this.updateData()
+  },
+  methods: {
+    async updateData() {
+      try {
+        const response = await axiosInstance.post('', {
+          query: `
+            query transfers($hash: String!) {
+              transfers(where: { extrinsic: { hash_eq: $hash } }, limit: 1) {
+                amount
+                denom
+                nftId
+                block {
+                  height
+                }
+                to {
+                  id
+                  evmAddress
+                }
+                from {
+                  id
+                  evmAddress
+                }
+                timestamp
                 extrinsic {
                   id
+                  hash
+                  index
+                  errorMessage
+                  status
+                  events(where: { method_eq: "Transfer" }, limit: 50) {
+                    data
+                    extrinsic {
+                      id
+                    }
+                  }
                 }
+                token {
+                  id
+                  contractData
+                }
+                feeAmount
               }
             }
-            token {
-              id
-              contractData
-            }
-            feeAmount
-          }
-        }
-      `,
-      skip() {
-        return !this.hash
-      },
-      variables() {
-        return {
-          hash: this.hash,
-        }
-      },
-      result({ data }) {
+          `,
+          variables: {
+            hash: this.hash,
+          },
+        })
+
+        const data = response.data.data
         if (data && data.transfers) {
           this.transfer = data.transfers[0]
           this.transfer.to_address =
@@ -136,7 +138,7 @@ export default {
           }
         }
         this.loading = false
-      },
+      } catch (error) {}
     },
   },
 }

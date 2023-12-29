@@ -1,7 +1,7 @@
 # Build Stage 1
 # This build created a staging docker image
 #
-FROM node:fermium AS appbuild
+FROM node:18 AS appbuild
 
 WORKDIR /usr/src/app
 COPY ./ ./

@@ -64,11 +64,11 @@
 </template>
 
 <script>
-import { gql } from 'graphql-tag'
 import commonMixin from '@/mixins/commonMixin.js'
 import BlockTimeout from '@/utils/polling.js'
+import axiosInstance from '~/utils/axios'
 
-const FIRST_BATCH_QUERY = gql`
+const FIRST_BATCH_QUERY = `
   query evm_event_qry($contractAddress: String!, $first: Int!) {
     transactions: evmEventsConnection(
       first: $first
@@ -94,7 +94,7 @@ const FIRST_BATCH_QUERY = gql`
     }
   }
 `
-const NEXT_BATCH_QUERY = gql`
+const NEXT_BATCH_QUERY = `
   query evm_event_qry(
     $contractAddress: String!
     $first: Int!
@@ -144,15 +144,6 @@ export default {
       callbackId: null,
     }
   },
-  computed: {
-    queryToExecute() {
-      if (this.currentPage === 1) {
-        return FIRST_BATCH_QUERY
-      } else {
-        return NEXT_BATCH_QUERY
-      }
-    },
-  },
   created() {
     // force fetch
     this.updateData()
@@ -162,37 +153,20 @@ export default {
     BlockTimeout.removeCallback(this.updateData)
   },
   methods: {
-    updateData() {
-      this.$apollo.queries.transactions.refetch()
-      this.$apollo.queries.total_transactions.refetch()
-    },
-    setPerPage(value) {
-      this.perPage = value
-    },
-  },
-  apollo: {
-    transactions: {
-      query: function () {
-        return this.queryToExecute
-      },
-      variables() {
-        return {
-          contractAddress: this.toContractAddress(this.contractId),
-          first: this.perPage,
-          after: ((this.currentPage - 1) * this.perPage + 1).toString(),
-        }
-      },
-      fetchPolicy: 'network-only',
-      result({ data, error }) {
-        if (error) {
-          this.setPerPage(20)
-          this.$bvToast.toast(`Exceeds the size limit`, {
-            title: 'Encountered an Error',
-            variant: 'danger',
-            autoHideDelay: 5000,
-            appendToast: false,
-          })
-        } else {
+    async updateData() {
+      // transactions query
+      try {
+        const transactionsQueryResponse = await axiosInstance.post('', {
+          query: this.currentPage === 1 ? FIRST_BATCH_QUERY : NEXT_BATCH_QUERY,
+          variables: {
+            contractAddress: this.toContractAddress(this.contractId),
+            first: this.perPage,
+            after: ((this.currentPage - 1) * this.perPage + 1).toString(),
+          },
+        })
+        if (transactionsQueryResponse.data.data) {
+          const data = transactionsQueryResponse.data.data
+
           const dataArr = []
           if (data.transactions.edges) {
             for (let idx = 0; idx < data.transactions.edges.length; idx++) {
@@ -210,32 +184,29 @@ export default {
           }
           this.loading = false
         }
-      },
-    },
-    // TODO: needs to be implemented in the backend
-    total_transactions: {
-      // this is purely for having some kind of call
-      query: gql`
-        query evm_event_count_aggregation {
-          total_transactions: chainInfos(where: { id_eq: "contracts" }) {
-            count
+      } catch (error) {
+        this.setPerPage(20)
+        this.$bvToast.toast(`Exceeds the size limit`, {
+          title: 'Encountered an Error',
+          variant: 'danger',
+          autoHideDelay: 5000,
+          appendToast: false,
+        })
+      }
+      // total transactions query
+      const totalTransactionsResponse = await axiosInstance.post('', {
+        query: `
+          query evm_event_count_aggregation {
+            total_transactions: chainInfos(where: { id_eq: "contracts" }) {
+              count
+            }
           }
-        }
-      `,
-      variables() {
-        // return {
-        //   contractAddress: {
-        //     _ilike: this.toContractAddress(this.contractId),
-        //   },
-        // }
-        return {}
-      },
-      fetchPolicy: 'network-only',
-      result({ data }) {
-        // this.totalRows = data.evm_event_aggregate.aggregate.count
-        // TODO: needs to be implemented in the backend
-        this.totalRows = 1
-      },
+        `,
+      })
+      if (totalTransactionsResponse.data.data) this.totalRows = 1
+    },
+    setPerPage(value) {
+      this.perPage = value
     },
   },
 }

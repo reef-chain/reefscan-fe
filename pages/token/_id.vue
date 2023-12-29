@@ -170,7 +170,6 @@
   </div>
 </template>
 <script>
-import { gql } from 'graphql-tag'
 import ContractExecute from '../../components/ContractExecute.vue'
 import Loading from '@/components/Loading.vue'
 import ReefIdenticon from '@/components/ReefIdenticon.vue'
@@ -179,7 +178,8 @@ import commonMixin from '@/mixins/commonMixin.js'
 import TokenHolders from '@/components/TokenHolders'
 import TokenTransfers from '@/components/TokenTransfers'
 import BlockTimeout from '@/utils/polling.js'
-import {toIpfsReefGatewayLink} from "~/utils/ipfs";
+import axiosInstance from '~/utils/axios'
+import { toIpfsReefGatewayLink } from '~/utils/ipfs'
 
 export default {
   components: {
@@ -236,6 +236,7 @@ export default {
   watch: {
     $route() {
       this.address = this.$route.params.id
+      this.updateData()
     },
   },
   created() {
@@ -246,53 +247,48 @@ export default {
     BlockTimeout.removeCallback(this.updateData)
   },
   methods: {
-    updateData() {
-      this.$apollo.queries.verifiedContracts.refetch()
-      this.$apollo.queries.tokenHoldersCount.refetch()
-    },
-  },
-  apollo: {
-    verifiedContracts: {
-      query: gql`
-        query contract($address: String = "") {
-          verifiedContracts(
-            limit: 1
-            where: { id_containsInsensitive: $address }
-          ) {
-            id
-            contractData
-            name
-            contract {
-              extrinsic {
-                block {
-                  height
-                }
-                signer
-              }
-              signer {
+    async updateData() {
+      try {
+        const response = await axiosInstance.post('', {
+          query: `
+            query contract($address: String = "") {
+              verifiedContracts(
+                limit: 1
+                where: { id_containsInsensitive: $address }
+              ) {
                 id
+                contractData
+                name
+                contract {
+                  extrinsic {
+                    block {
+                      height
+                    }
+                    signer
+                  }
+                  signer {
+                    id
+                  }
+                  bytecode
+                  timestamp
+                }
+                type
+                target
+                runs
+                optimization
+                source
+                args
+                compiledData
+                compilerVersion
               }
-              bytecode
-              timestamp
             }
-            type
-            target
-            runs
-            optimization
-            source
-            args
-            compiledData
-            compilerVersion
-          }
-        }
-      `,
-      variables() {
-        return {
-          address: this.address,
-        }
-      },
-      fetchPolicy: 'network-only',
-      result({ data }) {
+          `,
+          variables: {
+            address: this.address,
+          },
+        })
+
+        const data = response.data.data
         if (data.verifiedContracts[0]) {
           const { name, type, contract, compiledData, source, contractData } =
             data.verifiedContracts[0]
@@ -312,31 +308,31 @@ export default {
           )
         }
         for (let i = 0; i < this.contract.abi.length; i++) {
-          // checking this cause if token extends ownable or not
           if (this.contract.abi[i].name === 'renounceOwnership') {
             this.isTokenUriFunc = true
           }
         }
+
+        const holdersResponse = await axiosInstance.post('', {
+          query: `
+            query tokenHoldersAggregate($address: String!) {
+              tokenHoldersCount(tokenId: $address) {
+                count
+              }
+            }
+          `,
+          variables: {
+            address: this.address,
+          },
+        })
+
+        const holdersData = holdersResponse.data.data
+        if (holdersData.tokenHoldersCount) {
+          this.holders = holdersData.tokenHoldersCount.count
+        }
+
         this.loading = false
-      },
-    },
-    tokenHoldersCount: {
-      query: gql`
-        query tokenHoldersAggregate($address: String!) {
-          tokenHoldersCount(tokenId: $address) {
-            count
-          }
-        }
-      `,
-      variables() {
-        return {
-          address: this.address,
-        }
-      },
-      fetchPolicy: 'network-only',
-      result({ data }) {
-        this.holders = data.tokenHoldersCount.count
-      },
+      } catch (error) {}
     },
   },
 }

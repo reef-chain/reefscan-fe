@@ -24,13 +24,11 @@
     }
   },
   "dependencies": {
-    "@apollo/client": "^3.7.3",
     "@ethersproject/address": "^5.5.0",
     "@ethersproject/hash": "^5.5.0",
     "@ethersproject/strings": "^5.5.0",
     "@fortawesome/free-regular-svg-icons": "^5.15.2",
     "@fortawesome/free-solid-svg-icons": "^5.15.2",
-    "@nuxtjs/apollo": "^4.0.1-rc.5",
     "@nuxtjs/axios": "^5.12.5",
     "@nuxtjs/eslint-config": "^10.0.0",
     "@nuxtjs/fontawesome": "^1.1.2",
@@ -47,10 +45,9 @@
     "cookie-universal-nuxt": "^2.1.4",
     "core-js": "^3.8.2",
     "ethereum-blockies-base64": "^1.0.2",
-    "graphql-ws": "^5.11.2",
     "ipfs-only-hash": "^4.0.0",
     "moment": "^2.29.1",
-    "nuxt": "^2.14.12",
+    "nuxt": "^2.17.2",
     "nuxt-clipboard2": "^0.2.1",
     "nuxt-i18n": "^6.18.0",
     "sass": "^1.32.5",
@@ -63,6 +60,7 @@
   },
   "devDependencies": {
     "@babel/eslint-parser": "^7.19.1",
+    "@babel/plugin-proposal-optional-chaining": "^7.21.0",
     "@commitlint/cli": "^11.0.0",
     "@commitlint/config-conventional": "^11.0.0",
     "@nuxtjs/eslint-module": "^3.0.2",
@@ -83,5 +81,8 @@
     "stylelint-config-prettier": "^8.0.2",
     "stylelint-config-standard": "^20.0.0",
     "vue-jest": "^3.0.4"
+  },
+  "resolutions": {
+    "vue":"^2.7.16"
   }
 }

@@ -100,12 +100,12 @@
 </template>
 
 <script>
-import { gql } from 'graphql-tag'
 import commonMixin from '@/mixins/commonMixin.js'
 import Loading from '@/components/Loading.vue'
 import { paginationOptions } from '@/frontend.config.js'
 import tableUtils from '@/mixins/tableUtils'
 import BlockTimeout from '@/utils/polling.js'
+import axiosInstance from '~/utils/axios'
 
 export default {
   components: {
@@ -142,22 +142,15 @@ export default {
     },
   },
   created() {
+    this.updateData()
     BlockTimeout.addCallback(this.updateData)
   },
   destroyed() {
     BlockTimeout.removeCallback(this.updateData)
   },
   methods: {
-    updateData() {
-      this.$apollo.queries.transfers.refetch()
-    },
-    setPerPage(value) {
-      this.perPage = value
-    },
-  },
-  apollo: {
-    transfers: {
-      query: gql`
+    async updateData() {
+      const TRANSFERS_QUERY = `
         query transfer($tokenId: String!) {
           transfers(
             orderBy: timestamp_DESC
@@ -186,44 +179,43 @@ export default {
             timestamp
           }
         }
-      `,
-      variables() {
-        return {
-          tokenId: this.tokenId,
-        }
-      },
-      skip() {
-        return !this.tokenId
-      },
-      fetchPolicy: 'network-only',
-      result({ data, error }) {
-        if (error) {
-          this.setPerPage(20)
-          this.$bvToast.toast(`Exceeds the size limit`, {
-            title: 'Encountered an Error',
-            variant: 'danger',
-            autoHideDelay: 5000,
-            appendToast: false,
-          })
-        } else {
-          this.transfers = data.transfers.map((transfer) => {
-            return {
-              ...transfer,
-              to_address: transfer.to.id,
-              isNft: transfer.nftId,
-              from_address: transfer.from.id,
-              to_evm_address: transfer.to.evmAddress,
-              from_evm_address: transfer.from.evmAddress,
-              extrinsic: {
-                ...transfer.extrinsic,
-                block_id: transfer.extrinsic.block.height,
-              },
-            }
-          })
-          this.totalRows = this.transfers.length
-          this.loading = false
-        }
-      },
+      `
+      try {
+        const response = await axiosInstance.post('', {
+          query: TRANSFERS_QUERY,
+          variables: {
+            tokenId: this.tokenId,
+          },
+        })
+        const data = await response.data.data
+        this.transfers = data.transfers.map((transfer) => {
+          return {
+            ...transfer,
+            to_address: transfer.to.id,
+            isNft: transfer.nftId,
+            from_address: transfer.from.id,
+            to_evm_address: transfer.to.evmAddress,
+            from_evm_address: transfer.from.evmAddress,
+            extrinsic: {
+              ...transfer.extrinsic,
+              block_id: transfer.extrinsic.block.height,
+            },
+          }
+        })
+        this.totalRows = this.transfers.length
+        this.loading = false
+      } catch (error) {
+        this.setPerPage(20)
+        this.$bvToast.toast(`Exceeds the size limit`, {
+          title: 'Encountered an Error',
+          variant: 'danger',
+          autoHideDelay: 5000,
+          appendToast: false,
+        })
+      }
+    },
+    setPerPage(value) {
+      this.perPage = value
     },
   },
 }

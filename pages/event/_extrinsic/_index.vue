@@ -12,10 +12,10 @@
   </div>
 </template>
 <script>
-import { gql } from 'graphql-tag'
 import Loading from '@/components/Loading.vue'
 import commonMixin from '@/mixins/commonMixin.js'
 import Event from '@/components/Event.vue'
+import axiosInstance from '~/utils/axios'
 
 export default {
   components: {
@@ -47,51 +47,53 @@ export default {
     $route() {
       this.extrinsicId = this.$route.params.block
       this.eventIndex = this.$route.params.index
+      this.updateData()
     },
   },
-  apollo: {
-    event: {
-      query: gql`
-        query event($extrinsic_id: Int!, $index: Int!) {
-          events(
-            where: { extrinsic: { id_eq: $extrinsic_id }, index_eq: $index }
-          ) {
-            id
-            extrinsic {
-              id
-              block {
-                height
+  created() {
+    this.updateData()
+  },
+  methods: {
+    async updateData() {
+      try {
+        const response = await axiosInstance.post('', {
+          query: `
+            query event($extrinsic_id: Int!, $index: Int!) {
+              events(
+                where: { extrinsic: { id_eq: $extrinsic_id }, index_eq: $index }
+              ) {
+                id
+                extrinsic {
+                  id
+                  block {
+                    height
+                  }
+                  index
+                }
+                index
+                data
+                method
+                phase
+                section
+                timestamp
               }
-              index
             }
-            index
-            data
-            method
-            phase
-            section
-            timestamp
-          }
-        }
-      `,
-      skip() {
-        return !this.extrinsicId || !this.eventIndex
-      },
-      variables() {
-        return {
-          extrinsic_id: parseInt(this.extrinsicId),
-          index: parseInt(this.eventIndex),
-        }
-      },
-      result({ data }) {
-        try {
+          `,
+          variables: {
+            extrinsic_id: parseInt(this.extrinsicId),
+            index: parseInt(this.eventIndex),
+          },
+        })
+
+        const data = response.data.data
+        if (data && data.events && data.events[0]) {
           this.parsedEvent = data.events[0]
           this.parsedEvent.extrinsic.block_id =
             this.parsedEvent.extrinsic.block.id
-          this.loading = false
-        } catch (error) {
-          this.loading = false
         }
-      },
+
+        this.loading = false
+      } catch (error) {}
     },
   },
 }

@@ -12,9 +12,9 @@
   </div>
 </template>
 <script>
-import { gql } from 'graphql-tag'
 import Loading from '@/components/Loading.vue'
 import commonMixin from '@/mixins/commonMixin.js'
+import axiosInstance from '~/utils/axios'
 
 export default {
   components: {
@@ -49,67 +49,68 @@ export default {
       this.eventIndex = this.$route.params.event
     },
   },
-  apollo: {
-    transfers: {
-      query: gql`
-        query transfers($block: Int!, $index: Int!, $eventIndex: Int!) {
-          transfers(
-            where: {
-              extrinsic: { index_eq: $index, block: { height_eq: $block } }
-              event: { index_eq: $eventIndex }
-            }
-            limit: 1
-          ) {
-            amount
-            denom
-            nftId
-            block {
-              height
-            }
-            to {
-              id
-              evmAddress
-            }
-            from {
-              id
-              evmAddress
-            }
-            timestamp
-            extrinsic {
-              id
-              hash
-              index
-              errorMessage
-              status
-              signedData
-              events(where: { method_eq: "Transfer" }, limit: 50) {
-                data
+  created() {
+    this.updateData()
+  },
+  methods: {
+    async updateData() {
+      try {
+        const response = await axiosInstance.post('', {
+          query: `
+            query transfers($block: Int!, $index: Int!, $eventIndex: Int!) {
+              transfers(
+                where: {
+                  extrinsic: { index_eq: $index, block: { height_eq: $block } }
+                  event: { index_eq: $eventIndex }
+                }
+                limit: 1
+              ) {
+                amount
+                denom
+                nftId
+                block {
+                  height
+                }
+                to {
+                  id
+                  evmAddress
+                }
+                from {
+                  id
+                  evmAddress
+                }
+                timestamp
                 extrinsic {
                   id
+                  hash
+                  index
+                  errorMessage
+                  status
+                  signedData
+                  events(where: { method_eq: "Transfer" }, limit: 50) {
+                    data
+                    extrinsic {
+                      id
+                    }
+                    index
+                  }
                 }
-                index
+                token {
+                  id
+                  contractData
+                }
+                feeAmount
               }
             }
-            token {
-              id
-              contractData
-            }
-            feeAmount
-          }
-        }
-      `,
-      skip() {
-        return !this.blockHeight || !this.extrinsicIndex
-      },
-      variables() {
-        return {
-          block: parseInt(this.blockHeight),
-          index: parseInt(this.extrinsicIndex),
-          eventIndex: parseInt(this.eventIndex),
-        }
-      },
-      fetchPolicy: 'network-only',
-      result({ data }) {
+          `,
+          variables: {
+            block: parseInt(this.blockHeight),
+            index: parseInt(this.extrinsicIndex),
+            eventIndex: parseInt(this.eventIndex),
+          },
+        })
+
+        const data = response.data.data
         if (data && data.transfers) {
           this.transfer = data.transfers[0]
           this.transfer.to_address =
@@ -151,7 +152,7 @@ export default {
           }
         }
         this.loading = false
-      },
+      } catch (error) {}
     },
   },
 }

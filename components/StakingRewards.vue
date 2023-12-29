@@ -63,7 +63,6 @@
 </template>
 
 <script>
-import { gql } from 'graphql-tag'
 import JsonCSV from 'vue-json-csv'
 import commonMixin from '@/mixins/commonMixin.js'
 import Loading from '@/components/Loading.vue'
@@ -71,6 +70,7 @@ import { paginationOptions } from '@/frontend.config.js'
 import Input from '@/components/Input'
 import tableUtils from '@/mixins/tableUtils'
 import BlockTimeout from '@/utils/polling.js'
+import axiosInstance from '~/utils/axios'
 
 export default {
   components: {
@@ -120,31 +120,15 @@ export default {
     },
   },
   created() {
+    this.updateData()
     BlockTimeout.addCallback(this.updateData)
   },
   destroyed() {
     BlockTimeout.removeCallback(this.updateData)
   },
   methods: {
-    updateData() {
-      this.$apollo.queries.event.refetch()
-    },
-    setPerPage(value) {
-      this.perPage = value
-    },
-    handleNumFields(num) {
-      localStorage.paginationOptions = num
-      this.perPage = parseInt(num)
-    },
-    onFiltered(filteredItems) {
-      // Trigger pagination to update the number of buttons/pages due to filtering
-      this.totalRows = filteredItems.length
-      this.currentPage = 1
-    },
-  },
-  apollo: {
-    event: {
-      query: gql`
+    async updateData() {
+      const STAKING_QUERY = `
         query staking($accountId: String!) {
           event: stakings(
             orderBy: id_DESC
@@ -171,44 +155,52 @@ export default {
             }
           }
         }
-      `,
-      variables() {
-        return {
-          accountId: this.accountId,
-        }
-      },
-      skip() {
-        return !this.accountId
-      },
-      fetchPolicy: 'network-only',
-      result({ data, error }) {
-        if (error) {
-          this.setPerPage(20)
-          this.$bvToast.toast(`Exceeds the size limit`, {
-            title: 'Encountered an Error',
-            variant: 'danger',
-            autoHideDelay: 5000,
-            appendToast: false,
-          })
-        } else {
-          this.stakingRewards = data.event.map((stakeEv) => {
-            const timestamp = new Date(stakeEv.timestamp).getTime() / 1000
-            stakeEv.event.extrinsic_id = stakeEv.event.extrinsic.id
-            return {
-              timestamp,
-              timeago: timestamp,
-              amount: stakeEv.amount,
-              address: stakeEv.signer.id,
-              block_id: stakeEv.event.block.height,
-              hash: stakeEv.event.extrinsic.hash,
-              fee: stakeEv.event.extrinsic.signedData?.fee.partialFee || 0,
-              extrinsicIndex: stakeEv.event.extrinsic.index,
-            }
-          })
-          this.totalRows = this.stakingRewards.length
-          this.loading = false
-        }
-      },
+      `
+      try {
+        const response = await axiosInstance.post('', {
+          query: STAKING_QUERY,
+          variables: {
+            accountId: this.accountId,
+          },
+        })
+        const data = await response.data.data
+        this.stakingRewards = data.event.map((stakeEv) => {
+          const timestamp = new Date(stakeEv.timestamp).getTime() / 1000
+          stakeEv.event.extrinsic_id = stakeEv.event.extrinsic.id
+          return {
+            timestamp,
+            timeago: timestamp,
+            amount: stakeEv.amount,
+            address: stakeEv.signer.id,
+            block_id: stakeEv.event.block.height,
+            hash: stakeEv.event.extrinsic.hash,
+            fee: stakeEv.event.extrinsic.signedData?.fee.partialFee || 0,
+            extrinsicIndex: stakeEv.event.extrinsic.index,
+          }
+        })
+        this.totalRows = this.stakingRewards.length
+        this.loading = false
+      } catch (error) {
+        this.setPerPage(20)
+        this.$bvToast.toast(`Exceeds the size limit`, {
+          title: 'Encountered an Error',
+          variant: 'danger',
+          autoHideDelay: 5000,
+          appendToast: false,
+        })
+      }
+    },
+    setPerPage(value) {
+      this.perPage = value
+    },
+    handleNumFields(num) {
+      localStorage.paginationOptions = num
+      this.perPage = parseInt(num)
+    },
+    onFiltered(filteredItems) {
+      // Trigger pagination to update the number of buttons/pages due to filtering
+      this.totalRows = filteredItems.length
+      this.currentPage = 1
     },
   },
 }

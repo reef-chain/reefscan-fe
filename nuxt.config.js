@@ -53,8 +53,6 @@ export default {
     '@nuxtjs/axios',
     // https://i18n.nuxtjs.org
     'nuxt-i18n',
-    // https://github.com/nuxt-community/apollo-module
-    '@nuxtjs/apollo',
     // https://github.com/nuxt-community/fontawesome-module
     '@nuxtjs/fontawesome',
     // https://www.npmjs.com/package/nuxt-clipboard2
@@ -79,11 +77,6 @@ export default {
       },
     },
   },
-  apollo: {
-    clientConfigs: {
-      default: `~/plugins/apollo-config.js`,
-    },
-  },
   bootstrapVue: {
     bootstrapCSS: false,
     bootstrapVueCSS: false,
@@ -105,6 +98,13 @@ export default {
   // Build Configuration (https://go.nuxtjs.dev/config-build)
   build: {
     extend(config) {
+      const commonNodeModulesPatterns = [
+        /node_modules\/@ethereumjs\/util\/dist\/provider\.js/,
+        /node_modules\/@ethereumjs\/util\/dist\/bytes\.js/,
+        /node_modules\/@ethereumjs\/util\/dist\/asyncEventEmitter\.js/,
+        /node_modules\/micro-ftch\/index\.js/,
+        /node_modules\/@noble\/curves\/abstract\/weierstrass\.js/,
+      ]
       if (config.resolve.extensions) {
         config.resolve.extensions.push('.mjs')
       } else {
@@ -118,7 +118,26 @@ export default {
         },
         {
           test: /\.js$/,
+          exclude: (filePath) => {
+            return commonNodeModulesPatterns.some((pattern) =>
+              pattern.test(filePath)
+            )
+          },
           loader: require.resolve('@open-wc/webpack-import-meta-loader'),
+        },
+        {
+          include: (filePath) => {
+            return commonNodeModulesPatterns.some((pattern) =>
+              pattern.test(filePath)
+            )
+          },
+          use: {
+            loader: 'babel-loader',
+            options: {
+              presets: ['@babel/preset-env'],
+              plugins: ['@babel/plugin-proposal-optional-chaining'],
+            },
+          },
         }
       )
       // https://github.com/nuxt/nuxt.js/issues/1142

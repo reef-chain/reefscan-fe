@@ -62,14 +62,14 @@
 </template>
 
 <script>
-import { gql } from 'graphql-tag'
 import commonMixin from '@/mixins/commonMixin.js'
 import Search from '@/components/Search'
 import Loading from '@/components/Loading.vue'
 import { paginationOptions } from '@/frontend.config.js'
 import BlockTimeout from '@/utils/polling.js'
+import axiosInstance from '~/utils/axios'
 
-const FIRST_BATCH_QUERY = gql`
+const FIRST_BATCH_QUERY = `
   query events($blockNumber: BlockWhereInput!, $first: Int!) {
     events: eventsConnection(
       first: $first
@@ -103,7 +103,7 @@ const FIRST_BATCH_QUERY = gql`
     }
   }
 `
-const NEXT_BATCH_QUERY = gql`
+const NEXT_BATCH_QUERY = `
   query events($blockNumber: BlockWhereInput!, $first: Int!, $after: String!) {
     events: eventsConnection(
       first: $first
@@ -160,15 +160,6 @@ export default {
       forceLoad: false,
     }
   },
-  computed: {
-    queryToExecute() {
-      if (this.currentPage === 1) {
-        return FIRST_BATCH_QUERY
-      } else {
-        return NEXT_BATCH_QUERY
-      }
-    },
-  },
   watch: {
     currentPage() {
       if (this.currentPage === 1) {
@@ -177,7 +168,6 @@ export default {
           this.loading = true // set loading to true before refetching
           this.forceLoad = true
           setTimeout(() => {
-            this.$apollo.queries.events.refetch()
             this.forceLoad = false
           }, 100)
         }
@@ -185,63 +175,61 @@ export default {
       } else {
         BlockTimeout.removeCallback(this.updateData)
       }
+      this.updateData()
+    },
+    perPage() {
+      this.updateData()
     },
   },
   created() {
+    this.updateData()
     BlockTimeout.addCallback(this.updateData)
   },
   destroyed() {
     BlockTimeout.removeCallback(this.updateData)
   },
   methods: {
-    updateData() {
-      this.$apollo.queries.events.refetch()
+    async updateData() {
+      try {
+        const response = await axiosInstance.post('', {
+          query: this.currentPage === 1 ? FIRST_BATCH_QUERY : NEXT_BATCH_QUERY,
+          variables: {
+            blockNumber: this.filter
+              ? { height_eq: parseInt(this.filter) }
+              : {},
+            first: this.perPage,
+            after: ((this.currentPage - 1) * this.perPage).toString(),
+          },
+        })
+        const data = response.data.data
+        const dataArr = []
+        if (data.events.edges) {
+          for (let idx = 0; idx < data.events.edges.length; idx++) {
+            dataArr.push(data.events.edges[idx].node)
+          }
+          data.events = dataArr
+          this.events = dataArr
+        }
+        this.events.forEach((event) => {
+          event.block_id = event.block.height
+          event.extrinsic.block_id = event.extrinsic.block.height
+        })
+        this.totalRows = this.filter ? this.events.length : this.nEvents
+        this.nEvents = data.totalEvents[0].count
+        this.totalRows = this.nEvents
+        this.loading = false
+      } catch (error) {
+        this.setPerPage(50)
+        this.$bvToast.toast(`Exceeds the size limit`, {
+          title: 'Encountered an Error',
+          variant: 'danger',
+          autoHideDelay: 5000,
+          appendToast: false,
+        })
+      }
     },
     setPerPage(value) {
       this.perPage = value
-    },
-  },
-  apollo: {
-    events: {
-      query: function () {
-        return this.queryToExecute
-      },
-      variables() {
-        return {
-          blockNumber: this.filter ? { height_eq: parseInt(this.filter) } : {},
-          first: this.perPage,
-          after: ((this.currentPage - 1) * this.perPage).toString(),
-        }
-      },
-      fetchPolicy: 'network-only',
-      result({ data, error }) {
-        if (error) {
-          this.setPerPage(50)
-          this.$bvToast.toast(`Exceeds the size limit`, {
-            title: 'Encountered an Error',
-            variant: 'danger',
-            autoHideDelay: 5000,
-            appendToast: false,
-          })
-        } else {
-          const dataArr = []
-          if (data.events.edges) {
-            for (let idx = 0; idx < data.events.edges.length; idx++) {
-              dataArr.push(data.events.edges[idx].node)
-            }
-            data.events = dataArr
-            this.events = dataArr
-          }
-          this.events.forEach((event) => {
-            event.block_id = event.block.height
-            event.extrinsic.block_id = event.extrinsic.block.height
-          })
-          this.totalRows = this.filter ? this.events.length : this.nEvents
-          this.nEvents = data.totalEvents[0].count
-          this.totalRows = this.nEvents
-          this.loading = false
-        }
-      },
     },
   },
 }

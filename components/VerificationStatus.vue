@@ -35,9 +35,10 @@
     </b-alert>
   </div>
 </template>
+
 <script>
-import { gql } from 'graphql-tag'
 import BlockTimeout from '@/utils/polling.js'
+import axiosInstance from '~/utils/axios'
 
 export default {
   props: {
@@ -62,32 +63,27 @@ export default {
     BlockTimeout.removeCallback(this.updateData)
   },
   methods: {
-    updateData() {
-      this.$apollo.queries.contract_verification_request.refetch()
-    },
-  },
-  apollo: {
-    contract_verification_request: {
-      query: gql`
-        query contract_verification_request($id: String!) {
-          contract_verification_request(where: { id: { _eq: $id } }) {
-            contract_id
-            status
-            error_type
-          }
-        }
-      `,
-      variables() {
-        return {
-          id: this.id ? this.id : '',
-        }
-      },
-      fetchPolicy: 'network-only',
-      result({ data }) {
+    async updateData() {
+      try {
+        const response = await axiosInstance.post('', {
+          query: `
+            query contract_verification_request($id: String!) {
+              contract_verification_request(where: { id: { _eq: $id } }) {
+                contract_id
+                status
+                error_type
+              }
+            }
+          `,
+          variables: {
+            id: this.id ? this.id : '',
+          },
+        })
+        const data = response.data.data
         if (data.contract_verification_request[0]) {
           this.request = data.contract_verification_request[0]
         }
-      },
+      } catch (error) {}
     },
   },
 }

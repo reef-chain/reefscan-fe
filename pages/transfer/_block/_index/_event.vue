@@ -12,9 +12,9 @@
   </div>
 </template>
 <script>
-import { gql } from 'graphql-tag'
 import Loading from '@/components/Loading.vue'
 import commonMixin from '@/mixins/commonMixin.js'
+import axiosInstance from '~/utils/axios'
 
 export default {
   components: {
@@ -49,9 +49,12 @@ export default {
       this.eventIndex = this.$route.params.event
     },
   },
-  apollo: {
-    transfers: {
-      query: gql`
+  created() {
+    this.updateData()
+  },
+  methods: {
+    async updateData() {
+      const TRANSFERS_QUERY = `
         query transfers($block: Int!, $index: Int!, $eventIndex: Int!) {
           transfers(
             where: {
@@ -96,19 +99,17 @@ export default {
             feeAmount
           }
         }
-      `,
-      skip() {
-        return !this.blockHeight || !this.extrinsicIndex
-      },
-      variables() {
-        return {
-          block: parseInt(this.blockHeight),
-          index: parseInt(this.extrinsicIndex),
-          eventIndex: parseInt(this.eventIndex),
-        }
-      },
-      fetchPolicy: 'network-only',
-      result({ data }) {
+      `
+      try {
+        const response = await axiosInstance.post('', {
+          query: TRANSFERS_QUERY,
+          variables: {
+            block: parseInt(this.blockHeight),
+            index: parseInt(this.extrinsicIndex),
+            eventIndex: parseInt(this.eventIndex),
+          },
+        })
+        const data = response.data.data
         if (data && data.transfers) {
           this.transfer = data.transfers.find((transfer) => {
             return (
@@ -154,7 +155,7 @@ export default {
           }
         }
         this.loading = false
-      },
+      } catch (error) {}
     },
   },
 }

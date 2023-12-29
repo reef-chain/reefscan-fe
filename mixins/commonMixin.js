@@ -1,10 +1,10 @@
 import { hexToU8a, isHex } from '@polkadot/util'
 import { BigNumber } from 'bignumber.js'
-import { gql } from 'graphql-tag'
 import { decodeAddress, encodeAddress } from '@polkadot/keyring'
 import moment from 'moment'
 import { utils } from 'ethers'
 import { network } from '@/frontend.config.js'
+import axiosInstance from '~/utils/axios'
 
 const isTimestamp = (timestampOrDateString) => {
   return !timestampOrDateString.toString().includes('-')
@@ -149,15 +149,14 @@ export default {
       }
       // 0xadb2179b1666fef3b56a5762c3db0152b2a0a7f3d4b47737a355262609d867b9
       if (input.length === 66 && input.startsWith('0x')) {
-        const client = this.$apollo.provider.defaultClient
-        const query = gql`
+        const query = `
           query block {
             blocks(limit: 1, where: {hash_eq: "${input}"}) {
               id
             }
           }
         `
-        const response = await client.query({ query })
+        const response = (await axiosInstance.post('', { query })).data
         return response.data.blocks.length > 0
       }
       return false
@@ -169,8 +168,7 @@ export default {
       }
       // 0x3eab8af8321eb77e425396d029486739b7563965a4052211d5076a9e80f6010e
       if (input.length === 66 && input.startsWith('0x')) {
-        const client = this.$apollo.provider.defaultClient
-        const query = gql`
+        const query = `
           query extrinsic {
             extrinsics(limit: 1, where: {hash_eq: "${input}"}) {
               block {
@@ -179,7 +177,7 @@ export default {
             }
           }
         `
-        const response = await client.query({ query })
+        const response = (await axiosInstance.post('', { query })).data
         return response.data.extrinsics.length > 0
       }
       return false
@@ -218,15 +216,14 @@ export default {
       if (!this.isEvmAddress(address)) {
         return false
       }
-      const client = this.$apollo.provider.defaultClient
-      const query = gql`
+      const query = `
           query contract {
             contracts(limit: 1, where: {id_eq: "${address}"}) {
               id
             }
           }
         `
-      const response = await client.query({ query })
+      const response = (await axiosInstance.post('', { query })).data
       if (response.data && response.data.contracts) {
         if (response.data.contracts.length > 0) {
           return `contract/${response.data.contracts[0].id}`
@@ -247,15 +244,14 @@ export default {
       if (!this.isEvmAddress(input)) {
         return false
       }
-      const client = this.$apollo.provider.defaultClient
-      const query = gql`
+      const query = `
           query account {
             accounts(limit: 1, where: {evmAddress_eq: "${input}"}) {
               id
             }
           }
         `
-      const response = await client.query({ query })
+      const response = (await axiosInstance.post('', { query })).data
       if (response.data && response.data.accounts) {
         if (response.data.accounts.length > 0) {
           return response.data.accounts[0].id

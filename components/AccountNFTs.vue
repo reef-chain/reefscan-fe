@@ -56,39 +56,14 @@
 </template>
 
 <script>
-import { gql } from 'graphql-tag'
 import JsonCSV from 'vue-json-csv'
+import axiosInstance from '@/utils/axios'
 import commonMixin from '@/mixins/commonMixin.js'
 import Loading from '@/components/Loading.vue'
 import { paginationOptions } from '@/frontend.config.js'
 import Input from '@/components/Input'
 import tableUtils from '@/mixins/tableUtils'
 import BlockTimeout from '@/utils/polling.js'
-
-const GQL_QUERY = gql`
-  query signer_nfts($accountId: String) {
-    tokenHolders(
-      orderBy: balance_DESC
-      limit: 199
-      where: {
-        AND: {
-          nftId_isNull: false
-          token: { id_isNull: false }
-          signer: { id_eq: $accountId }
-          balance_gt: "0"
-        }
-        type_eq: Account
-      }
-    ) {
-      token {
-        id
-        type
-      }
-      balance
-      nftId
-    }
-  }
-`
 
 export default {
   components: {
@@ -139,7 +114,6 @@ export default {
     },
   },
   created() {
-    // force fetch the latest data
     this.updateData()
     BlockTimeout.addCallback(this.updateData)
   },
@@ -151,40 +125,53 @@ export default {
       localStorage.paginationOptions = num
       this.perPage = parseInt(num)
     },
-    updateData() {
-      this.$apollo.queries.tokenHolders.refetch()
+    async updateData() {
+      try {
+        const response = await axiosInstance.post('', {
+          query: `
+            query signer_nfts($accountId: String) {
+              tokenHolders(
+                orderBy: balance_DESC
+                limit: 199
+                where: {
+                  AND: {
+                    nftId_isNull: false
+                    token: { id_isNull: false }
+                    signer: { id_eq: $accountId }
+                    balance_gt: "0"
+                  }
+                  type_eq: Account
+                }
+              ) {
+                token {
+                  id
+                  type
+                }
+                balance
+                nftId
+              }
+            }
+          `,
+          variables: {
+            accountId: this.accountId,
+          },
+        })
+
+        this.balances = response.data.data.tokenHolders
+        this.totalRows = this.balances.length
+        this.loading = false
+      } catch (error) {
+        this.setPerPage(20)
+        this.$bvToast.toast(`Exceeds the size limit`, {
+          title: 'Encountered an Error',
+          variant: 'danger',
+          autoHideDelay: 5000,
+          appendToast: false,
+        })
+      }
     },
     setPerPage(value) {
       this.perPage = value
-    },
-  },
-  apollo: {
-    tokenHolders: {
-      query: GQL_QUERY,
-      variables() {
-        return {
-          accountId: this.accountId,
-        }
-      },
-      skip() {
-        return !this.accountId
-      },
-      fetchPolicy: 'network-only',
-      result({ data, error }) {
-        if (error) {
-          this.setPerPage(20)
-          this.$bvToast.toast(`Exceeds the size limit`, {
-            title: 'Encountered an Error',
-            variant: 'danger',
-            autoHideDelay: 5000,
-            appendToast: false,
-          })
-        } else {
-          this.balances = data.tokenHolders
-          this.totalRows = this.tokenHolders.length
-          this.loading = false
-        }
-      },
     },
   },
 }

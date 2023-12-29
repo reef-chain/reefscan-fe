@@ -55,7 +55,6 @@
 </template>
 
 <script>
-import { gql } from 'graphql-tag'
 import JsonCSV from 'vue-json-csv'
 import commonMixin from '@/mixins/commonMixin.js'
 import Loading from '@/components/Loading.vue'
@@ -63,6 +62,7 @@ import { paginationOptions } from '@/frontend.config.js'
 import Input from '@/components/Input'
 import tableUtils from '@/mixins/tableUtils'
 import BlockTimeout from '@/utils/polling.js'
+import axiosInstance from '~/utils/axios'
 
 export default {
   components: {
@@ -112,22 +112,15 @@ export default {
     },
   },
   created() {
+    this.updateData()
     BlockTimeout.addCallback(this.updateData)
   },
   destroyed() {
     BlockTimeout.removeCallback(this.updateData)
   },
   methods: {
-    updateData() {
-      this.$apollo.queries.staking_slash.refetch()
-    },
-    setPerPage(value) {
-      this.perPage = value
-    },
-  },
-  apollo: {
-    staking_slash: {
-      query: gql`
+    async updateData() {
+      const STAKING_SLASH_QUERY = `
         query staking_slash($accountId: String!) {
           staking_slash(
             order_by: { block_id: desc }
@@ -139,38 +132,37 @@ export default {
             timestamp
           }
         }
-      `,
-      variables() {
-        return {
-          accountId: this.accountId,
-        }
-      },
-      skip() {
-        return !this.accountId
-      },
-      fetchPolicy: 'network-only',
-      result({ data, error }) {
-        if (error) {
-          this.setPerPage(20)
-          this.$bvToast.toast(`Exceeds the size limit`, {
-            title: 'Encountered an Error',
-            variant: 'danger',
-            autoHideDelay: 5000,
-            appendToast: false,
-          })
-        } else {
-          this.stakingSlashes = data.staking_slash.map((event) => {
-            return {
-              block_id: event.block_id,
-              timestamp: event.timestamp,
-              timeago: event.timestamp,
-              amount: event.amount,
-            }
-          })
-          this.totalRows = this.stakingSlashes.length
-          this.loading = false
-        }
-      },
+      `
+      try {
+        const response = await axiosInstance.post('', {
+          query: STAKING_SLASH_QUERY,
+          variables: {
+            accountId: this.accountId,
+          },
+        })
+        const data = await response.data.data
+        this.stakingSlashes = data.staking_slash.map((event) => {
+          return {
+            block_id: event.block_id,
+            timestamp: event.timestamp,
+            timeago: event.timestamp,
+            amount: event.amount,
+          }
+        })
+        this.totalRows = this.stakingSlashes.length
+        this.loading = false
+      } catch (error) {
+        this.setPerPage(20)
+        this.$bvToast.toast(`Exceeds the size limit`, {
+          title: 'Encountered an Error',
+          variant: 'danger',
+          autoHideDelay: 5000,
+          appendToast: false,
+        })
+      }
+    },
+    setPerPage(value) {
+      this.perPage = value
     },
   },
 }

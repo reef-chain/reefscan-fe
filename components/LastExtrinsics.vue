@@ -19,10 +19,9 @@
         <Cell>Extrinsic</Cell>
       </THead>
       <Row v-for="(item, index) in extrinsics" :key="'item-' + index">
-        <Cell :link="`/extrinsic/${item.block_id}/${item.index}`"
-          ># {{ formatNumber(item.block_id) }}-{{ item.index }}</Cell
-        >
-
+        <Cell :link="`/extrinsic/${item.block_id}/${item.index}`">
+          # {{ formatNumber(item.block_id) }}-{{ item.index }}
+        </Cell>
         <Cell>{{ shortHash(item.hash) }}</Cell>
         <Cell>{{ item.section }} ➡ {{ item.method }}</Cell>
       </Row>
@@ -31,10 +30,10 @@
 </template>
 
 <script>
-import { gql } from 'graphql-tag'
 import commonMixin from '@/mixins/commonMixin.js'
 import Loading from '@/components/Loading.vue'
 import BlockTimeout from '@/utils/polling.js'
+import axiosInstance from '~/utils/axios'
 
 export default {
   components: {
@@ -56,67 +55,62 @@ export default {
     BlockTimeout.removeCallback(this.updateData)
   },
   methods: {
-    updateData() {
-      this.$apollo.queries.extrinsics.refetch()
+    async updateData() {
+      try {
+        const response = await axiosInstance.post('', {
+          query: `
+            query extrinsics {
+              extrinsics: extrinsicsConnection(
+                orderBy: id_DESC
+                first: 10
+                after: "1"
+              ) {
+                edges {
+                  node {
+                    id
+                    block {
+                      height
+                    }
+                    index
+                    type
+                    signer
+                    section
+                    method
+                    hash
+                  }
+                }
+              }
+            }
+          `,
+        })
+        const data = response.data.data
+        const dataArr = []
+        if (data.extrinsics.edges) {
+          for (let idx = 0; idx < data.extrinsics.edges.length; idx++) {
+            dataArr.push(data.extrinsics.edges[idx].node)
+          }
+          data.extrinsics = dataArr
+          this.extrinsics = dataArr
+        }
+        this.extrinsics = data.extrinsics.map((item) => {
+          return {
+            ...item,
+            block_id: item.block.height,
+          }
+        })
+        this.loading = false
+      } catch (error) {
+        this.setPerPage(20)
+        this.$bvToast.toast(`Exceeds the size limit`, {
+          title: 'Encountered an Error',
+          variant: 'danger',
+          autoHideDelay: 5000,
+          appendToast: false,
+        })
+      }
     },
     setPerPage(value) {
       this.perPage = value
-    },
-  },
-  apollo: {
-    extrinsics: {
-      query: gql`
-        query extrinsics {
-          extrinsics: extrinsicsConnection(
-            orderBy: id_DESC
-            first: 10
-            after: "1"
-          ) {
-            edges {
-              node {
-                id
-                block {
-                  height
-                }
-                index
-                type
-                signer
-                section
-                method
-                hash
-              }
-            }
-          }
-        }
-      `,
-      fetchPolicy: 'network-only',
-      result({ data, error }) {
-        if (error) {
-          this.setPerPage(20)
-          this.$bvToast.toast(`Exceeds the size limit`, {
-            title: 'Encountered an Error',
-            variant: 'danger',
-            autoHideDelay: 5000,
-            appendToast: false,
-          })
-        } else {
-          const dataArr = []
-          if (data.extrinsics.edges) {
-            for (let idx = 0; idx < data.extrinsics.edges.length; idx++) {
-              dataArr.push(data.extrinsics.edges[idx].node)
-            }
-            data.extrinsics = dataArr
-            this.extrinsics = dataArr
-          }
-          this.extrinsics = data.extrinsics.map((item) => {
-            return {
-              ...item,
-              block_id: item.block.height,
-            }
-          })
-          this.loading = false
-        }
-      },
     },
   },
 }

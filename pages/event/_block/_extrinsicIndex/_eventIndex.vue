@@ -12,10 +12,10 @@
   </div>
 </template>
 <script>
-import { gql } from 'graphql-tag'
 import Loading from '@/components/Loading.vue'
 import commonMixin from '@/mixins/commonMixin.js'
 import Event from '@/components/Event.vue'
+import axiosInstance from '~/utils/axios'
 
 export default {
   components: {
@@ -49,65 +49,67 @@ export default {
       this.blockId = this.$route.params.block
       this.extrinsicIndex = this.$route.params.extrinsicIndex
       this.eventIndex = this.$route.params.eventIndex
+      this.updateData()
     },
   },
-  apollo: {
-    events: {
-      query: gql`
-        query events(
-          $block_id: Int!
-          $extrinsic_index: Int!
-          $event_index: Int!
-        ) {
-          events(
-            where: {
-              block: { height_eq: $block_id }
-              index_eq: $event_index
-              extrinsic: { index_eq: $extrinsic_index }
-            }
-            limit: 1
-          ) {
-            id
-            block {
-              height
-            }
-            extrinsic {
-              id
-              block {
-                height
+  created() {
+    this.updateData()
+  },
+  methods: {
+    async updateData() {
+      try {
+        const response = await axiosInstance.post('', {
+          query: `
+            query events(
+              $block_id: Int!
+              $extrinsic_index: Int!
+              $event_index: Int!
+            ) {
+              events(
+                where: {
+                  block: { height_eq: $block_id }
+                  index_eq: $event_index
+                  extrinsic: { index_eq: $extrinsic_index }
+                }
+                limit: 1
+              ) {
+                id
+                block {
+                  height
+                }
+                extrinsic {
+                  id
+                  block {
+                    height
+                  }
+                  index
+                }
+                index
+                data
+                method
+                phase
+                section
+                timestamp
               }
-              index
             }
-            index
-            data
-            method
-            phase
-            section
-            timestamp
-          }
-        }
-      `,
-      skip() {
-        return !this.blockId || !this.extrinsicIndex || !this.eventIndex
-      },
-      variables() {
-        return {
-          block_id: parseInt(this.blockId),
-          extrinsic_index: parseInt(this.extrinsicIndex),
-          event_index: parseInt(this.eventIndex),
-        }
-      },
-      result({ data }) {
-        try {
-          this.parsedEvent = data?.events[0]
+          `,
+          variables: {
+            block_id: parseInt(this.blockId),
+            extrinsic_index: parseInt(this.extrinsicIndex),
+            event_index: parseInt(this.eventIndex),
+          },
+        })
+
+        const data = response.data.data
+        if (data && data.events && data.events[0]) {
+          this.parsedEvent = data.events[0]
           this.parsedEvent.block_id = this.parsedEvent.block.height
           this.parsedEvent.extrinsic.block_id =
             this.parsedEvent.extrinsic.block.height
-          this.loading = false
-        } catch (error) {
-          this.loading = false
         }
-      },
+
+        this.loading = false
+      } catch (error) {}
     },
   },
 }

@@ -12,9 +12,9 @@
   </div>
 </template>
 <script>
-import { gql } from 'graphql-tag'
 import Loading from '@/components/Loading.vue'
 import commonMixin from '@/mixins/commonMixin.js'
+import axiosInstance from '~/utils/axios'
 
 export default {
   components: {
@@ -43,51 +43,52 @@ export default {
   watch: {
     $route() {
       this.blockHash = this.$route.params.hash
+      this.updateData()
     },
   },
-  apollo: {
-    extrinsics: {
-      query: gql`
-        query extrinsics($hash: String!) {
-          extrinsics(where: { hash_eq: $hash }, limit: 1) {
-            id
-            block {
-              height
+  created() {
+    this.updateData()
+  },
+  methods: {
+    async updateData() {
+      try {
+        const response = await axiosInstance.post('', {
+          query: `
+            query extrinsics($hash: String!) {
+              extrinsics(where: { hash_eq: $hash }, limit: 1) {
+                id
+                block {
+                  height
+                }
+                index
+                signer
+                section
+                method
+                args
+                hash
+                docs
+                type
+                timestamp
+                errorMessage
+                signedData
+              }
             }
-            index
-            signer
-            section
-            method
-            args
-            hash
-            docs
-            type
-            timestamp
-            errorMessage
-            signedData
-          }
-        }
-      `,
-      skip() {
-        return !this.blockHash
-      },
-      variables() {
-        return {
-          hash: this.blockHash,
-        }
-      },
-      fetchPolicy: 'network-only',
-      result({ data }) {
-        try {
+          `,
+          variables: {
+            hash: this.blockHash,
+          },
+        })
+
+        const data = response.data.data
+        if (data.extrinsics[0]) {
           this.parsedExtrinsic = data.extrinsics[0]
           this.parsedExtrinsic.block_id = this.parsedExtrinsic.block.height
           this.parsedExtrinsic.error_message = this.parsedExtrinsic.errorMessage
           this.parsedExtrinsic.signed_data = this.parsedExtrinsic.signedData
-          this.loading = false
-        } catch (error) {
-          this.loading = false
         }
-      },
+
+        this.loading = false
+      } catch (error) {}
     },
   },
 }

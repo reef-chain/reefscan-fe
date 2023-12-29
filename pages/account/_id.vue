@@ -215,7 +215,6 @@
   </div>
 </template>
 <script>
-import { gql } from 'graphql-tag'
 import ReefIdenticon from '@/components/ReefIdenticon.vue'
 import Loading from '@/components/Loading.vue'
 import commonMixin from '@/mixins/commonMixin.js'
@@ -226,6 +225,7 @@ import AccountTransfers from '@/components/AccountTransfers.vue'
 // import StakingSlashes from '@/components/StakingSlashes.vue'
 // import AccountTokenBalances from '@/components/AccountTokenBalances.vue'
 import BlockTimeout from '@/utils/polling.js'
+import axiosInstance from '~/utils/axios'
 
 export default {
   components: {
@@ -271,13 +271,8 @@ export default {
     BlockTimeout.removeCallback(this.updateData)
   },
   methods: {
-    updateData() {
-      this.$apollo.queries.accounts.refetch()
-    },
-  },
-  apollo: {
-    accounts: {
-      query: gql`
+    async updateData() {
+      const query = `
         query account($address: String!) {
           accounts(
             where: {
@@ -305,14 +300,16 @@ export default {
             }
           }
         }
-      `,
-      variables() {
-        return {
-          address: this.accountId,
-        }
-      },
-      fetchPolicy: 'network-only',
-      result({ data }) {
+      `
+      const variables = {
+        address: this.accountId,
+      }
+      try {
+        const response = await axiosInstance.post('', {
+          query,
+          variables,
+        })
+        const data = response.data.data
         if (data && data.accounts && data.accounts.length > 0) {
           this.parsedAccount = data.accounts[0]
           this.parsedAccount = {
@@ -334,7 +331,7 @@ export default {
           })
         }
         this.loading = false
-      },
+      } catch (error) {}
     },
   },
 }

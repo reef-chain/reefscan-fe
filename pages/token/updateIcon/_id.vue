@@ -75,7 +75,6 @@ import { validationMixin } from 'vuelidate'
 // eslint-disable-next-line no-unused-vars
 import { WsProvider } from '@polkadot/api'
 import { Provider, Signer } from '@reef-defi/evm-provider'
-import { gql } from 'graphql-tag'
 import {
   web3Accounts,
   web3Enable,
@@ -84,6 +83,7 @@ import {
 import { encodeAddress } from '@polkadot/keyring'
 import commonMixin from '@/mixins/commonMixin.js'
 import { network } from '@/frontend.config.js'
+import axiosInstance from '~/utils/axios'
 
 function readFileAsBase64(file) {
   return new Promise((resolve, reject) => {
@@ -186,6 +186,9 @@ export default {
       }
     },
   },
+  created() {
+    this.updateData()
+  },
   methods: {
     validateState(name) {
       const { $dirty, $error } = this.$v[name]
@@ -276,15 +279,14 @@ export default {
       }
     },
     async getEVMAddress(accountId) {
-      const client = this.$apolloProvider.defaultClient
-      const query = gql`
+      const query = `
         query account {
           accounts(where: {id_containsInsensitive: "${accountId}"}, limit: 1) {
             evmAddress
           }
         }
       `
-      const response = await client.query({ query })
+      const response = (await axiosInstance.post('', { query })).data
       if (response.data.account && response.data.account.length > 0) {
         const evmAddress = response.data.account[0].evmAddress
         if (evmAddress) {
@@ -296,10 +298,8 @@ export default {
         return ''
       }
     },
-  },
-  apollo: {
-    contractById: {
-      query: gql`
+    async updateData() {
+      const CONTRACT_QUERY = `
         query contractById($address: String = "") {
           contractById(id: $address) {
             signer {
@@ -307,14 +307,15 @@ export default {
             }
           }
         }
-      `,
-      variables() {
-        return {
-          address: this.$route.params.id,
-        }
-      },
-      fetchPolicy: 'network-only',
-      async result({ data }) {
+      `
+      try {
+        const response = await axiosInstance.post('', {
+          query: CONTRACT_QUERY,
+          variables: {
+            address: this.$route.params.id,
+          },
+        })
+        const data = response.data.data
         if (data) {
           this.addressOfOwner = data.contractById.signer.id
           await web3Enable('Reefscan')
@@ -360,7 +361,7 @@ export default {
           }
           this.loading = false
         }
-      },
+      } catch (error) {}
     },
   },
 }

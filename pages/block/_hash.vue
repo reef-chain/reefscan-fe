@@ -18,10 +18,10 @@
   </div>
 </template>
 <script>
-import { gql } from 'graphql-tag'
 import Loading from '@/components/Loading.vue'
 import Block from '@/components/Block.vue'
 import BlockTimeout from '@/utils/polling.js'
+import axiosInstance from '~/utils/axios'
 
 export default {
   components: {
@@ -64,15 +64,8 @@ export default {
     BlockTimeout.removeCallback(this.updateData)
   },
   methods: {
-    updateData() {
-      this.$apollo.queries.blocks.refetch()
-      this.$apollo.queries.events.refetch()
-      this.$apollo.queries.extrinsics.refetch()
-    },
-  },
-  apollo: {
-    blocks: {
-      query: gql`
+    async updateData() {
+      const BLOCKS_QUERY = `
         query blocks($block_hash: String!) {
           blocks(where: { hash_eq: $block_hash }, limit: 1) {
             author
@@ -86,23 +79,12 @@ export default {
             timestamp
           }
         }
-      `,
-      variables() {
-        return {
-          block_hash: this.blockHash,
-        }
-      },
-      fetchPolicy: 'network-only',
-      result({ data }) {
-        if (data.blocks[0]) {
-          this.blockNumber = Number(data.blocks[0].height)
-          this.parsedBlock = data.blocks[0]
-        }
-        this.loading = false
-      },
-    },
-    events: {
-      query: gql`
+      `
+      const BLOCKS_VARIABLES = {
+        block_hash: this.blockHash,
+      }
+
+      const EVENTS_QUERY = `
         query event($block_height: Int!) {
           events(where: { block: { height_eq: $block_height } }, limit: 50) {
             data
@@ -115,26 +97,8 @@ export default {
             phase
           }
         }
-      `,
-      skip() {
-        return !this.blockNumber
-      },
-      variables() {
-        return {
-          block_height: this.blockNumber,
-        }
-      },
-      fetchPolicy: 'network-only',
-      result({ data }) {
-        data.events = data.events.map((event) => {
-          event.block_id = event.block.height
-          return event
-        })
-        this.parsedEvents = data.events
-      },
-    },
-    extrinsics: {
-      query: gql`
+      `
+      const EXTRINSICS_QUERY = `
         query extrinsic($block_height: Int!) {
           extrinsics(
             where: { block: { height_eq: $block_height } }
@@ -155,24 +119,55 @@ export default {
             status
           }
         }
-      `,
-      skip() {
-        return !this.blockNumber
-      },
-      variables() {
-        return {
-          block_height: this.blockNumber,
-        }
-      },
-      fetchPolicy: 'network-only',
-      result({ data }) {
-        data.extrinsics = data.extrinsics.map((extrinsic) => {
-          extrinsic.block_id = extrinsic.block.height
-          extrinsic.success = extrinsic.status === 'success'
-          return extrinsic
+      `
+      try {
+        const blocksResponse = await axiosInstance.post('', {
+          query: BLOCKS_QUERY,
+          variables: BLOCKS_VARIABLES,
         })
-        this.parsedExtrinsics = data.extrinsics
-      },
+        const blocksData = blocksResponse.data.data
+        if (blocksData.blocks[0]) {
+          this.blockNumber = Number(blocksData.blocks[0].height)
+          this.parsedBlock = blocksData.blocks[0]
+        }
+      } catch (error) {}
+      try {
+        if (this.blockNumber) {
+          const EXTRINSICS_VARIABLES = {
+            block_height: this.blockNumber,
+          }
+          const EVENTS_VARIABLES = {
+            block_height: this.blockNumber,
+          }
+          const [eventsResponse, extrinsicsResponse] = await Promise.all([
+            axiosInstance.post('', {
+              query: EVENTS_QUERY,
+              variables: EVENTS_VARIABLES,
+            }),
+            axiosInstance.post('', {
+              query: EXTRINSICS_QUERY,
+              variables: EXTRINSICS_VARIABLES,
+            }),
+          ])
+          const eventsData = eventsResponse.data.data
+          eventsData.events = eventsData.events.map((event) => {
+            event.block_id = event.block.height
+            return event
+          })
+          this.parsedEvents = eventsData.events
+
+          const extrinsicsData = extrinsicsResponse.data.data
+          extrinsicsData.extrinsics = extrinsicsData.extrinsics.map(
+            (extrinsic) => {
+              extrinsic.block_id = extrinsic.block.height
+              extrinsic.success = extrinsic.status === 'success'
+              return extrinsic
+            }
+          )
+          this.parsedExtrinsics = extrinsicsData.extrinsics
+          this.loading = false
+        }
+      } catch (error) {}
     },
   },
 }
