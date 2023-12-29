@@ -7,7 +7,7 @@
             <ul class="list-inline">
               <li class="list-inline-item">
                 <nuxt-link to="/verifyContract">Verify Contract</nuxt-link>
-                <span>v1.0.2</span>
+                <span>v1.0.3</span>
               </li>
             </ul>
           </div>
