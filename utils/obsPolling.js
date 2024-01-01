@@ -1,12 +1,14 @@
 const ObsPolling = {
+  subscriber: undefined,
   addCallback(obs$, callback) {
-    obs$.subscribe((val) => {
+    this.subscriber = obs$.subscribe((val) => {
       console.log(val) // todo anukul remove this later
       callback()
     })
   },
-  removeCallback(obs$) {
-    obs$.unsubscribe()
+  removeCallback() {
+    this.subscriber.unsubscribe()
   },
 }
+
 export default ObsPolling
