@@ -215,6 +215,7 @@
   </div>
 </template>
 <script>
+import { network as nw } from '@reef-chain/util-lib'
 import ReefIdenticon from '@/components/ReefIdenticon.vue'
 import Loading from '@/components/Loading.vue'
 import commonMixin from '@/mixins/commonMixin.js'
@@ -224,8 +225,8 @@ import AccountTransfers from '@/components/AccountTransfers.vue'
 // import StakingRewards from '@/components/StakingRewards.vue'
 // import StakingSlashes from '@/components/StakingSlashes.vue'
 // import AccountTokenBalances from '@/components/AccountTokenBalances.vue'
-import BlockTimeout from '@/utils/polling.js'
 import axiosInstance from '~/utils/axios'
+import ObsPolling from '~/utils/obsPolling'
 
 export default {
   components: {
@@ -265,10 +266,15 @@ export default {
   },
   created() {
     this.updateData()
-    BlockTimeout.addCallback(this.updateData)
+    ObsPolling.addCallback(
+      nw.getLatestBlockAccountUpdates$([this.accountId]),
+      this.updateData
+    )
   },
   destroyed() {
-    BlockTimeout.removeCallback(this.updateData)
+    ObsPolling.removeCallback(
+      nw.getLatestBlockAccountUpdates$([this.accountId])
+    )
   },
   methods: {
     async updateData() {
