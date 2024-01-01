@@ -3,6 +3,9 @@ import { network } from './frontend.config.js'
 export default {
   // Disable server-side rendering: https://go.nuxtjs.dev/ssr-mode
   ssr: false,
+  router: {
+    middleware: 'network',
+  },
 
   // Target: https://go.nuxtjs.dev/config-target
   target: 'static',
@@ -211,8 +214,13 @@ export default {
         },
         {
           test: /node_modules\/@reef-chain\/util-lib\/dist\/util-lib\.mjs/,
-          exclude: /node_modules\/@reef-chain\/util-lib\/dist\/util-lib\.mjs/,
-          loader: require.resolve('@open-wc/webpack-import-meta-loader'),
+          use: {
+            loader: 'babel-loader',
+            options: {
+              presets: ['@babel/preset-env'],
+              plugins: ['@babel/plugin-proposal-optional-chaining'],
+            },
+          },
         },
         {
           include: (filePath) => {
