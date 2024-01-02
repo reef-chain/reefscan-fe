@@ -314,7 +314,7 @@ export default {
     )
   },
   destroyed() {
-    ObsPolling.removeCallback(nw.getLatestBlockAccountUpdates$([]))
+    ObsPolling.removeCallback(this.updateData)
   },
   methods: {
     async updateData() {
