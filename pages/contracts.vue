@@ -209,7 +209,7 @@ export default {
   created() {
     this.updateData()
     ObsPolling.addCallback(
-      nw.getLatestBlockAccountUpdates$([]),
+      nw.getLatestBlockContractEvents$([]),
       this.updateData
     )
   },
