@@ -174,6 +174,7 @@
   </div>
 </template>
 <script>
+import { network as nw } from '@reef-chain/util-lib'
 import JsonCSV from 'vue-json-csv'
 import ReefIdenticon from '@/components/ReefIdenticon.vue'
 import Search from '@/components/Search'
@@ -181,6 +182,7 @@ import Loading from '@/components/Loading.vue'
 import commonMixin from '@/mixins/commonMixin.js'
 import BlockTimeout from '@/utils/polling.js'
 import axiosInstance from '~/utils/axios'
+import ObsPolling from '~/utils/obsPolling'
 
 const FIRST_BATCH_QUERY = `
   query account($first: Int!, $where: AccountWhereInput) {
@@ -304,10 +306,13 @@ export default {
     if (this.$cookies.get('favorites')) {
       this.favorites = this.$cookies.get('favorites')
     }
-    BlockTimeout.addCallback(this.updateData)
+    ObsPolling.addCallback(
+      nw.getLatestBlockAccountUpdates$([]),
+      this.updateData
+    )
   },
-  beforeDestroy() {
-    BlockTimeout.removeCallback(this.updateData)
+  destroyed() {
+    ObsPolling.removeCallback(nw.getLatestBlockAccountUpdates$([]))
   },
   methods: {
     async updateData() {
