@@ -47,12 +47,9 @@
 </template>
 
 <script>
-import { Provider } from '@reef-defi/evm-provider'
-import { WsProvider } from '@polkadot/api'
+import { reefState } from '@reef-chain/util-lib'
 import commonMixin from '@/mixins/commonMixin.js'
 import Loading from '@/components/Loading.vue'
-import BlockTimeout from '@/utils/polling.js'
-import { network } from '~/frontend.config'
 import { EventBus } from '~/utils/eventBus'
 import axiosInstance from '~/utils/axios'
 
@@ -68,24 +65,22 @@ export default {
       callbackId: null,
       provider: null,
       lastBlockOnChain: null,
+      unsubscribe: null,
     }
   },
-  async created() {
+  created() {
     this.updateData()
-    BlockTimeout.addCallback(this.updateData)
-    const provider = new Provider({
-      provider: new WsProvider(network.nodeWs),
+    reefState.selectedProvider$.subscribe(async (provider) => {
+      this.unsubscribe = await provider.api.rpc.chain.subscribeNewHeads(
+        (header) => {
+          this.lastBlockOnChain = header.number
+          this.updateData()
+        }
+      )
     })
-    await provider.api.isReady
-    this.provider = provider
-    try {
-      provider.api.rpc.chain.subscribeNewHeads((header) => {
-        this.lastBlockOnChain = `${header.number}`
-      })
-    } catch (error) {}
   },
   destroyed() {
-    BlockTimeout.removeCallback(this.updateData)
+    this.unsubscribe()
   },
   methods: {
     async updateData() {

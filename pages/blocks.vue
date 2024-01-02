@@ -140,6 +140,7 @@ export default {
       callbackId: null,
       previousPage: null,
       forceLoad: false,
+      unsubscribe: null,
     }
   },
   watch: {
