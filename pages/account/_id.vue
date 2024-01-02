@@ -272,9 +272,7 @@ export default {
     )
   },
   destroyed() {
-    ObsPolling.removeCallback(
-      nw.getLatestBlockAccountUpdates$([this.accountId])
-    )
+    ObsPolling.removeCallback(this.updateData)
   },
   methods: {
     async updateData() {

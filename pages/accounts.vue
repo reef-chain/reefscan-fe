@@ -294,7 +294,7 @@ export default {
           this.updateData
         )
       } else {
-        ObsPolling.removeCallback(nw.getLatestBlockAccountUpdates$([]))
+        ObsPolling.removeCallback(this.updateData)
       }
       this.updateData()
     },
