@@ -67,6 +67,7 @@
 </template>
 
 <script>
+import { reefState } from '@reef-chain/util-lib'
 import commonMixin from '@/mixins/commonMixin.js'
 import Search from '@/components/Search'
 import Loading from '@/components/Loading.vue'
@@ -163,11 +164,15 @@ export default {
     },
   },
   created() {
+    reefState.selectedProvider$.subscribe(async (provider) => {
+      this.unsubscribe = await provider.api.rpc.chain.subscribeNewHeads(() =>
+        this.updateData()
+      )
+    })
     this.updateData()
-    BlockTimeout.addCallback(this.updateData)
   },
   destroyed() {
-    BlockTimeout.removeCallback(this.updateData)
+    this.unsubscribe()
   },
   methods: {
     async updateData() {
