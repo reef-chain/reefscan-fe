@@ -122,6 +122,7 @@
 </template>
 
 <script>
+import { network as nw } from '@reef-chain/util-lib'
 import JsonCSV from 'vue-json-csv'
 import commonMixin from '@/mixins/commonMixin.js'
 import ReefIdenticon from '@/components/ReefIdenticon.vue'
@@ -129,8 +130,8 @@ import Loading from '@/components/Loading.vue'
 import { paginationOptions } from '@/frontend.config.js'
 import Input from '@/components/Input'
 import tableUtils from '@/mixins/tableUtils'
-import BlockTimeout from '@/utils/polling.js'
 import axiosInstance from '~/utils/axios'
+import ObsPolling from '~/utils/obsPolling'
 
 const GQL_QUERY = `
   query transfers($accountId: String!) {
@@ -237,12 +238,14 @@ export default {
     },
   },
   created() {
-    // force fetch the latest data
     this.updateData()
-    BlockTimeout.addCallback(this.updateData)
+    ObsPolling.addCallback(
+      nw.getLatestBlockAccountUpdates$([this.accountId]),
+      this.updateData
+    )
   },
   destroyed() {
-    BlockTimeout.removeCallback(this.updateData)
+    ObsPolling.removeCallback(this.updateData)
   },
   methods: {
     handleNumFields(num) {
