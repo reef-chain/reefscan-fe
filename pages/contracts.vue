@@ -98,12 +98,13 @@
 </template>
 
 <script>
+import { network as nw } from '@reef-chain/util-lib'
 import commonMixin from '@/mixins/commonMixin.js'
 import Loading from '@/components/Loading.vue'
 import Search from '@/components/Search'
 import { paginationOptions } from '@/frontend.config.js'
-import BlockTimeout from '@/utils/polling.js'
 import axiosInstance from '~/utils/axios'
+import ObsPolling from '~/utils/obsPolling'
 
 const FIRST_BATCH_QUERY = `
   query contract($where: ContractWhereInput!, $first: Int!) {
@@ -192,9 +193,12 @@ export default {
             this.forceLoad = false
           }, 100)
         }
-        BlockTimeout.addCallback(this.updateData)
+        ObsPolling.addCallback(
+          nw.getLatestBlockAccountUpdates$([]),
+          this.updateData
+        )
       } else {
-        BlockTimeout.removeCallback(this.updateData)
+        ObsPolling.removeCallback(this.updateData)
       }
       this.updateData()
     },
@@ -204,10 +208,13 @@ export default {
   },
   created() {
     this.updateData()
-    BlockTimeout.addCallback(this.updateData)
+    ObsPolling.addCallback(
+      nw.getLatestBlockAccountUpdates$([]),
+      this.updateData
+    )
   },
   destroyed() {
-    BlockTimeout.removeCallback(this.updateData)
+    ObsPolling.removeCallback(this.updateData)
   },
   methods: {
     async updateData() {
