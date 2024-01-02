@@ -180,7 +180,6 @@ import ReefIdenticon from '@/components/ReefIdenticon.vue'
 import Search from '@/components/Search'
 import Loading from '@/components/Loading.vue'
 import commonMixin from '@/mixins/commonMixin.js'
-import BlockTimeout from '@/utils/polling.js'
 import axiosInstance from '~/utils/axios'
 import ObsPolling from '~/utils/obsPolling'
 
@@ -290,9 +289,12 @@ export default {
             this.forceLoad = false
           }, 100)
         }
-        BlockTimeout.addCallback(this.updateData)
+        ObsPolling.addCallback(
+          nw.getLatestBlockAccountUpdates$([]),
+          this.updateData
+        )
       } else {
-        BlockTimeout.removeCallback(this.updateData)
+        ObsPolling.removeCallback(nw.getLatestBlockAccountUpdates$([]))
       }
       this.updateData()
     },
