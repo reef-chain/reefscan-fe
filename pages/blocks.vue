@@ -164,12 +164,12 @@ export default {
     },
   },
   created() {
+    this.updateData()
     reefState.selectedProvider$.subscribe(async (provider) => {
       this.unsubscribe = await provider.api.rpc.chain.subscribeNewHeads(() =>
         this.updateData()
       )
     })
-    this.updateData()
   },
   destroyed() {
     this.unsubscribe()
