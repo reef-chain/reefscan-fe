@@ -214,13 +214,21 @@ export default {
         },
         {
           test: /node_modules\/@reef-chain\/util-lib\/dist\/util-lib\.mjs/,
-          use: {
-            loader: 'babel-loader',
-            options: {
-              presets: ['@babel/preset-env'],
-              plugins: ['@babel/plugin-proposal-optional-chaining'],
+          use: [
+            {
+              loader: 'babel-loader',
+              options: {
+                presets: ['@babel/preset-env'],
+                plugins: ['@babel/plugin-proposal-optional-chaining'],
+                sourceMaps: false,
+                retainLines: false,
+                minified: true,
+              },
             },
-          },
+            {
+              loader: require.resolve('@open-wc/webpack-import-meta-loader'),
+            },
+          ],
         },
         {
           include: (filePath) => {
