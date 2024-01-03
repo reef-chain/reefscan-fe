@@ -177,7 +177,6 @@ import { network } from '@/frontend.config.js'
 import commonMixin from '@/mixins/commonMixin.js'
 import TokenHolders from '@/components/TokenHolders'
 import TokenTransfers from '@/components/TokenTransfers'
-import BlockTimeout from '@/utils/polling.js'
 import axiosInstance from '~/utils/axios'
 import { toIpfsReefGatewayLink } from '~/utils/ipfs'
 
@@ -241,10 +240,6 @@ export default {
   },
   created() {
     this.updateData()
-    BlockTimeout.addCallback(this.updateData)
-  },
-  destroyed() {
-    BlockTimeout.removeCallback(this.updateData)
   },
   methods: {
     async updateData() {
