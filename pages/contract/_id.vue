@@ -367,7 +367,6 @@ import commonMixin from '@/mixins/commonMixin.js'
 import { network } from '@/frontend.config.js'
 import FileExplorer from '@/components/FileExplorer'
 import File from '@/components/FileExplorer/File'
-import BlockTimeout from '@/utils/polling.js'
 import { toIpfsReefGatewayLink } from '~/utils/ipfs'
 import axiosInstance from '~/utils/axios'
 
@@ -473,10 +472,6 @@ export default {
   },
   created() {
     this.updateData()
-    BlockTimeout.addCallback(this.updateData)
-  },
-  destroyed() {
-    BlockTimeout.removeCallback(this.updateData)
   },
   methods: {
     toggleShowSolidityScanData() {
