@@ -3,7 +3,6 @@ const ObsPolling = {
   callbacks: [],
   addCallback(obs$, callback) {
     const subscriber = obs$.subscribe((val) => {
-      console.log(val) // todo anukul remove this later
       callback()
     })
     this.subscribers.push(subscriber)
