@@ -37,8 +37,9 @@
 </template>
 
 <script>
-import BlockTimeout from '@/utils/polling.js'
+import { network as nw } from '@reef-chain/util-lib'
 import axiosInstance from '~/utils/axios'
+import ObsPolling from '~/utils/obsPolling'
 
 export default {
   props: {
@@ -55,12 +56,14 @@ export default {
     }
   },
   created() {
-    // force fetch the latest data
     this.updateData()
-    BlockTimeout.addCallback(this.updateData)
+    ObsPolling.addCallback(
+      nw.getLatestBlockContractEvents$([this.id]),
+      this.updateData
+    )
   },
   destroyed() {
-    BlockTimeout.removeCallback(this.updateData)
+    ObsPolling.removeCallback(this.updateData)
   },
   methods: {
     async updateData() {

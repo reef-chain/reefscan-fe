@@ -102,10 +102,10 @@
 </template>
 
 <script>
+import { reefState } from '@reef-chain/util-lib'
 import { BigNumber } from 'bignumber.js'
 import commonMixin from '../mixins/commonMixin.js'
 import { network } from '../frontend.config.js'
-import BlockTimeout from '@/utils/polling.js'
 import axiosInstance from '~/utils/axios'
 
 export default {
@@ -125,12 +125,15 @@ export default {
     }
   },
   created() {
-    // force fetch the latest data
     this.updateData()
-    BlockTimeout.addCallback(this.updateData)
+    reefState.selectedProvider$.subscribe(async (provider) => {
+      this.unsubscribe = await provider.api.rpc.chain.subscribeNewHeads(() =>
+        this.updateData()
+      )
+    })
   },
   destroyed() {
-    BlockTimeout.removeCallback(this.updateData)
+    this.unsubscribe()
   },
   methods: {
     async updateData() {

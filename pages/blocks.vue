@@ -67,11 +67,11 @@
 </template>
 
 <script>
+import { reefState } from '@reef-chain/util-lib'
 import commonMixin from '@/mixins/commonMixin.js'
 import Search from '@/components/Search'
 import Loading from '@/components/Loading.vue'
 import { paginationOptions } from '@/frontend.config.js'
-import BlockTimeout from '@/utils/polling.js'
 import axiosInstance from '~/utils/axios'
 
 const NEXT_BATCH_QUERY = `
@@ -139,6 +139,7 @@ export default {
       callbackId: null,
       previousPage: null,
       forceLoad: false,
+      unsubscribe: null,
     }
   },
   watch: {
@@ -152,9 +153,13 @@ export default {
             this.forceLoad = false
           }, 100)
         }
-        BlockTimeout.addCallback(this.updateData)
+        reefState.selectedProvider$.subscribe(async (provider) => {
+          this.unsubscribe = await provider.api.rpc.chain.subscribeNewHeads(
+            () => this.updateData()
+          )
+        })
       } else {
-        BlockTimeout.removeCallback(this.updateData)
+        this.unsubscribe()
       }
       this.updateData()
     },
@@ -164,10 +169,14 @@ export default {
   },
   created() {
     this.updateData()
-    BlockTimeout.addCallback(this.updateData)
+    reefState.selectedProvider$.subscribe(async (provider) => {
+      this.unsubscribe = await provider.api.rpc.chain.subscribeNewHeads(() =>
+        this.updateData()
+      )
+    })
   },
   destroyed() {
-    BlockTimeout.removeCallback(this.updateData)
+    this.unsubscribe()
   },
   methods: {
     async updateData() {

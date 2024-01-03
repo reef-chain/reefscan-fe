@@ -28,7 +28,6 @@
 
 <script>
 import commonMixin from '@/mixins/commonMixin.js'
-import BlockTimeout from '@/utils/polling.js'
 import axiosInstance from '~/utils/axios'
 
 export default {
@@ -57,10 +56,6 @@ export default {
   },
   created() {
     this.updateData()
-    BlockTimeout.addCallback(this.updateData)
-  },
-  destroyed() {
-    BlockTimeout.removeCallback(this.updateData)
   },
   methods: {
     async updateData() {

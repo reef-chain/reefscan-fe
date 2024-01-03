@@ -54,7 +54,7 @@ export default {
         const response = await axiosInstance.post('', {
           query: `
             query transfers($hash: String!) {
-              transfers(where: { extrinsic: { hash_eq: $hash } }, limit: 1) {
+              transfers(where: { extrinsic: { hash_containsInsensitive: $hash } }, limit: 1) {
                 amount
                 denom
                 nftId

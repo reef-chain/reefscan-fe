@@ -32,9 +32,9 @@
 </template>
 
 <script>
+import { reefState } from '@reef-chain/util-lib'
 import commonMixin from '@/mixins/commonMixin.js'
 import Loading from '@/components/Loading.vue'
-import BlockTimeout from '@/utils/polling.js'
 import axiosInstance from '~/utils/axios'
 
 export default {
@@ -51,10 +51,17 @@ export default {
   },
   created() {
     this.updateData()
-    BlockTimeout.addCallback(this.updateData)
+    reefState.selectedProvider$.subscribe(async (provider) => {
+      this.unsubscribe = await provider.api.rpc.chain.subscribeNewHeads(
+        (header) => {
+          this.lastBlockOnChain = header.number
+          this.updateData()
+        }
+      )
+    })
   },
   destroyed() {
-    BlockTimeout.removeCallback(this.updateData)
+    this.unsubscribe()
   },
   methods: {
     async updateData() {

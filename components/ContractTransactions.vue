@@ -64,9 +64,10 @@
 </template>
 
 <script>
+import { network as nw } from '@reef-chain/util-lib'
 import commonMixin from '@/mixins/commonMixin.js'
-import BlockTimeout from '@/utils/polling.js'
 import axiosInstance from '~/utils/axios'
+import ObsPolling from '~/utils/obsPolling'
 
 const FIRST_BATCH_QUERY = `
   query evm_event_qry($contractAddress: String!, $first: Int!) {
@@ -145,12 +146,16 @@ export default {
     }
   },
   created() {
-    // force fetch
     this.updateData()
-    BlockTimeout.addCallback(this.updateData)
+    ObsPolling.addCallback(
+      nw.getLatestBlockContractEvents$([
+        this.toContractAddress(this.contractId),
+      ]),
+      this.updateData
+    )
   },
   destroyed() {
-    BlockTimeout.removeCallback(this.updateData)
+    ObsPolling.removeCallback(this.updateData)
   },
   methods: {
     async updateData() {
