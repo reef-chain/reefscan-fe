@@ -35,10 +35,11 @@
 </template>
 
 <script>
+import { network as nw } from '@reef-chain/util-lib'
 import commonMixin from '@/mixins/commonMixin.js'
 import ReefIdenticon from '@/components/ReefIdenticon.vue'
-import BlockTimeout from '@/utils/polling.js'
 import axiosInstance from '~/utils/axios'
+import ObsPolling from '~/utils/obsPolling'
 
 export default {
   components: {
@@ -71,10 +72,13 @@ export default {
   },
   created() {
     this.updateData()
-    BlockTimeout.addCallback(this.updateData)
+    ObsPolling.addCallback(
+      nw.getLatestBlockAccountUpdates$([]),
+      this.updateData
+    )
   },
   destroyed() {
-    BlockTimeout.removeCallback(this.updateData)
+    ObsPolling.removeCallback(this.updateData)
   },
   methods: {
     async updateData() {
