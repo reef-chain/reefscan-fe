@@ -299,9 +299,17 @@ export default {
           contract.extrinsic.block_id = contract.extrinsic.block.height
         })
         this.totalRows = this.filter ? this.contracts.length : this.nContracts
-        if (!this.forceLoad) this.loading = false
         let verifiedConstractsData = verifiedContractsResponse.data.data
-        if (this.currentPage !== 1) {
+        if (
+          this.currentPage === 1 &&
+          verifiedConstractsData.verifiedContracts.length === 0
+        ) {
+          const verifiedContractResponse = await axiosInstance.post('', {
+            query: VERIFIED_CONTRACTS_QUERY,
+            variables: getVerifiedContractsVariables(),
+          })
+          verifiedConstractsData = verifiedContractResponse.data.data
+        } else if (this.currentPage !== 1) {
           const verifiedContractResponse = await axiosInstance.post('', {
             query: VERIFIED_CONTRACTS_QUERY,
             variables: getVerifiedContractsVariables(),
@@ -320,6 +328,7 @@ export default {
         if (verifiedConstractsData.verifiedContracts.length) {
           this.$forceUpdate()
         }
+        if (!this.forceLoad) this.loading = false
         this.nContracts = totalContractsData.totalContracts[0].count
         this.totalRows = this.nContracts
       } catch (error) {
