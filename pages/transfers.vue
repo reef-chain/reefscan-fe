@@ -14,7 +14,7 @@
           <div v-if="loading" class="text-center py-4">
             <Loading />
           </div>
-          <Table v-else>
+          <Table v-else-if="!loading && transfers.length">
             <THead>
               <Cell>Transfer</Cell>
               <Cell>Extrinsic</Cell>
@@ -92,8 +92,10 @@
               </Cell>
             </Row>
           </Table>
-
-          <div class="list-view__pagination">
+          <div v-else class="py-4">
+            <div class="no-data-found">No data found</div>
+          </div>
+          <div v-if="transfers.length" class="list-view__pagination">
             <PerPage v-model="perPage" />
             <b-pagination
               v-model="currentPage"

@@ -14,7 +14,7 @@
           <div v-if="loading" class="text-center py-4">
             <Loading />
           </div>
-          <Table v-else>
+          <Table v-else-if="!loading && events.length">
             <THead>
               <Cell>Event</Cell>
               <Cell>Block</Cell>
@@ -46,8 +46,11 @@
               <Cell>{{ item.data }}</Cell>
             </Row>
           </Table>
+          <div v-else class="py-4">
+            <div class="no-data-found">No data found</div>
+          </div>
 
-          <div class="list-view__pagination">
+          <div v-if="events.length" class="list-view__pagination">
             <PerPage v-model="perPage" />
             <b-pagination
               v-model="currentPage"

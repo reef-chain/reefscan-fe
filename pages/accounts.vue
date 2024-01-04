@@ -25,7 +25,10 @@
           <div v-if="loading" class="text-center py-4">
             <Loading />
           </div>
-          <Table v-else class="accounts__table">
+          <Table
+            v-else-if="!loading && allAccounts.length"
+            class="accounts__table"
+          >
             <THead>
               <Cell align="center">Rank</Cell>
               <Cell>Account</Cell>
@@ -159,8 +162,11 @@
               </Cell>
             </Row>
           </Table>
+          <div v-else class="py-4">
+            <div class="no-data-found">No data found</div>
+          </div>
 
-          <div class="list-view__pagination">
+          <div v-if="allAccounts.length" class="list-view__pagination">
             <PerPage v-model="perPage" />
             <b-pagination
               v-model="currentPage"
@@ -513,6 +519,15 @@ export default {
     }
   }
 
+  .no-data-found {
+    font-size: 28px;
+    font-weight: 300;
+    color: #898e9c;
+    padding: 0 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
   .accounts__list {
     display: none;
 
