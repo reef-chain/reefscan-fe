@@ -298,6 +298,9 @@ export default {
       }
       this.updateData()
     },
+    filter() {
+      this.updateData()
+    },
     perPage() {
       this.updateData()
     },

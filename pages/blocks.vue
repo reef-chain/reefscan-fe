@@ -163,6 +163,9 @@ export default {
       }
       this.updateData()
     },
+    filter() {
+      this.updateData()
+    },
     perPage() {
       this.updateData()
     },
@@ -186,6 +189,8 @@ export default {
           variables: {
             where: this.isBlockNumber(this.filter)
               ? { height_eq: parseInt(this.filter) }
+              : (await this.isBlockHash(this.filter))
+              ? { hash_eq: this.filter }
               : {},
             first: this.perPage,
             after: ((this.currentPage - 1) * this.perPage).toString(),
