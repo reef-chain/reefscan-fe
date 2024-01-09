@@ -14,7 +14,7 @@
           <div v-if="loading" class="text-center py-4">
             <Loading />
           </div>
-          <Table v-else>
+          <Table v-else-if="!loading && blocks.length">
             <THead>
               <Cell>Block</Cell>
               <Cell>Age</Cell>
@@ -52,7 +52,11 @@
             </Row>
           </Table>
 
-          <div class="list-view__pagination">
+          <div v-else class="py-4">
+            <div class="no-data-found">No data found</div>
+          </div>
+
+          <div v-if="blocks.length" class="list-view__pagination">
             <PerPage v-model="perPage" />
             <b-pagination
               v-model="currentPage"
@@ -163,6 +167,9 @@ export default {
       }
       this.updateData()
     },
+    filter() {
+      this.updateData()
+    },
     perPage() {
       this.updateData()
     },
@@ -186,6 +193,8 @@ export default {
           variables: {
             where: this.isBlockNumber(this.filter)
               ? { height_eq: parseInt(this.filter) }
+              : (await this.isBlockHash(this.filter))
+              ? { hash_eq: this.filter }
               : {},
             first: this.perPage,
             after: ((this.currentPage - 1) * this.perPage).toString(),
@@ -226,3 +235,14 @@ export default {
   },
 }
 </script>
+<style>
+.no-data-found {
+  font-size: 28px;
+  font-weight: 300;
+  color: #898e9c;
+  padding: 0 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+</style>

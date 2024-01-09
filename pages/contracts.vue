@@ -30,7 +30,7 @@
           <div v-if="loading" class="text-center py-4">
             <Loading />
           </div>
-          <Table v-else>
+          <Table v-else-if="contracts.length && !loading">
             <THead>
               <Cell>Contract Address</Cell>
               <Cell>Name</Cell>
@@ -82,8 +82,11 @@
               <Cell v-else></Cell>
             </Row>
           </Table>
+          <div v-else class="py-4">
+            <div class="no-data-found">No data found</div>
+          </div>
 
-          <div class="list-view__pagination">
+          <div v-if="contracts.length" class="list-view__pagination">
             <PerPage v-model="perPage" />
             <b-pagination
               v-model="currentPage"
@@ -200,6 +203,9 @@ export default {
       } else {
         ObsPolling.removeCallback(this.updateData)
       }
+      this.updateData()
+    },
+    filter() {
       this.updateData()
     },
     perPage() {
