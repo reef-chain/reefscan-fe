@@ -196,7 +196,6 @@ export default {
           query: LAST_TX_QUERY,
         })
         const lastTxProcessed = lastTxExtrinsicData.data.data.events
-        console.log(lastTxProcessed)
         const processed = data.lastTransfers.map((transfer) => {
           return {
             amount: transfer.amount,
