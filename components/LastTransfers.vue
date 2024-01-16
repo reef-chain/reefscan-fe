@@ -146,17 +146,6 @@ export default {
                 edges {
                   node {
                     nftId
-                    event {
-                      index
-                    }
-                    extrinsic {
-                      id
-                      hash
-                      index
-                      block {
-                        height
-                      }
-                    }
                     from {
                       id
                       evmAddress
@@ -171,6 +160,9 @@ export default {
                     success
                     amount
                     timestamp
+                    extrinsicIndex
+                    blockHeight
+                    eventIndex
                   }
                 }
               }
@@ -186,27 +178,52 @@ export default {
           data.lastTransfers = dataArr
           this.lastTransfers = dataArr
         }
-        const processed = data.lastTransfers.map((transfer) => ({
-          amount: transfer.amount,
-          success: transfer.success,
-          hash: transfer.extrinsic.hash,
-          height: transfer.extrinsic.block.height,
-          index: transfer.extrinsic.index,
-          timestamp: transfer.timestamp,
-          tokenAddress: transfer.token.id,
-          isNft: transfer.nftId !== null,
-          symbol:
-            transfer.token.verified_contract?.contract_data?.symbol || ' ',
-          decimals:
-            transfer.token.verified_contract?.contract_data?.decimals || 18,
-          to: transfer.to !== null ? transfer.to.id : transfer.to.evmAddress,
-          from:
-            transfer.from !== null
-              ? transfer.from.id
-              : transfer.from.evmAddress,
-          extrinsicId: transfer.extrinsic.id,
-          eventIndex: transfer.event.index,
-        }))
+        const LAST_TX_QUERY = `
+          query extrinsics {
+            events(limit: 10, where: {method_eq: "Transfer"}, orderBy: timestamp_DESC) {
+              id
+              timestamp
+              extrinsic {
+                hash
+                index
+              }
+              index
+            }
+          }
+        `
+        const lastTxExtrinsicData = await axiosInstance.post('', {
+          query: LAST_TX_QUERY,
+        })
+        const lastTxProcessed = lastTxExtrinsicData.data.data.events
+        const processed = data.lastTransfers.map((transfer) => {
+          return {
+            amount: transfer.amount,
+            success: transfer.success,
+            hash: lastTxProcessed.find(
+              (item) =>
+                item.timestamp === transfer.timestamp &&
+                item.extrinsic.index === transfer.extrinsicIndex
+            ).extrinsic.hash,
+            height: transfer.blockHeight,
+            index: transfer.extrinsicIndex,
+            timestamp: transfer.timestamp,
+            tokenAddress: transfer.token.id,
+            isNft: transfer.nftId !== null,
+            symbol:
+              transfer.token.verified_contract?.contract_data?.symbol || ' ',
+            decimals:
+              transfer.token.verified_contract?.contract_data?.decimals || 18,
+            to: transfer.to !== null ? transfer.to.id : transfer.to.evmAddress,
+            from:
+              transfer.from !== null
+                ? transfer.from.id
+                : transfer.from.evmAddress,
+            extrinsicId: lastTxProcessed.find(
+              (item) => item.timestamp === transfer.timestamp
+            ).extrinsic.id,
+            eventIndex: transfer.eventIndex,
+          }
+        })
         const repaird = processed.map(async (transfer) => {
           if (transfer.to !== 'deleted' && transfer.from !== 'deleted') {
             return transfer

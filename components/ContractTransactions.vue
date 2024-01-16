@@ -42,7 +42,7 @@
 
           <Cell align="center">
             <font-awesome-icon
-              v-if="item.status === 'success'"
+              v-if="item.status === 'Success'"
               icon="check"
               class="text-success"
             />
@@ -74,27 +74,27 @@ const FIRST_BATCH_QUERY = `
     transactions: evmEventsConnection(
       first: $first
       where: { contractAddress_containsInsensitive: $contractAddress }
-      orderBy: block_id_DESC
+      orderBy: blockHeight_DESC
     ) {
       edges {
         node {
-          event {
-            extrinsic {
-              id
-              hash
-              block {
-                height
-              }
-              index
-              timestamp
-              status
-            }
-          }
+          blockHeight
+          extrinsicIndex
+          eventIndex
+          status
         }
       }
     }
   }
 `
+// event {
+//             extrinsic {
+//               id
+//               hash
+//               timestamp
+//             }
+//           }
+
 const NEXT_BATCH_QUERY = `
   query evm_event_qry(
     $contractAddress: String!
@@ -105,22 +105,14 @@ const NEXT_BATCH_QUERY = `
       first: $first
       after: $after
       where: { contractAddress_containsInsensitive: $contractAddress }
-      orderBy: block_id_DESC
+      orderBy: timestamp_DESC
     ) {
       edges {
         node {
-          event {
-            extrinsic {
-              id
-              hash
-              block {
-                height
-              }
-              index
-              timestamp
-              status
-            }
-          }
+          blockHeight
+          extrinsicIndex
+          eventIndex
+          status
         }
       }
     }
@@ -158,6 +150,47 @@ export default {
     ObsPolling.removeCallback(this.updateData)
   },
   methods: {
+    async getExtrinsicHash(blockHeight, extrinsicIndex, eventIndex) {
+      try {
+        const extrinsicHashResponse = await axiosInstance.post('', {
+          query: `
+            query extrinsicsHash {
+              extrinsics(
+                where: {
+                  block: {height_eq: ${blockHeight}},
+                  events_some: {index_eq: ${eventIndex}},
+                  index_eq: ${extrinsicIndex}
+                }
+                limit: 1
+              ) {
+                hash
+                timestamp
+              }
+            }
+          `,
+        })
+        const extrinsicHash = extrinsicHashResponse.data.data.extrinsics[0].hash
+        const timestamp =
+          extrinsicHashResponse.data.data.extrinsics[0].timestamp
+        return { extrinsicHash, timestamp }
+      } catch (error) {
+        return { extrinsicHash: '', timestamp: '' }
+      }
+    },
+    async getExtrinsicHashes(transfers) {
+      const hashes = {}
+      await Promise.all(
+        transfers.map(async (t) => {
+          const hash = await this.getExtrinsicHash(
+            t.blockHeight,
+            t.extrinsicIndex,
+            t.eventIndex
+          )
+          hashes[`${t.blockHeight}-${t.extrinsicIndex}-${t.eventIndex}`] = hash
+        })
+      )
+      return hashes
+    },
     async updateData() {
       // transactions query
       try {
@@ -180,16 +213,25 @@ export default {
             data.transactions = dataArr
             this.transactions = dataArr
           }
+          const hashes = await this.getExtrinsicHashes(data.transactions)
+          console.log(hashes)
           if (data) {
-            this.transactions = data.transactions.reduce((state, curr) => {
-              curr.event.extrinsic.block_id = curr.event.extrinsic.block.height
-              state.push(curr.event.extrinsic)
-              return state
-            }, [])
+            this.transactions = data.transactions.map((t) => ({
+              block_id: t.blockHeight,
+              index: t.extrinsicIndex,
+              status: t.status,
+              hash: hashes[
+                `${t.blockHeight}-${t.extrinsicIndex}-${t.eventIndex}`
+              ].extrinsicHash,
+              timestamp:
+                hashes[`${t.blockHeight}-${t.extrinsicIndex}-${t.eventIndex}`]
+                  .timestamp,
+            }))
           }
           this.loading = false
         }
       } catch (error) {
+        console.log(error)
         this.setPerPage(20)
         this.$bvToast.toast(`Exceeds the size limit`, {
           title: 'Encountered an Error',

@@ -78,7 +78,7 @@
 
           <Cell align="center">
             <font-awesome-icon
-              v-if="item.extrinsic.status === 'success'"
+              v-if="item.extrinsic.status"
               icon="check"
               class="text-success"
             />
@@ -153,6 +153,44 @@ export default {
     ObsPolling.removeCallback(this.updateData)
   },
   methods: {
+    async getExtrinsicHash(blockHeight, extrinsicIndex, eventIndex) {
+      try {
+        const extrinsicHashResponse = await axiosInstance.post('', {
+          query: `
+            query extrinsicsHash {
+              extrinsics(
+                where: {
+                  block: {height_eq: ${blockHeight}},
+                  events_some: {index_eq: ${eventIndex}},
+                  index_eq: ${extrinsicIndex}
+                }
+                limit: 1
+              ) {
+                hash
+              }
+            }
+          `,
+        })
+        const extrinsicHash = extrinsicHashResponse.data.data.extrinsics[0].hash
+        return { extrinsicHash }
+      } catch (error) {
+        return { extrinsicHash: '' }
+      }
+    },
+    async getExtrinsicHashes(transfers) {
+      const hashes = {}
+      await Promise.all(
+        transfers.map(async (t) => {
+          const hash = await this.getExtrinsicHash(
+            t.blockHeight,
+            t.extrinsicIndex,
+            t.eventIndex
+          )
+          hashes[`${t.blockHeight}-${t.extrinsicIndex}-${t.eventIndex}`] = hash
+        })
+      )
+      return hashes
+    },
     async updateData() {
       const TRANSFERS_QUERY = `
         query transfer($tokenId: String!) {
@@ -162,15 +200,6 @@ export default {
             limit: 60
           ) {
             nftId
-            extrinsic {
-              hash
-              block {
-                height
-              }
-              index
-              signer
-              status
-            }
             to {
               id
               evmAddress
@@ -180,7 +209,11 @@ export default {
               evmAddress
             }
             amount
+            success
             timestamp
+            blockHeight
+            extrinsicIndex
+            eventIndex
           }
         }
       `
@@ -192,6 +225,7 @@ export default {
           },
         })
         const data = await response.data.data
+        const hashes = await this.getExtrinsicHashes(data.transfers)
         this.transfers = data.transfers.map((transfer) => {
           return {
             ...transfer,
@@ -201,8 +235,12 @@ export default {
             to_evm_address: transfer.to.evmAddress,
             from_evm_address: transfer.from.evmAddress,
             extrinsic: {
-              ...transfer.extrinsic,
-              block_id: transfer.extrinsic.block.height,
+              hash: hashes[
+                `${transfer.blockHeight}-${transfer.extrinsicIndex}-${transfer.eventIndex}`
+              ].extrinsicHash,
+              index: transfer.extrinsicIndex,
+              status: transfer.success,
+              block_id: transfer.blockHeight,
             },
           }
         })
