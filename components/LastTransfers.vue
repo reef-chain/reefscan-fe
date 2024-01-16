@@ -160,6 +160,9 @@ export default {
                     success
                     amount
                     timestamp
+                    extrinsicIndex
+                    blockHeight
+                    eventIndex
                   }
                 }
               }
@@ -177,16 +180,12 @@ export default {
         }
         const LAST_TX_QUERY = `
           query extrinsics {
-            events(limit: 12, where: {method_eq: "Transfer"}, orderBy: timestamp_DESC) {
+            events(limit: 10, where: {method_eq: "Transfer"}, orderBy: timestamp_DESC) {
               id
               timestamp
               extrinsic {
                 hash
-                id
                 index
-              }
-              block {
-                height
               }
               index
             }
@@ -201,14 +200,12 @@ export default {
             amount: transfer.amount,
             success: transfer.success,
             hash: lastTxProcessed.find(
-              (item) => item.timestamp === transfer.timestamp
+              (item) =>
+                item.timestamp === transfer.timestamp &&
+                item.extrinsic.index === transfer.extrinsicIndex
             ).extrinsic.hash,
-            height: lastTxProcessed.find(
-              (item) => item.timestamp === transfer.timestamp
-            ).block.height,
-            index: lastTxProcessed.find(
-              (item) => item.timestamp === transfer.timestamp
-            ).extrinsic.index,
+            height: transfer.blockHeight,
+            index: transfer.extrinsicIndex,
             timestamp: transfer.timestamp,
             tokenAddress: transfer.token.id,
             isNft: transfer.nftId !== null,
@@ -224,9 +221,7 @@ export default {
             extrinsicId: lastTxProcessed.find(
               (item) => item.timestamp === transfer.timestamp
             ).extrinsic.id,
-            eventIndex: lastTxProcessed.find(
-              (item) => item.timestamp === transfer.timestamp
-            ).index,
+            eventIndex: transfer.eventIndex,
           }
         })
         const repaird = processed.map(async (transfer) => {
