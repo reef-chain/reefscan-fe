@@ -1,19 +1,19 @@
 export const network = {
-  id: '&NETWORK_ID',
-  name: '&NETWORK_LABEL',
+  id: 'reef-testnet',
+  name: 'Testnet',
   tokenSymbol: 'REEF',
   tokenDecimals: 18,
   ss58Format: 42,
   coinGeckoDenom: 'reef',
-  nodeWs: '&NODE_WS',
-  backendWs: '&GQL_WS_URI',
-  backendHttp: '&GQL_HTTP_URI',
-  verificatorApi: '&VERIFICATOR_API',
-  uploadTokenApi: '&UPLOAD_TOKEN_API',
+  nodeWs: 'wss://rpc-testnet.reefscan.com/ws',
+  backendWs: 'wss://squid.subsquid.io/reef-explorer-testnet/graphql',
+  backendHttp: 'https://squid.subsquid.io/reef-explorer-testnet/graphql',
+  verificatorApi:
+    'https://testnet.reefscan.com/api/verificator/submit-verification',
+  uploadTokenApi:
+    'https://testnet.reefscan.com/api/verificator/submit-verification',
+  solidityScanApi: 'https://testnet.reefscan.com/api/solidity_scan/',
   googleAnalytics: '',
   theme: '@/assets/scss/themes/reef.scss',
-  solidityScanApi: '&SOLIDITY_SCAN_API'
 }
-console.log('network config=', network)
-
 export const paginationOptions = [10, 20, 50, 100]

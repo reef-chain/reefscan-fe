@@ -177,7 +177,7 @@ export default {
         }
         const LAST_TX_QUERY = `
           query extrinsics {
-            events(limit: 10, where: {method_eq: "Transfer"}, orderBy: timestamp_DESC) {
+            events(limit: 12, where: {method_eq: "Transfer"}, orderBy: timestamp_DESC) {
               id
               timestamp
               extrinsic {
