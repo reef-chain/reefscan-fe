@@ -193,9 +193,8 @@ export default {
               this.contractAbi,
               wallet
             )
-
-            const args = this.prepareParameters(this.arguments.join(', '))
-            this.result = await contract[this.functionName](...args)
+            // const args = this.prepareParameters(this.arguments.join(', '))
+            this.result = await contract[this.functionName](...this.arguments)
 
             // hide success alert after 20s
             setTimeout(() => {
