@@ -60,17 +60,17 @@ export default {
             query transfers($block: Int!, $index: Int!, $eventIndex: Int!) {
               transfers(
                 where: {
-                  extrinsic: { index_eq: $index, block: { height_eq: $block } }
-                  event: { index_eq: $eventIndex }
+                  blockHeight_eq: $block,
+                  eventIndex_eq: $eventIndex,
+                  extrinsicIndex_eq: $index
                 }
                 limit: 1
               ) {
                 amount
                 denom
                 nftId
-                block {
-                  height
-                }
+                blockHeight
+                extrinsicIndex
                 to {
                   id
                   evmAddress
@@ -80,26 +80,13 @@ export default {
                   evmAddress
                 }
                 timestamp
-                extrinsic {
-                  id
-                  hash
-                  index
-                  errorMessage
-                  status
-                  signedData
-                  events(where: { method_eq: "Transfer" }, limit: 50) {
-                    data
-                    extrinsic {
-                      id
-                    }
-                    index
-                  }
-                }
                 token {
                   id
                   contractData
                 }
                 feeAmount
+                errorMessage
+                success
               }
             }
           `,
@@ -109,33 +96,73 @@ export default {
             eventIndex: parseInt(this.eventIndex),
           },
         })
+        const extrinsicHashResponse = await axiosInstance.post('', {
+          query: `
+            query extrinsicsHash($block: Int!, $index: Int!, $eventIndex: Int!) {
+              extrinsics(
+                where: {
+                  block: {height_eq: $block},
+                  events_some: {index_eq: $eventIndex},
+                  index_eq: $index
+                }
+                limit: 1
+              ) {
+                hash
+                signedData
+              }
+            }
+          `,
+          variables: {
+            block: parseInt(this.blockHeight),
+            index: parseInt(this.extrinsicIndex),
+            eventIndex: parseInt(this.eventIndex),
+          },
+        })
+        const extrinsicHash = extrinsicHashResponse.data.data.extrinsics[0].hash
+        const signedData =
+          extrinsicHashResponse.data.data.extrinsics[0].signedData
+        // fetch these
+        // extrinsic {
+        //           id
+        //           hash
+        //           index
+        //           errorMessage
+        //           status
+        //           signedData
+        //           events(where: { method_eq: "Transfer" }, limit: 50) {
+        //             data
+        //             extrinsic {
+        //               id
+        //             }
+        //             index
+        //           }
+        //         }
 
         const data = response.data.data
         if (data && data.transfers) {
           this.transfer = data.transfers[0]
           this.transfer.to_address =
             this.transfer.to.id || this.transfer.to.evmAddress
-          this.transfer.block_id = this.transfer.block.height
-          this.transfer.extrinsic.error_message =
-            this.transfer.extrinsic.errorMessage
+          this.transfer.block_id = this.transfer.blockHeight
+          this.transfer.extrinsic = {}
+          this.transfer.extrinsic.index = this.transfer.extrinsicIndex
+          this.transfer.extrinsic.error_message = this.transfer.errorMessage
+          this.transfer.extrinsic.hash = extrinsicHash
 
-          this.transfer.extrinsic.events = this.transfer.extrinsic.events.map(
-            (event) => {
-              event.extrinsic_id = event.extrinsic.id
-              return event
-            }
-          )
-          this.transfer.fee_amount =
-            this.transfer.extrinsic.signedData.fee.partialFee
+          // this.transfer.extrinsic.events = this.transfer.extrinsic.events.map(
+          //   (event) => {
+          //     event.extrinsic_id = event.extrinsic.id
+          //     return event
+          //   }
+          // )
 
-          this.transfer.success =
-            data.transfers[0].extrinsic.status === 'success'
+          this.transfer.fee_amount = signedData.fee.partialFee
+          this.transfer.success = data.transfers[0].success
           this.transfer.isNft = this.transfer.nftId !== null
           if (this.transfer.to_address === 'deleted') {
             this.transfer.to_address =
               data.transfers[0].extrinsic.events[0].data[1]
           }
-
           this.transfer.from_address =
             this.transfer.from.id || this.transfer.from.evmAddress
           if (this.transfer.from_address === 'deleted') {

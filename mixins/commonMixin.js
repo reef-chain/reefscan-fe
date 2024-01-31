@@ -7,7 +7,8 @@ import { network } from '@/frontend.config.js'
 import axiosInstance from '~/utils/axios'
 
 const isTimestamp = (timestampOrDateString) => {
-  return !timestampOrDateString.toString().includes('-')
+  if (timestampOrDateString)
+    return !timestampOrDateString.toString().includes('-')
 }
 const toMomentDate = (timestampOrDateString) => {
   return isTimestamp(timestampOrDateString)

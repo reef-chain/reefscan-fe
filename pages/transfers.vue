@@ -131,6 +131,7 @@ const GET_TRANSFER_EXTRINSIC_EVENTS = `
     }
   }
 `
+
 const FIRST_BATCH_QUERY = `
   query transfer($first: Int!, $where: TransferWhereInput) {
     extrinsic: transfersConnection(
@@ -141,6 +142,9 @@ const FIRST_BATCH_QUERY = `
       edges {
         node {
           nftId
+          success
+          blockHeight
+          extrinsicIndex
           to {
             id
             evmAddress
@@ -152,17 +156,6 @@ const FIRST_BATCH_QUERY = `
           from {
             id
             evmAddress
-          }
-          extrinsic {
-            id
-            hash
-            index
-            block {
-              height
-            }
-            args
-            status
-            errorMessage
           }
           id
           amount
@@ -184,6 +177,9 @@ const NEXT_BATCH_QUERY = `
       edges {
         node {
           nftId
+          success
+          blockHeight
+          extrinsicIndex
           to {
             id
             evmAddress
@@ -195,17 +191,6 @@ const NEXT_BATCH_QUERY = `
           from {
             id
             evmAddress
-          }
-          extrinsic {
-            id
-            hash
-            index
-            block {
-              height
-            }
-            args
-            status
-            errorMessage
           }
           id
           amount
@@ -335,16 +320,30 @@ export default {
           data.extrinsic = dataArr
           this.extrinsic = dataArr
         }
-        const converted = data.extrinsic.map((transfer) => {
+        const converted = data.extrinsic.map(async (transfer) => {
+          const GET_TRANSFER_EXTRINSIC_QUERY = `query extrinsics {
+            events(limit: 1, where: {block: {height_eq: ${transfer.blockHeight}}, AND: {extrinsic: {index_eq: ${transfer.extrinsicIndex}}}}) {
+              extrinsic {
+                hash
+                id
+              }
+            }
+          }
+          `
+          const transferExtrinsicsData = await axiosInstance.post('', {
+            query: GET_TRANSFER_EXTRINSIC_QUERY,
+          })
+          const txExtrinsicData =
+            transferExtrinsicsData.data.data.events[0].extrinsic
           return {
             amount: transfer.amount,
-            success: transfer.extrinsic.status === 'success',
+            success: transfer.success,
             timestamp: transfer.timestamp,
-            hash: transfer.extrinsic.hash,
-            idx: transfer.extrinsic.index,
-            extrinsicId: transfer.extrinsic.id,
+            hash: txExtrinsicData.hash,
+            idx: transfer.extrinsicIndex,
+            extrinsicId: txExtrinsicData.id,
             index: parseInt(transfer.id.split('-')[2]),
-            block_id: transfer.extrinsic.block.height,
+            block_id: transfer.blockHeight,
             isNft: transfer.nftId !== null,
             to:
               transfer.to.id === null ? transfer.to.evmAddress : transfer.to.id,

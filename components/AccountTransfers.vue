@@ -136,7 +136,7 @@ import ObsPolling from '~/utils/obsPolling'
 const GQL_QUERY = `
   query transfers($accountId: String!) {
     transfers: transfersConnection(
-      orderBy: block_height_DESC
+      orderBy: blockHeight_DESC
       where: {
         OR: [{ to: { id_eq: $accountId } }, { from: { id_eq: $accountId } }]
       }
@@ -145,19 +145,6 @@ const GQL_QUERY = `
       edges {
         node {
           nftId
-          block {
-            height
-          }
-          event {
-            index
-          }
-          extrinsic {
-            index
-            section
-            hash
-            status
-            signedData
-          }
           to {
             id
             evmAddress
@@ -174,6 +161,10 @@ const GQL_QUERY = `
           feeAmount
           errorMessage
           timestamp
+          blockHeight
+          extrinsicIndex
+          eventIndex
+          success
         }
       }
     }
@@ -255,6 +246,48 @@ export default {
     setPerPage(value) {
       this.perPage = value
     },
+    async getExtrinsicHash(blockHeight, extrinsicIndex, eventIndex) {
+      try {
+        const extrinsicHashResponse = await axiosInstance.post('', {
+          query: `
+            query extrinsicsHash {
+              extrinsics(
+                where: {
+                  block: {height_eq: ${blockHeight}},
+                  events_some: {index_eq: ${eventIndex}},
+                  index_eq: ${extrinsicIndex}
+                }
+                limit: 1
+              ) {
+                hash
+                signedData
+              }
+            }
+          `,
+        })
+        const extrinsicHash = extrinsicHashResponse.data.data.extrinsics[0].hash
+        const fee =
+          extrinsicHashResponse.data.data.extrinsics[0].signedData.fee
+            .partialFee
+        return { extrinsicHash, fee }
+      } catch (error) {
+        return ''
+      }
+    },
+    async getExtrinsicHashes(transfers) {
+      const hashes = {}
+      await Promise.all(
+        transfers.map(async (t) => {
+          const hash = await this.getExtrinsicHash(
+            t.blockHeight,
+            t.extrinsicIndex,
+            t.eventIndex
+          )
+          hashes[`${t.blockHeight}-${t.extrinsicIndex}-${t.eventIndex}`] = hash
+        })
+      )
+      return hashes
+    },
     async updateData() {
       try {
         const response = await axiosInstance.post('', {
@@ -272,22 +305,29 @@ export default {
           data.transfers = dataArr
           this.transfers = dataArr
         }
-        this.transfers = data.transfers.map((t) => ({
-          ...t,
-          block_id: t.block.height,
-          extrinsic_hash: t.extrinsic.hash,
-          extrinsic_index: t.extrinsic.index,
-          success: t.extrinsic.status === 'success',
-          to_address: t.to.id || t.to.evmAddress,
-          from_address: t.from.id || t.from.evmAddress,
-          token_address: t.token.id,
-          isNft: t.nftId !== null,
-          fee_amount: t.extrinsic.signedData.fee.partialFee,
-          error_message: t.errorMessage,
-          event_index: t.event.index,
-          symbol: t.token.contractData?.symbol, // TODO: verified contract info isn't in the token table anymore, it's separate
-          decimals: t.token.contractData?.decimals, // TODO
-        }))
+        const hashes = await this.getExtrinsicHashes(data.transfers)
+        this.transfers = data.transfers.map((t) => {
+          return {
+            ...t,
+            block_id: t.blockHeight,
+            extrinsic_hash:
+              hashes[`${t.blockHeight}-${t.extrinsicIndex}-${t.eventIndex}`]
+                .extrinsicHash,
+            extrinsic_index: t.extrinsicIndex,
+            success: t.success,
+            to_address: t.to.id || t.to.evmAddress,
+            from_address: t.from.id || t.from.evmAddress,
+            token_address: t.token.id,
+            isNft: t.nftId !== null,
+            fee_amount:
+              hashes[`${t.blockHeight}-${t.extrinsicIndex}-${t.eventIndex}`]
+                .fee,
+            error_message: t.errorMessage,
+            event_index: t.eventIndex,
+            symbol: t.token.contractData?.symbol, // TODO: verified contract info isn't in the token table anymore, it's separate
+            decimals: t.token.contractData?.decimals, // TODO
+          }
+        })
         this.totalRows = this.transfers.length
         this.loading = false
       } catch (error) {
