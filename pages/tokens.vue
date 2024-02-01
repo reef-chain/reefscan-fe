@@ -119,7 +119,7 @@ const FIRST_BATCH_QUERY = `
   query tokens($first: Int = 10, $where: VerifiedContractWhereInput = {}) {
     verifiedContracts: verifiedContractsConnection(
       first: $first
-      orderBy: contract_timestamp_DESC
+      orderBy: timestamp_DESC
       where: $where
     ) {
       edges {
@@ -159,7 +159,7 @@ const NEXT_BATCH_QUERY = `
   ) {
     verifiedContracts: verifiedContractsConnection(
       first: $first
-      orderBy: contract_timestamp_DESC
+      orderBy: timestamp_DESC
       after: $after
       where: $where
     ) {

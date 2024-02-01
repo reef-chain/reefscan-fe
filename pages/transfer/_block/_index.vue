@@ -60,9 +60,9 @@ export default {
             query transfers($block: Int!, $index: Int!, $eventIndex: Int!) {
               transfers(
                 where: {
+                  extrinsicIndex_eq: $index,
                   blockHeight_eq: $block,
-                  eventIndex_eq: $eventIndex,
-                  extrinsicIndex_eq: $index
+                  eventIndex_eq: $eventIndex 
                 }
                 limit: 1
               ) {
@@ -70,7 +70,6 @@ export default {
                 denom
                 nftId
                 blockHeight
-                extrinsicIndex
                 to {
                   id
                   evmAddress
@@ -80,13 +79,17 @@ export default {
                   evmAddress
                 }
                 timestamp
+                extrinsicId
+                extrinsicIndex
+                extrinsicHash
+                errorMessage
+                success
+                signedData
+                eventIndex
                 token {
                   id
                   contractData
                 }
-                feeAmount
-                errorMessage
-                success
               }
             }
           `,
@@ -96,47 +99,6 @@ export default {
             eventIndex: parseInt(this.eventIndex),
           },
         })
-        const extrinsicHashResponse = await axiosInstance.post('', {
-          query: `
-            query extrinsicsHash($block: Int!, $index: Int!, $eventIndex: Int!) {
-              extrinsics(
-                where: {
-                  block: {height_eq: $block},
-                  events_some: {index_eq: $eventIndex},
-                  index_eq: $index
-                }
-                limit: 1
-              ) {
-                hash
-                signedData
-              }
-            }
-          `,
-          variables: {
-            block: parseInt(this.blockHeight),
-            index: parseInt(this.extrinsicIndex),
-            eventIndex: parseInt(this.eventIndex),
-          },
-        })
-        const extrinsicHash = extrinsicHashResponse.data.data.extrinsics[0].hash
-        const signedData =
-          extrinsicHashResponse.data.data.extrinsics[0].signedData
-        // fetch these
-        // extrinsic {
-        //           id
-        //           hash
-        //           index
-        //           errorMessage
-        //           status
-        //           signedData
-        //           events(where: { method_eq: "Transfer" }, limit: 50) {
-        //             data
-        //             extrinsic {
-        //               id
-        //             }
-        //             index
-        //           }
-        //         }
 
         const data = response.data.data
         if (data && data.transfers) {
@@ -145,24 +107,17 @@ export default {
             this.transfer.to.id || this.transfer.to.evmAddress
           this.transfer.block_id = this.transfer.blockHeight
           this.transfer.extrinsic = {}
-          this.transfer.extrinsic.index = this.transfer.extrinsicIndex
           this.transfer.extrinsic.error_message = this.transfer.errorMessage
-          this.transfer.extrinsic.hash = extrinsicHash
-
-          // this.transfer.extrinsic.events = this.transfer.extrinsic.events.map(
-          //   (event) => {
-          //     event.extrinsic_id = event.extrinsic.id
-          //     return event
-          //   }
-          // )
-
-          this.transfer.fee_amount = signedData.fee.partialFee
+          this.transfer.fee_amount = this.transfer.signedData.fee.partialFee
+          this.transfer.extrinsic.hash = this.transfer.extrinsicHash
+          this.transfer.extrinsic.index = this.transfer.extrinsicIndex
           this.transfer.success = data.transfers[0].success
           this.transfer.isNft = this.transfer.nftId !== null
           if (this.transfer.to_address === 'deleted') {
             this.transfer.to_address =
               data.transfers[0].extrinsic.events[0].data[1]
           }
+
           this.transfer.from_address =
             this.transfer.from.id || this.transfer.from.evmAddress
           if (this.transfer.from_address === 'deleted') {
