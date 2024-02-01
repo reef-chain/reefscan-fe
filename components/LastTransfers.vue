@@ -146,17 +146,11 @@ export default {
                 edges {
                   node {
                     nftId
-                    event {
-                      index
-                    }
-                    extrinsic {
-                      id
-                      hash
-                      index
-                      block {
-                        height
-                      }
-                    }
+                    eventIndex
+                    extrinsicId
+                    extrinsicHash
+                    extrinsicIndex
+                    blockHeight
                     from {
                       id
                       evmAddress
@@ -189,9 +183,9 @@ export default {
         const processed = data.lastTransfers.map((transfer) => ({
           amount: transfer.amount,
           success: transfer.success,
-          hash: transfer.extrinsic.hash,
-          height: transfer.extrinsic.block.height,
-          index: transfer.extrinsic.index,
+          hash: transfer.extrinsicHash,
+          height: transfer.blockHeight,
+          index: transfer.extrinsicIndex,
           timestamp: transfer.timestamp,
           tokenAddress: transfer.token.id,
           isNft: transfer.nftId !== null,
@@ -204,8 +198,8 @@ export default {
             transfer.from !== null
               ? transfer.from.id
               : transfer.from.evmAddress,
-          extrinsicId: transfer.extrinsic.id,
-          eventIndex: transfer.event.index,
+          extrinsicId: transfer.extrinsicId,
+          eventIndex: transfer.eventIndex,
         }))
         const repaird = processed.map(async (transfer) => {
           if (transfer.to !== 'deleted' && transfer.from !== 'deleted') {
@@ -234,6 +228,7 @@ export default {
         this.transfers = await Promise.all(repaird)
         this.loading = false
       } catch (error) {
+        console.log(error)
         this.setPerPage(20)
         this.$bvToast.toast(`Exceeds the size limit`, {
           title: 'Encountered an Error',

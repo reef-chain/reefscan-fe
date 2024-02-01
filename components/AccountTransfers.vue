@@ -136,7 +136,7 @@ import ObsPolling from '~/utils/obsPolling'
 const GQL_QUERY = `
   query transfers($accountId: String!) {
     transfers: transfersConnection(
-      orderBy: block_height_DESC
+      orderBy: blockHeight_DESC
       where: {
         OR: [{ to: { id_eq: $accountId } }, { from: { id_eq: $accountId } }]
       }
@@ -145,19 +145,12 @@ const GQL_QUERY = `
       edges {
         node {
           nftId
-          block {
-            height
-          }
-          event {
-            index
-          }
-          extrinsic {
-            index
-            section
-            hash
-            status
-            signedData
-          }
+          blockHeight
+          eventIndex
+          extrinsicIndex
+          extrinsicHash
+          success
+          signedData
           to {
             id
             evmAddress
@@ -171,7 +164,6 @@ const GQL_QUERY = `
             id
             contractData
           }
-          feeAmount
           errorMessage
           timestamp
         }
@@ -274,23 +266,24 @@ export default {
         }
         this.transfers = data.transfers.map((t) => ({
           ...t,
-          block_id: t.block.height,
-          extrinsic_hash: t.extrinsic.hash,
-          extrinsic_index: t.extrinsic.index,
-          success: t.extrinsic.status === 'success',
+          block_id: t.blockHeight,
+          extrinsic_hash: t.extrinsicHash,
+          extrinsic_index: t.extrinsicIndex,
+          success: t.success,
           to_address: t.to.id || t.to.evmAddress,
           from_address: t.from.id || t.from.evmAddress,
           token_address: t.token.id,
           isNft: t.nftId !== null,
-          fee_amount: t.extrinsic.signedData.fee.partialFee,
+          fee_amount: t.signedData.fee.partialFee,
           error_message: t.errorMessage,
-          event_index: t.event.index,
+          event_index: t.eventIndex,
           symbol: t.token.contractData?.symbol, // TODO: verified contract info isn't in the token table anymore, it's separate
           decimals: t.token.contractData?.decimals, // TODO
         }))
         this.totalRows = this.transfers.length
         this.loading = false
       } catch (error) {
+        console.log(error)
         this.setPerPage(20)
         this.$bvToast.toast(`Exceeds the size limit`, {
           title: 'Encountered an Error',
