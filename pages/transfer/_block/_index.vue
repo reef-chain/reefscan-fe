@@ -60,17 +60,16 @@ export default {
             query transfers($block: Int!, $index: Int!, $eventIndex: Int!) {
               transfers(
                 where: {
-                  extrinsic: { index_eq: $index, block: { height_eq: $block } }
-                  event: { index_eq: $eventIndex }
+                  extrinsicIndex_eq: $index,
+                  blockHeight_eq: $block,
+                  eventIndex_eq: $eventIndex 
                 }
                 limit: 1
               ) {
                 amount
                 denom
                 nftId
-                block {
-                  height
-                }
+                blockHeight
                 to {
                   id
                   evmAddress
@@ -80,26 +79,17 @@ export default {
                   evmAddress
                 }
                 timestamp
-                extrinsic {
-                  id
-                  hash
-                  index
-                  errorMessage
-                  status
-                  signedData
-                  events(where: { method_eq: "Transfer" }, limit: 50) {
-                    data
-                    extrinsic {
-                      id
-                    }
-                    index
-                  }
-                }
+                extrinsicId
+                extrinsicIndex
+                extrinsicHash
+                errorMessage
+                success
+                signedData
+                eventIndex
                 token {
                   id
                   contractData
                 }
-                feeAmount
               }
             }
           `,
@@ -115,21 +105,13 @@ export default {
           this.transfer = data.transfers[0]
           this.transfer.to_address =
             this.transfer.to.id || this.transfer.to.evmAddress
-          this.transfer.block_id = this.transfer.block.height
-          this.transfer.extrinsic.error_message =
-            this.transfer.extrinsic.errorMessage
-
-          this.transfer.extrinsic.events = this.transfer.extrinsic.events.map(
-            (event) => {
-              event.extrinsic_id = event.extrinsic.id
-              return event
-            }
-          )
-          this.transfer.fee_amount =
-            this.transfer.extrinsic.signedData.fee.partialFee
-
-          this.transfer.success =
-            data.transfers[0].extrinsic.status === 'success'
+          this.transfer.block_id = this.transfer.blockHeight
+          this.transfer.extrinsic = {}
+          this.transfer.extrinsic.error_message = this.transfer.errorMessage
+          this.transfer.fee_amount = this.transfer.signedData.fee.partialFee
+          this.transfer.extrinsic.hash = this.transfer.extrinsicHash
+          this.transfer.extrinsic.index = this.transfer.extrinsicIndex
+          this.transfer.success = data.transfers[0].success
           this.transfer.isNft = this.transfer.nftId !== null
           if (this.transfer.to_address === 'deleted') {
             this.transfer.to_address =

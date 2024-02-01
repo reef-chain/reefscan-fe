@@ -153,17 +153,12 @@ const FIRST_BATCH_QUERY = `
             id
             evmAddress
           }
-          extrinsic {
-            id
-            hash
-            index
-            block {
-              height
-            }
-            args
-            status
-            errorMessage
-          }
+          blockHeight
+          success
+          errorMessage
+          extrinsicId
+          extrinsicHash
+          extrinsicIndex
           id
           amount
           timestamp
@@ -196,17 +191,12 @@ const NEXT_BATCH_QUERY = `
             id
             evmAddress
           }
-          extrinsic {
-            id
-            hash
-            index
-            block {
-              height
-            }
-            args
-            status
-            errorMessage
-          }
+          blockHeight
+          success
+          errorMessage
+          extrinsicId
+          extrinsicHash
+          extrinsicIndex
           id
           amount
           timestamp
@@ -338,13 +328,13 @@ export default {
         const converted = data.extrinsic.map((transfer) => {
           return {
             amount: transfer.amount,
-            success: transfer.extrinsic.status === 'success',
+            success: transfer.success,
             timestamp: transfer.timestamp,
-            hash: transfer.extrinsic.hash,
-            idx: transfer.extrinsic.index,
-            extrinsicId: transfer.extrinsic.id,
+            hash: transfer.extrinsicHash,
+            idx: transfer.extrinsicIndex,
+            extrinsicId: transfer.extrinsicId,
             index: parseInt(transfer.id.split('-')[2]),
-            block_id: transfer.extrinsic.block.height,
+            block_id: transfer.blockHeight,
             isNft: transfer.nftId !== null,
             to:
               transfer.to.id === null ? transfer.to.evmAddress : transfer.to.id,
@@ -385,6 +375,7 @@ export default {
         this.totalRows = this.nTransfers
         if (!this.forceLoad) this.loading = false
       } catch (error) {
+        console.log(error)
         this.setPerPage(20)
         this.$bvToast.toast(`Exceeds the size limit`, {
           title: 'Encountered an Error',
