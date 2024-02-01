@@ -375,7 +375,6 @@ export default {
         this.totalRows = this.nTransfers
         if (!this.forceLoad) this.loading = false
       } catch (error) {
-        console.log(error)
         this.setPerPage(20)
         this.$bvToast.toast(`Exceeds the size limit`, {
           title: 'Encountered an Error',

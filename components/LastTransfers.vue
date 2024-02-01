@@ -228,7 +228,6 @@ export default {
         this.transfers = await Promise.all(repaird)
         this.loading = false
       } catch (error) {
-        console.log(error)
         this.setPerPage(20)
         this.$bvToast.toast(`Exceeds the size limit`, {
           title: 'Encountered an Error',
