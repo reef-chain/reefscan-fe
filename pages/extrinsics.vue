@@ -105,7 +105,6 @@ const GQL_QUERY = `
           hash
           type
           timestamp
-          errorMessage
         }
       }
     }
@@ -215,7 +214,6 @@ export default {
         }
         data.extrinsics.forEach((item) => {
           item.block_id = item.block.height
-          item.error_message = item.errorMessage
         })
         this.extrinsics = data.extrinsics
         this.totalRows = this.filter ? this.extrinsics.length : this.nExtrinsics
