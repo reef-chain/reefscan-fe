@@ -16,6 +16,80 @@ import Loading from '@/components/Loading.vue'
 import commonMixin from '@/mixins/commonMixin.js'
 import axiosInstance from '~/utils/axios'
 
+const INDEX_QUERY = `
+  query transfers($block: Int!, $index: Int!) {
+    transfers(
+      where: {
+        extrinsicIndex_eq: $index,
+        blockHeight_eq: $block,
+      }
+      limit: 1
+    ) {
+      amount
+      denom
+      nftId
+      blockHeight
+      to {
+        id
+        evmAddress
+      }
+      from {
+        id
+        evmAddress
+      }
+      timestamp
+      extrinsicId
+      extrinsicIndex
+      extrinsicHash
+      errorMessage
+      success
+      signedData
+      eventIndex
+      token {
+        id
+        contractData
+      }
+    }
+  }
+`
+
+const HASH_QUERY = `
+  query transfers($block: Int!, $extHash: String!) {
+    transfers(
+      where: {
+        extrinsicHash_eq: $extHash,
+        blockHeight_eq: $block,
+      }
+      limit: 1
+    ) {
+      amount
+      denom
+      nftId
+      blockHeight
+      to {
+        id
+        evmAddress
+      }
+      from {
+        id
+        evmAddress
+      }
+      timestamp
+      extrinsicId
+      extrinsicIndex
+      extrinsicHash
+      errorMessage
+      success
+      signedData
+      eventIndex
+      token {
+        id
+        contractData
+      }
+    }
+  }
+`
+
 export default {
   components: {
     Loading,
@@ -46,7 +120,6 @@ export default {
     $route() {
       this.blockHeight = this.$route.params.block
       this.extrinsicIndex = this.$route.params.index
-      this.eventIndex = this.$route.params.event
     },
   },
   created() {
@@ -56,47 +129,13 @@ export default {
     async updateData() {
       try {
         const response = await axiosInstance.post('', {
-          query: `
-            query transfers($block: Int!, $index: Int!, $eventIndex: Int!) {
-              transfers(
-                where: {
-                  extrinsicIndex_eq: $index,
-                  blockHeight_eq: $block,
-                  eventIndex_eq: $eventIndex 
-                }
-                limit: 1
-              ) {
-                amount
-                denom
-                nftId
-                blockHeight
-                to {
-                  id
-                  evmAddress
-                }
-                from {
-                  id
-                  evmAddress
-                }
-                timestamp
-                extrinsicId
-                extrinsicIndex
-                extrinsicHash
-                errorMessage
-                success
-                signedData
-                eventIndex
-                token {
-                  id
-                  contractData
-                }
-              }
-            }
-          `,
+          query: this.extrinsicIndex.startsWith('0x')
+            ? HASH_QUERY
+            : INDEX_QUERY,
           variables: {
             block: parseInt(this.blockHeight),
             index: parseInt(this.extrinsicIndex),
-            eventIndex: parseInt(this.eventIndex),
+            extHash: this.extrinsicIndex,
           },
         })
 
