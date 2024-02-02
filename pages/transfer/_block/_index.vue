@@ -54,10 +54,10 @@ const INDEX_QUERY = `
 `
 
 const HASH_QUERY = `
-  query transfers($block: Int!, $extHash: String!) {
+  query transfers($block: Int!, $index: String!) {
     transfers(
       where: {
-        extrinsicHash_eq: $extHash,
+        extrinsicHash_eq: $index,
         blockHeight_eq: $block,
       }
       limit: 1
@@ -134,8 +134,9 @@ export default {
             : INDEX_QUERY,
           variables: {
             block: parseInt(this.blockHeight),
-            index: parseInt(this.extrinsicIndex),
-            extHash: this.extrinsicIndex,
+            index: this.extrinsicIndex.startsWith('0x')
+              ? this.extrinsicIndex
+              : parseInt(this.extrinsicIndex),
           },
         })
 
