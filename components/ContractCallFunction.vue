@@ -97,7 +97,7 @@ export default {
           ? this.outputParams[0].components
           : this.outputParams
       let resultStr = ''
-      if (this.result) {
+      if (this.result && Array.isArray(this.result)) {
         for (let i = 0; i < this.result.length; i++) {
           resultStr =
             resultStr +
