@@ -46,7 +46,7 @@
 
       <Row>
         <Cell>Extrinsic hash</Cell>
-        <Cell>{{ extrinsic.block_id }}-{{ extrinsic.hash }}</Cell>
+        <Cell>{{ extrinsic.hash }}</Cell>
       </Row>
 
       <Row>
