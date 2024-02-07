@@ -54,8 +54,8 @@ export default {
       try {
         const response = await axiosInstance.post('', {
           query: `
-            query extrinsics($hash: String!) {
-              extrinsics(where: { hash_eq: $hash }, limit: 1) {
+            query extrinsics($hash: String!,$blockHeight: Int!) {
+              extrinsics(where: { hash_containsInsensitive: $hash , AND: {block: {height_eq: $blockHeight }}}, limit: 1) {
                 id
                 block {
                   height
@@ -75,7 +75,8 @@ export default {
             }
           `,
           variables: {
-            hash: this.blockHash,
+            hash: this.blockHash.split('-')[0],
+            blockHeight: parseInt(this.blockHash.split('-')[1]),
           },
         })
 
