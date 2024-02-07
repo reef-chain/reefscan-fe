@@ -53,8 +53,9 @@ export default {
       try {
         const response = await axiosInstance.post('', {
           query: `
-            query transfers($hash: String!) {
-              transfers(where: { extrinsicHash_containsInsensitive : $hash }, limit: 1) {
+            query transfers($hash: String!,$blockHeight:Int!) {
+              transfers(where: { extrinsicHash_containsInsensitive : $hash, AND: {blockHeight_eq: $blockHeight}},
+              limit: 1) {
                 amount
                 nftId
                 blockHeight
@@ -83,7 +84,8 @@ export default {
             }
           `,
           variables: {
-            hash: this.hash,
+            hash: this.hash.split('-')[0],
+            blockHeight: parseInt(this.hash.split('-')[1]),
           },
         })
 
