@@ -162,9 +162,7 @@ export default {
             () => this.updateData()
           )
         })
-      } else {
-        this.unsubscribe()
-      }
+      } else if (this.unsubscribe) this.unsubscribe()
       this.updateData()
     },
     filter() {
@@ -183,7 +181,7 @@ export default {
     })
   },
   destroyed() {
-    this.unsubscribe()
+    if (this.unsubscribe) this.unsubscribe()
   },
   methods: {
     async updateData() {
