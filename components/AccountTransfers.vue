@@ -113,7 +113,7 @@
         <PerPage v-model="perPage" />
         <b-pagination
           v-model="currentPage"
-          :total-rows="searchResults.length"
+          :total-rows="totalRows"
           :per-page="perPage"
         />
       </div>
@@ -133,7 +133,7 @@ import tableUtils from '@/mixins/tableUtils'
 import axiosInstance from '~/utils/axios'
 import ObsPolling from '~/utils/obsPolling'
 
-const GQL_QUERY = `
+const FIRST_BATCH_QUERY = `
   query transfers($accountId: String!) {
     transfers: transfersConnection(
       orderBy: blockHeight_DESC
@@ -168,6 +168,48 @@ const GQL_QUERY = `
           timestamp
         }
       }
+      totalCount
+    }
+  }
+`
+
+const NEXT_BATCH_QUERY = `
+  query transfers($accountId: String!, $after: String!) {
+    transfers: transfersConnection(
+      orderBy: blockHeight_DESC
+      where: {
+        OR: [{ to: { id_eq: $accountId } }, { from: { id_eq: $accountId } }]
+      }
+      after: $after
+      first: 40
+    ) {
+      edges {
+        node {
+          nftId
+          blockHeight
+          eventIndex
+          extrinsicIndex
+          extrinsicHash
+          success
+          signedData
+          to {
+            id
+            evmAddress
+          }
+          from {
+            id
+            evmAddress
+          }
+          amount
+          token {
+            id
+            contractData
+          }
+          errorMessage
+          timestamp
+        }
+      }
+      totalCount
     }
   }
 `
@@ -193,7 +235,7 @@ export default {
       filter: null,
       filterOn: [],
       tableOptions: paginationOptions,
-      perPage: null,
+      perPage: 20,
       currentPage: 1,
       totalRows: 1,
       callbackId: null,
@@ -222,11 +264,15 @@ export default {
       })
     },
     list() {
-      return this.paginate(
-        this.sort(this.searchResults),
-        this.perPage,
-        this.currentPage
-      )
+      return this.searchResults.slice(0, this.perPage)
+    },
+  },
+  watch: {
+    perPage() {
+      this.updateData()
+    },
+    currentPage() {
+      this.updateData()
     },
   },
   created() {
@@ -250,12 +296,14 @@ export default {
     async updateData() {
       try {
         const response = await axiosInstance.post('', {
-          query: GQL_QUERY,
+          query: this.currentPage === 1 ? FIRST_BATCH_QUERY : NEXT_BATCH_QUERY,
           variables: {
             accountId: this.accountId,
+            after: ((this.currentPage - 1) * this.perPage).toString(),
           },
         })
         const data = response.data.data
+        const totalCount = response.data.data.transfers.totalCount
         const dataArr = []
         if (data.transfers.edges) {
           for (let idx = 0; idx < data.transfers.edges.length; idx++) {
@@ -280,7 +328,8 @@ export default {
           symbol: t.token.contractData?.symbol, // TODO: verified contract info isn't in the token table anymore, it's separate
           decimals: t.token.contractData?.decimals, // TODO
         }))
-        this.totalRows = this.transfers.length
+        this.totalRows = totalCount
+        if (this.filter) this.totalRows = this.transfers.length
         this.loading = false
       } catch (error) {
         this.setPerPage(20)
