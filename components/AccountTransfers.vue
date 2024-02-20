@@ -134,13 +134,13 @@ import axiosInstance from '~/utils/axios'
 import ObsPolling from '~/utils/obsPolling'
 
 const FIRST_BATCH_QUERY = `
-  query transfers($accountId: String!) {
+  query transfers($accountId: String!, $first: Int!) {
     transfers: transfersConnection(
       orderBy: blockHeight_DESC
       where: {
         OR: [{ to: { id_eq: $accountId } }, { from: { id_eq: $accountId } }]
       }
-      first: 40
+      first: $first
     ) {
       edges {
         node {
@@ -174,14 +174,14 @@ const FIRST_BATCH_QUERY = `
 `
 
 const NEXT_BATCH_QUERY = `
-  query transfers($accountId: String!, $after: String!) {
+  query transfers($accountId: String!, $after: String!, $first: Int!) {
     transfers: transfersConnection(
       orderBy: blockHeight_DESC
       where: {
         OR: [{ to: { id_eq: $accountId } }, { from: { id_eq: $accountId } }]
       }
       after: $after
-      first: 40
+      first: $first
     ) {
       edges {
         node {
@@ -235,7 +235,7 @@ export default {
       filter: null,
       filterOn: [],
       tableOptions: paginationOptions,
-      perPage: 20,
+      perPage: paginationOptions[0],
       currentPage: 1,
       totalRows: 1,
       callbackId: null,
@@ -299,6 +299,7 @@ export default {
           query: this.currentPage === 1 ? FIRST_BATCH_QUERY : NEXT_BATCH_QUERY,
           variables: {
             accountId: this.accountId,
+            first: this.perPage,
             after: ((this.currentPage - 1) * this.perPage).toString(),
           },
         })
