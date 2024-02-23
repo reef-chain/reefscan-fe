@@ -24,9 +24,7 @@
             </THead>
 
             <Row v-for="(item, index) in extrinsics" :key="index">
-              <Cell
-                :link="`/extrinsic/${item.hash.split('-')[0]}-${item.block_id}`"
-              >
+              <Cell :link="`/extrinsic/${item.hash}`">
                 {{ shortHash(item.hash) }}
               </Cell>
 
