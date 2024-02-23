@@ -67,6 +67,7 @@ export default {
                   id
                   evmAddress
                 }
+                blockHash
                 timestamp
                 extrinsicId
                 extrinsicIndex
@@ -96,7 +97,10 @@ export default {
             this.transfer.to.id || this.transfer.to.evmAddress
           this.transfer.block_id = this.transfer.blockHeight
           this.transfer.extrinsic = {}
-          this.transfer.extrinsic.hash = this.transfer.extrinsicHash
+          this.transfer.extrinsic.hash = this.toExtrinsicIdent(
+            this.transfer.extrinsicHash,
+            this.transfer.blockHash
+          )
           this.transfer.extrinsic.index = this.transfer.extrinsicIndex
           this.transfer.extrinsic.error_message = this.transfer.errorMessage
           this.transfer.isNft = this.transfer.nftId !== null

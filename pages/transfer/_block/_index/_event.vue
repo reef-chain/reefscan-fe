@@ -74,6 +74,7 @@ export default {
             }
             timestamp
             extrinsicId
+            blockHash
             extrinsicHash
             extrinsicIndex
             errorMessage
@@ -104,7 +105,10 @@ export default {
           this.transfer.block_id = this.transfer.blockHeight
           this.transfer.extrinsic = {}
           this.transfer.extrinsic.error_message = this.transfer.errorMessage
-          this.transfer.extrinsic.hash = this.transfer.extrinsicHash
+          this.transfer.extrinsic.hash = this.toExtrinsicIdent(
+            this.transfer.extrinsicHash,
+            this.transfer.blockHash
+          )
           this.transfer.extrinsic.index = this.transfer.extrinsicIndex
 
           this.transfer.fee_amount = this.transfer.signedData.fee.partialFee
