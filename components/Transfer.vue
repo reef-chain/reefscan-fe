@@ -56,7 +56,7 @@
 
       <Row>
         <Cell>Hash</Cell>
-        <Cell>{{ transfer.block_id }}-{{ transfer.extrinsic.hash }}</Cell>
+        <Cell>{{ transfer.extrinsic.hash }}</Cell>
       </Row>
 
       <Row class="transfer-details__from">

@@ -82,6 +82,7 @@ export default {
                 extrinsicId
                 extrinsicIndex
                 extrinsicHash
+                blockHash
                 errorMessage
                 success
                 signedData
@@ -109,7 +110,10 @@ export default {
           this.transfer.extrinsic = {}
           this.transfer.extrinsic.error_message = this.transfer.errorMessage
           this.transfer.fee_amount = this.transfer.signedData.fee.partialFee
-          this.transfer.extrinsic.hash = this.transfer.extrinsicHash
+          this.transfer.extrinsic.hash = this.toExtrinsicIdent(
+            this.transfer.extrinsicHash,
+            this.transfer.blockHash
+          )
           this.transfer.extrinsic.index = this.transfer.extrinsicIndex
           this.transfer.success = data.transfers[0].success
           this.transfer.isNft = this.transfer.nftId !== null
