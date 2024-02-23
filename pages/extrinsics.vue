@@ -24,7 +24,9 @@
             </THead>
 
             <Row v-for="(item, index) in extrinsics" :key="index">
-              <Cell :link="`/extrinsic/${item.hash}`">
+              <Cell
+                :link="`/extrinsic/${item.hash.split('-')[0]}-${item.block_id}`"
+              >
                 {{ shortHash(item.hash) }}
               </Cell>
 
@@ -105,7 +107,6 @@ const GQL_QUERY = `
           hash
           type
           timestamp
-          errorMessage
         }
       }
     }
@@ -215,7 +216,6 @@ export default {
         }
         data.extrinsics.forEach((item) => {
           item.block_id = item.block.height
-          item.error_message = item.errorMessage
         })
         this.extrinsics = data.extrinsics
         this.totalRows = this.filter ? this.extrinsics.length : this.nExtrinsics

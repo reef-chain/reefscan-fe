@@ -225,6 +225,9 @@ export default {
       nftName: '',
     }
   },
+  created() {
+    this.updateData()
+  },
   methods: {
     toChecksumAddress(address) {
       return toChecksumAddress(address)

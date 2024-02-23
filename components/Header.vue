@@ -31,26 +31,26 @@
               </div>
             </div>
 
-          <b-dropdown class="header__network">
-            <template #button-content>
-              {{ network.name }}
-            </template>
-            <b-dropdown-item href="https://reefscan.com"
-              >Mainnet</b-dropdown-item
-            >
-            <b-dropdown-item href="https://testnet.reefscan.com"
-              >Testnet</b-dropdown-item
-            >
-          </b-dropdown>
-        </div>
-<!--          <div
+            <b-dropdown class="header__network">
+              <template #button-content>
+                {{ network.name }}
+              </template>
+              <b-dropdown-item href="https://reefscan.com"
+                >Mainnet</b-dropdown-item
+              >
+              <b-dropdown-item href="https://testnet.reefscan.com"
+                >Testnet</b-dropdown-item
+              >
+            </b-dropdown>
+          </div>
+          <!-- <div
             v-if="network.name == 'Testnet'"
             style="
               background-color: darkmagenta;
               color: white;
               border-radius: 10em;
               text-align: center;
-          ">⚠️ Testnet data under maintenance ⚠️</div>-->
+          ">⚠️ Testnet data under maintenance ⚠️</div> -->
         </div>
         <ReefPrice />
       </div>
