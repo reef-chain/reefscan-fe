@@ -53,8 +53,8 @@ export default {
       try {
         const response = await axiosInstance.post('', {
           query: `
-            query transfers($hash: String!,$blockHeight:Int!) {
-              transfers(where: { extrinsicHash_containsInsensitive : $hash, AND: {blockHeight_eq: $blockHeight}},
+            query transfers($hash: String!,$blockHash:String!) {
+              transfers(where: { extrinsicHash_containsInsensitive : $hash, AND: {blockHash_startsWith: $blockHash}},
               limit: 1) {
                 amount
                 nftId
@@ -67,6 +67,7 @@ export default {
                   id
                   evmAddress
                 }
+                blockHash
                 timestamp
                 extrinsicId
                 extrinsicIndex
@@ -85,7 +86,7 @@ export default {
           `,
           variables: {
             hash: this.hash.split('-')[0],
-            blockHeight: parseInt(this.hash.split('-')[1]),
+            blockHash: `0x${this.hash.split('-')[1]}`,
           },
         })
 
@@ -96,7 +97,10 @@ export default {
             this.transfer.to.id || this.transfer.to.evmAddress
           this.transfer.block_id = this.transfer.blockHeight
           this.transfer.extrinsic = {}
-          this.transfer.extrinsic.hash = this.transfer.extrinsicHash
+          this.transfer.extrinsic.hash = this.toExtrinsicIdent(
+            this.transfer.extrinsicHash,
+            this.transfer.blockHash
+          )
           this.transfer.extrinsic.index = this.transfer.extrinsicIndex
           this.transfer.extrinsic.error_message = this.transfer.errorMessage
           this.transfer.isNft = this.transfer.nftId !== null

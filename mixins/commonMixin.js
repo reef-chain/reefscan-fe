@@ -162,6 +162,9 @@ export default {
       }
       return false
     },
+    toExtrinsicIdent(extrinsicHash, blockHash) {
+      return `${extrinsicHash}-${blockHash.slice(2, 7)}`
+    },
     async isExtrinsicHash(input) {
       input = input.trim()
       if (!input || !input.toString()) {
