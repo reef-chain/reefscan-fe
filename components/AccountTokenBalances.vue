@@ -74,6 +74,63 @@ import Input from '@/components/Input'
 import tableUtils from '@/mixins/tableUtils'
 import ObsPolling from '~/utils/obsPolling'
 
+const FIRST_BATCH_QUERY = `
+  query token_holder($accountId: String!, $first: Int!) {
+    tokenHolders: tokenHoldersConnection(
+      orderBy: balance_DESC
+      where: {
+        signer: { id_eq: $accountId }
+        AND: { token: { type_eq: ERC20 } }
+      }
+      first: $first
+    ) {
+      edges {
+        node {
+          signer {
+            id
+            evmAddress
+          }
+          balance
+          token {
+            id
+            contractData
+          }
+        }
+      }
+      totalCount
+    }
+  }
+`
+
+const NEXT_BATCH_QUERY = `
+  query token_holder($accountId: String!, $after: String!, $first: Int!) {
+    tokenHolders: tokenHoldersConnection(
+      orderBy: balance_DESC
+      where: {
+        signer: { id_eq: $accountId }
+        AND: { token: { type_eq: ERC20 } }
+      }
+      first: $first
+      after: $after
+    ) {
+      edges {
+        node {
+          signer {
+            id
+            evmAddress
+          }
+          balance
+          token {
+            id
+            contractData
+          }
+        }
+      }
+      totalCount
+    }
+  }
+`
+
 export default {
   components: {
     JsonCSV,
@@ -94,7 +151,7 @@ export default {
       filter: null,
       filterOn: [],
       tableOptions: paginationOptions,
-      perPage: null,
+      perPage: paginationOptions[0],
       currentPage: 1,
       totalRows: 1,
       callbackId: null,
@@ -115,11 +172,15 @@ export default {
       })
     },
     list() {
-      return this.paginate(
-        this.sort(this.searchResults),
-        this.perPage,
-        this.currentPage
-      )
+      return this.searchResults.slice(0, this.perPage)
+    },
+  },
+  watch: {
+    perPage() {
+      this.updateData()
+    },
+    currentPage() {
+      this.updateData()
     },
   },
   created() {
@@ -140,37 +201,15 @@ export default {
     async updateData() {
       try {
         const response = await axiosInstance.post('', {
-          query: `
-            query token_holder($accountId: String!) {
-              tokenHolders: tokenHoldersConnection(
-                orderBy: balance_DESC
-                where: {
-                  signer: { id_eq: $accountId }
-                  AND: { token: { type_eq: ERC20 } }
-                }
-                first: 50
-              ) {
-                edges {
-                  node {
-                    signer {
-                      id
-                      evmAddress
-                    }
-                    balance
-                    token {
-                      id
-                      contractData
-                    }
-                  }
-                }
-              }
-            }
-          `,
+          query: this.currentPage === 1 ? FIRST_BATCH_QUERY : NEXT_BATCH_QUERY,
           variables: {
             accountId: this.accountId,
+            first: this.perPage,
+            after: ((this.currentPage - 1) * this.perPage).toString(),
           },
         })
 
+        const totalCount = response.data.data.tokenHolders.totalCount
         this.balances = response.data.data.tokenHolders.edges.map((edge) => {
           const balance = edge.node
           return {
@@ -185,8 +224,8 @@ export default {
             token_decimals: balance.token.contractData?.decimals,
           }
         })
-
-        this.totalRows = this.balances.length
+        this.totalRows = totalCount
+        if (this.filter) this.totalRows = this.balances.length
         this.loading = false
       } catch (error) {
         // Handle error
