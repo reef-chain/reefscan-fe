@@ -209,7 +209,6 @@ export default {
             extrinsicIndex: stakeEv.event.extrinsic.index,
           }
         })
-        // this.stakingRewards.length
         this.totalRows = totalCount
         if (this.filter) this.totalRows = this.stakingRewards.length
 
