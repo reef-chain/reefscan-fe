@@ -98,12 +98,12 @@ import tableUtils from '@/mixins/tableUtils'
 import ObsPolling from '~/utils/obsPolling'
 import axiosInstance from '~/utils/axios'
 
-const GQL_QUERY = `
-  query extrinsic($signer: String!) {
+const FIRST_BATCH_QUERY = `
+  query extrinsic($signer: String!, $first: Int!) {
     extrinsics: extrinsicsConnection(
       orderBy: block_height_DESC
       where: { signer_eq: $signer }
-      first: 50
+      first: $first
     ) {
       edges {
         node {
@@ -120,6 +120,35 @@ const GQL_QUERY = `
           timestamp
         }
       }
+      totalCount
+    }
+  }
+`
+
+const NEXT_BATCH_QUERY = `
+  query extrinsic($signer: String!, $first: Int!, $after: String!) {
+    extrinsics: extrinsicsConnection(
+      orderBy: block_height_DESC
+      where: { signer_eq: $signer }
+      first: $first
+      after: $after
+    ) {
+      edges {
+        node {
+          id
+          index
+          block {
+            height
+          }
+          signer
+          hash
+          section
+          method
+          status
+          timestamp
+        }
+      }
+      totalCount
     }
   }
 `
@@ -144,7 +173,7 @@ export default {
       filter: null,
       filterOn: [],
       tableOptions: paginationOptions,
-      perPage: null,
+      perPage: paginationOptions[0],
       currentPage: 1,
       totalRows: 1,
       callbackId: null,
@@ -152,11 +181,15 @@ export default {
   },
   computed: {
     list() {
-      return this.paginate(
-        this.sort(this.activities),
-        this.perPage,
-        this.currentPage
-      )
+      return this.activities.slice(0, this.perPage)
+    },
+  },
+  watch: {
+    perPage() {
+      this.updateData()
+    },
+    currentPage() {
+      this.updateData()
     },
   },
   created() {
@@ -173,12 +206,15 @@ export default {
     async updateData() {
       try {
         const response = await axiosInstance.post('', {
-          query: GQL_QUERY,
+          query: this.currentPage === 1 ? FIRST_BATCH_QUERY : NEXT_BATCH_QUERY,
           variables: {
             signer: this.accountId,
+            first: this.perPage,
+            after: ((this.currentPage - 1) * this.perPage).toString(),
           },
         })
         const data = response.data.data
+        const totalCount = response.data.data.extrinsics.totalCount
         const dataArr = []
         if (data.extrinsics.edges) {
           for (let idx = 0; idx < data.extrinsics.edges.length; idx++) {
@@ -194,7 +230,8 @@ export default {
           }
         })
         this.activities = data.extrinsics
-        this.totalRows = this.activities.length
+        this.totalRows = totalCount
+        if (this.filter) this.totalRows = this.activities.length
         this.loading = false
       } catch (error) {
         this.setPerPage(20)
