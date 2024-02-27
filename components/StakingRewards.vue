@@ -103,6 +103,14 @@ const STAKING_QUERY = `
   }
 `
 
+const STAKING_COUNT_QUERY = `
+  query STAKING_QUERY($accountId: String!)  {
+    stakingsConnection(where: {signer: {id_eq: $accountId}}, orderBy: id_ASC) {
+      totalCount
+    }
+  }
+`
+
 export default {
   components: {
     Loading,
@@ -178,6 +186,14 @@ export default {
                 : (this.currentPage - 1) * this.perPage,
           },
         })
+        const totalCountResponse = await axiosInstance.post('', {
+          query: STAKING_COUNT_QUERY,
+          variables: {
+            accountId: this.accountId,
+          },
+        })
+        const totalCount =
+          totalCountResponse.data.data.stakingsConnection.totalCount
         const data = await response.data.data
         this.stakingRewards = data.event.map((stakeEv) => {
           const timestamp = new Date(stakeEv.timestamp).getTime() / 1000
@@ -194,7 +210,8 @@ export default {
           }
         })
         // this.stakingRewards.length
-        this.totalRows = 1000
+        this.totalRows = totalCount
+        if (this.filter) this.totalRows = this.stakingRewards.length
 
         this.loading = false
       } catch (error) {
