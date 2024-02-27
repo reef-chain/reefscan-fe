@@ -54,7 +54,7 @@
         <PerPage v-model="perPage" />
         <b-pagination
           v-model="currentPage"
-          :total-rows="searchResults.length"
+          :total-rows="totalRows"
           :per-page="perPage"
         />
       </div>
@@ -72,6 +72,44 @@ import Input from '@/components/Input'
 import tableUtils from '@/mixins/tableUtils'
 import axiosInstance from '~/utils/axios'
 import ObsPolling from '~/utils/obsPolling'
+
+const STAKING_QUERY = `
+  query staking($accountId: String!, $first: Int!, $after: Int!) {
+    event: stakings(
+      orderBy: id_DESC
+      where: { signer: { id_eq: $accountId } }
+      limit: $first
+      offset: $after
+    ) {
+      id
+      amount
+      timestamp
+      signer {
+        id
+      }
+      event {
+        index
+        block {
+          height
+        }
+        extrinsic {
+          id
+          hash
+          index
+          signedData
+        }
+      }
+    }
+  }
+`
+
+const STAKING_COUNT_QUERY = `
+  query STAKING_QUERY($accountId: String!)  {
+    stakingsConnection(where: {signer: {id_eq: $accountId}}, orderBy: id_ASC) {
+      totalCount
+    }
+  }
+`
 
 export default {
   components: {
@@ -93,7 +131,7 @@ export default {
       filter: null,
       filterOn: [],
       tableOptions: paginationOptions,
-      perPage: null,
+      perPage: paginationOptions[0],
       currentPage: 1,
       totalRows: 1,
       callbackId: null,
@@ -113,11 +151,15 @@ export default {
       })
     },
     list() {
-      return this.paginate(
-        this.sort(this.searchResults),
-        this.perPage,
-        this.currentPage
-      )
+      return this.searchResults.slice(0, this.perPage)
+    },
+  },
+  watch: {
+    perPage() {
+      this.updateData()
+    },
+    currentPage() {
+      this.updateData()
     },
   },
   created() {
@@ -132,41 +174,26 @@ export default {
   },
   methods: {
     async updateData() {
-      const STAKING_QUERY = `
-        query staking($accountId: String!) {
-          event: stakings(
-            orderBy: id_DESC
-            where: { signer: { id_eq: $accountId } }
-            limit: 50
-          ) {
-            id
-            amount
-            timestamp
-            signer {
-              id
-            }
-            event {
-              index
-              block {
-                height
-              }
-              extrinsic {
-                id
-                hash
-                index
-                signedData
-              }
-            }
-          }
-        }
-      `
       try {
         const response = await axiosInstance.post('', {
           query: STAKING_QUERY,
           variables: {
             accountId: this.accountId,
+            first: this.perPage,
+            after:
+              this.currentPage === 1
+                ? 0
+                : (this.currentPage - 1) * this.perPage,
           },
         })
+        const totalCountResponse = await axiosInstance.post('', {
+          query: STAKING_COUNT_QUERY,
+          variables: {
+            accountId: this.accountId,
+          },
+        })
+        const totalCount =
+          totalCountResponse.data.data.stakingsConnection.totalCount
         const data = await response.data.data
         this.stakingRewards = data.event.map((stakeEv) => {
           const timestamp = new Date(stakeEv.timestamp).getTime() / 1000
@@ -182,7 +209,9 @@ export default {
             extrinsicIndex: stakeEv.event.extrinsic.index,
           }
         })
-        this.totalRows = this.stakingRewards.length
+        this.totalRows = totalCount
+        if (this.filter) this.totalRows = this.stakingRewards.length
+
         this.loading = false
       } catch (error) {
         this.setPerPage(20)

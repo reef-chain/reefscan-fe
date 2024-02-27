@@ -66,6 +66,40 @@ import Input from '@/components/Input'
 import tableUtils from '@/mixins/tableUtils'
 import ObsPolling from '~/utils/obsPolling'
 
+const ACCOUNT_NFTS_QUERY = `
+  query signer_nfts($accountId: String, $limit: Int!, $offset: Int!) {
+    tokenHolders(
+      orderBy: balance_DESC
+      limit: $limit
+      offset: $offset
+      where: {
+        AND: {
+          nftId_isNull: false
+          token: { id_isNull: false }
+          signer: { id_eq: $accountId }
+          balance_gt: "0"
+        }
+        type_eq: Account
+      }
+    ) {
+      token {
+        id
+        type
+      }
+      balance
+      nftId
+    }
+  }
+`
+
+const ACCOUNT_NFTS_COUNT_QUERY = `
+  query ACCOUNT_NFTS_COUNT_QUERY($accountId: String) {
+    tokenHoldersConnection(where: {signer: {id_eq: $accountId}}, orderBy: id_ASC) {
+      totalCount
+    }
+  }
+`
+
 export default {
   components: {
     JsonCSV,
@@ -86,7 +120,7 @@ export default {
       filter: null,
       filterOn: [],
       tableOptions: paginationOptions,
-      perPage: null,
+      perPage: paginationOptions[0],
       currentPage: 1,
       totalRows: 1,
       callbackId: null,
@@ -107,11 +141,15 @@ export default {
       })
     },
     list() {
-      return this.paginate(
-        this.sort(this.searchResults),
-        this.perPage,
-        this.currentPage
-      )
+      return this.searchResults.slice(0, this.perPage)
+    },
+  },
+  watch: {
+    perPage() {
+      this.updateData()
+    },
+    currentPage() {
+      this.updateData()
     },
   },
   created() {
@@ -132,37 +170,28 @@ export default {
     async updateData() {
       try {
         const response = await axiosInstance.post('', {
-          query: `
-            query signer_nfts($accountId: String) {
-              tokenHolders(
-                orderBy: balance_DESC
-                limit: 199
-                where: {
-                  AND: {
-                    nftId_isNull: false
-                    token: { id_isNull: false }
-                    signer: { id_eq: $accountId }
-                    balance_gt: "0"
-                  }
-                  type_eq: Account
-                }
-              ) {
-                token {
-                  id
-                  type
-                }
-                balance
-                nftId
-              }
-            }
-          `,
+          query: ACCOUNT_NFTS_QUERY,
+          variables: {
+            accountId: this.accountId,
+            offset:
+              this.currentPage === 1
+                ? 0
+                : (this.currentPage - 1) * this.perPage,
+            limit: this.perPage,
+          },
+        })
+        const totalCountResponse = await axiosInstance.post('', {
+          query: ACCOUNT_NFTS_COUNT_QUERY,
           variables: {
             accountId: this.accountId,
           },
         })
+        const totalCount =
+          totalCountResponse.data.data.tokenHoldersConnection.totalCount
 
         this.balances = response.data.data.tokenHolders
-        this.totalRows = this.balances.length
+        this.totalRows = totalCount
+        if (this.filter) this.totalRows = this.balances.length
         this.loading = false
       } catch (error) {
         this.setPerPage(20)
