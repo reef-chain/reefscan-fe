@@ -52,8 +52,42 @@ export default {
   methods: {
     async updateData() {
       try {
-        const response = await axiosInstance.post('', {
-          query: `
+        let isBlockNum = false
+        if (this.blockHash) {
+          isBlockNum = this.isBlockNumber(this.blockHash.split('-')[1])
+        }
+        const response = await axiosInstance.post(
+          '',
+          isBlockNum
+            ? {
+                query: `
+            query extrinsics($hash: String!, $height: Int!) {
+              extrinsics(where: { hash_contains: $hash, AND: {block: {height_eq: $height}}}, limit: 1) {
+                id
+                block {
+                  height
+                }
+                index
+                signer
+                section
+                method
+                args
+                hash
+                docs
+                type
+                timestamp
+                errorMessage
+                signedData
+              }
+            }
+          `,
+                variables: {
+                  hash: this.blockHash.split('-')[0],
+                  height: parseInt(this.blockHash.split('-')[1]),
+                },
+              }
+            : {
+                query: `
             query extrinsics($hash: String!) {
               extrinsics(where: { hash_eq: $hash }, limit: 1) {
                 id
@@ -74,10 +108,11 @@ export default {
               }
             }
           `,
-          variables: {
-            hash: this.blockHash,
-          },
-        })
+                variables: {
+                  hash: this.blockHash,
+                },
+              }
+        )
 
         const data = response.data.data
         if (data.extrinsics[0]) {
