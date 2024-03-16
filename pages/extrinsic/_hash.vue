@@ -24,7 +24,7 @@ export default {
   data() {
     return {
       loading: true,
-      blockHash: this.$route.params.hash,
+      extHash: this.$route.params.hash,
       parsedExtrinsic: undefined,
     }
   },
@@ -42,7 +42,7 @@ export default {
   },
   watch: {
     $route() {
-      this.blockHash = this.$route.params.hash
+      this.extHash = this.$route.params.hash
       this.updateData()
     },
   },
@@ -52,32 +52,69 @@ export default {
   methods: {
     async updateData() {
       try {
-        const response = await axiosInstance.post('', {
-          query: `
-            query extrinsics($hash: String!) {
-              extrinsics(where: { hash_eq: $hash }, limit: 1) {
-                id
-                block {
-                  height
-                }
-                index
-                signer
-                section
-                method
-                args
-                hash
-                docs
-                type
-                timestamp
-                errorMessage
-                signedData
+        let isBlockNum = false
+        if (this.extHash) {
+          isBlockNum = this.isBlockNumber(this.extHash.split('-')[1])
+        }
+        let response
+        if (isBlockNum) {
+          response = await axiosInstance.post('', {
+            query: `
+          query extrinsics($hash: String!, $height: Int!) {
+            extrinsics(where: { hash_contains: $hash, AND: {block: {height_eq: $height}}}, limit: 1) {
+              id
+              block {
+                height
               }
+              index
+              signer
+              section
+              method
+              args
+              hash
+              docs
+              type
+              timestamp
+              errorMessage
+              signedData
             }
-          `,
-          variables: {
-            hash: this.blockHash,
-          },
-        })
+          }
+        `,
+            variables: {
+              hash: this.extHash.split('-')[0],
+              height: parseInt(this.extHash.split('-')[1]),
+            },
+          })
+        }
+
+        if (!response || response.data.data.extrinsics.length === 0) {
+          response = await axiosInstance.post('', {
+            query: `
+          query extrinsics($hash: String!) {
+            extrinsics(where: { hash_eq: $hash }, limit: 1) {
+              id
+              block {
+                height
+              }
+              index
+              signer
+              section
+              method
+              args
+              hash
+              docs
+              type
+              timestamp
+              errorMessage
+              signedData
+            }
+          }
+        `,
+            variables: {
+              hash: this.extHash,
+            },
+          })
+        }
 
         const data = response.data.data
         if (data.extrinsics[0]) {
