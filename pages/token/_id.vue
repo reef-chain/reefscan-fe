@@ -115,6 +115,12 @@
               </Cell>
             </Row>
             <Row>
+              <Cell>Total Supply</Cell>
+              <Cell>
+                {{ contract.total_supply }}
+              </Cell>
+            </Row>
+            <Row>
               <Cell>Created at block</Cell>
               <Cell>
                 <nuxt-link
@@ -170,6 +176,8 @@
   </div>
 </template>
 <script>
+import { ethers } from 'ethers'
+import { reefState } from '@reef-chain/util-lib'
 import ContractExecute from '../../components/ContractExecute.vue'
 import Loading from '@/components/Loading.vue'
 import ReefIdenticon from '@/components/ReefIdenticon.vue'
@@ -240,6 +248,9 @@ export default {
   },
   created() {
     this.updateData()
+  },
+  destroyed() {
+    this.subscription.unsubscribe()
   },
   methods: {
     async updateData() {
@@ -325,8 +336,50 @@ export default {
         if (holdersData.tokenHoldersCount) {
           this.holders = holdersData.tokenHoldersCount.count
         }
+        this.subscription = reefState.selectedProvider$.subscribe(
+          async (provider) => {
+            const contractInstance = new ethers.Contract(
+              this.address,
+              [
+                {
+                  name: 'totalSupply',
+                  type: 'function',
+                  inputs: [],
+                  outputs: [
+                    {
+                      name: '',
+                      type: 'uint256',
+                      internalType: 'uint256',
+                    },
+                  ],
+                  stateMutability: 'view',
+                },
+                {
+                  name: 'decimals',
+                  type: 'function',
+                  inputs: [],
+                  outputs: [
+                    {
+                      name: '',
+                      type: 'uint8',
+                      internalType: 'uint8',
+                    },
+                  ],
+                  stateMutability: 'view',
+                },
+              ],
+              provider
+            )
+            const totalSupply = await contractInstance.totalSupply()
+            const decimals = await contractInstance.decimals()
+            this.contract.total_supply = ethers.utils.formatUnits(
+              totalSupply,
+              decimals
+            )
 
-        this.loading = false
+            this.loading = false
+          }
+        )
       } catch (error) {}
     },
   },
