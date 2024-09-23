@@ -61,7 +61,7 @@
         <PerPage v-model="perPage" />
         <b-pagination
           v-model="currentPage"
-          :total-rows="holders.length"
+          :total-rows="totalRows"
           :per-page="perPage"
         />
       </div>
@@ -105,11 +105,15 @@ export default {
   },
   computed: {
     list() {
-      return this.paginate(
-        this.sort(this.holders),
-        this.perPage,
-        this.currentPage
-      )
+      return this.holders.slice(0, this.perPage)
+    },
+  },
+  watch: {
+    perPage() {
+      this.updateData()
+    },
+    currentPage() {
+      this.updateData()
     },
   },
   created() {
@@ -127,7 +131,8 @@ export default {
       const TOKEN_HOLDERS_QUERY = `
         query token_holder($tokenId: String!) {
           tokenHolders(
-            limit: 120
+            offset: ${(this.currentPage - 1) * this.perPage}
+            limit: ${this.perPage ?? 10}
             orderBy: token_id_DESC
             where: { token: { id_eq: $tokenId } }
           ) {
@@ -151,6 +156,25 @@ export default {
             tokenId: this.tokenId,
           },
         })
+
+        const holdersResponse = await axiosInstance.post('', {
+          query: `
+            query tokenHoldersAggregate($address: String!) {
+              tokenHoldersCount(tokenId: $address) {
+                count
+              }
+            }
+          `,
+          variables: {
+            address: this.tokenId,
+          },
+        })
+
+        const holdersData = holdersResponse.data.data
+        if (holdersData.tokenHoldersCount) {
+          this.holdersCount = holdersData.tokenHoldersCount.count
+        }
+
         const data = await response.data.data
         this.holders = data.tokenHolders.map((holder) => {
           return {
@@ -165,7 +189,7 @@ export default {
             },
           }
         })
-        this.totalRows = this.holders.length
+        this.totalRows = this.holdersCount
         this.loading = false
       } catch (error) {
         this.setPerPage(20)
