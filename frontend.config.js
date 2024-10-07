@@ -14,6 +14,7 @@ export const network = {
   theme: '@/assets/scss/themes/reef.scss',
   solidityScanApi: '&SOLIDITY_SCAN_API',
 }
-console.log('network config=', network)
+// console.log('network config=', network)
+console.log('v2.0.2');
 
 export const paginationOptions = [10, 20, 50, 100]
