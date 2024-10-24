@@ -5,8 +5,71 @@
         <div v-if="loading" class="text-center py-4">
           <Loading />
         </div>
-        <NotFound v-else-if="!transfer" text="Transfer not found" />
-        <Transfer v-else :transfer="transfer" />
+        <NotFound
+          v-else-if="!transfers || (transfers && transfers.length == 0)"
+          text="Transfer not found"
+        />
+        <section v-else>
+          <b-container>
+            <div class="list-view__table">
+              <Table class="accounts__table">
+                <THead>
+                  <Cell align="center">Transfer</Cell>
+                  <Cell>Extrinsic</Cell>
+                  <Cell>From</Cell>
+                  <Cell>To</Cell>
+                  <Cell>Age</Cell>
+                  <Cell>Success</Cell>
+                </THead>
+
+                <Row v-for="(item, index) in transfers" :key="index">
+                  <Cell
+                    align="center"
+                    :link="`/transfer/${item.blockHeight}/${item.extrinsicIndex}/${item.eventIndex}`"
+                    >{{ shortHash(item.extrinsicHash) }}</Cell
+                  >
+                  <Cell
+                    :link="`/extrinsic/${item.blockHeight}/${item.extrinsicIndex}`"
+                  >
+                    #{{ formatNumber(item.blockHeight) }}-{{
+                      formatNumber(item.extrinsicIndex)
+                    }}
+                  </Cell>
+                  <Cell
+                    v-if="item.from.id"
+                    :link="{ url: `/account/${item.from.id}`, fill: false }"
+                  >
+                    <eth-identicon :address="item.from.id" :size="20" />
+                    <span>{{ shortHash(item.from.id) }}</span>
+                  </Cell>
+                  <Cell
+                    v-if="item.to.id"
+                    :link="{ url: `/account/${item.to.id}`, fill: false }"
+                  >
+                    <eth-identicon :address="item.to.id" :size="20" />
+                    <span>{{ shortHash(item.to.id) }}</span>
+                  </Cell>
+                  <Cell class="list-view__age">
+                    <font-awesome-icon :icon="['far', 'clock']" />
+                    <span class="ml-2">{{ getAge(item.timestamp) }}</span>
+                  </Cell>
+                  <Cell align="left">
+                    <font-awesome-icon
+                      v-if="item.success"
+                      icon="check"
+                      class="text-success"
+                    />
+                    <font-awesome-icon
+                      v-else
+                      icon="times"
+                      class="text-danger"
+                    />
+                  </Cell>
+                </Row>
+              </Table>
+            </div>
+          </b-container>
+        </section>
       </b-container>
     </section>
   </div>
@@ -25,7 +88,7 @@ export default {
     return {
       loading: true,
       hash: this.$route.params.hash,
-      transfer: undefined,
+      transfers: undefined,
     }
   },
   head() {
@@ -53,83 +116,37 @@ export default {
       try {
         const response = await axiosInstance.post('', {
           query: `
-            query transfers($hash: String!,$blockHash:String!) {
-              transfers(where: { extrinsicHash_containsInsensitive : $hash, AND: {blockHash_startsWith: $blockHash}},
-              limit: 1) {
-                amount
-                nftId
-                blockHeight
-                to {
-                  id
-                  evmAddress
-                }
-                from {
-                  id
-                  evmAddress
-                }
-                blockHash
-                timestamp
-                extrinsicId
-                extrinsicIndex
+            query TransfersQuery($blockHash:String!) {
+              transfers(limit: 10, orderBy: timestamp_DESC, where: {extrinsicHash_containsInsensitive: $blockHash}) {
+                id
                 extrinsicHash
                 eventIndex
+                extrinsicId
+                extrinsicIndex
                 success
-                errorMessage
-                signedData
-                denom
-                token {
+                timestamp
+                from {
                   id
-                  contractData
                 }
+                to {
+                  id
+                }
+                blockHeight
               }
             }
           `,
           variables: {
-            hash: this.hash.split('-')[0],
-            blockHash: `0x${this.hash.split('-')[1]}`,
+            blockHash: this.hash,
           },
         })
 
         const data = response.data.data
         if (data && data.transfers) {
-          this.transfer = data.transfers[0]
-          this.transfer.to_address =
-            this.transfer.to.id || this.transfer.to.evmAddress
-          this.transfer.block_id = this.transfer.blockHeight
-          this.transfer.extrinsic = {}
-          this.transfer.extrinsic.hash = this.toExtrinsicIdent(
-            this.transfer.extrinsicHash,
-            this.transfer.blockHash
-          )
-          this.transfer.extrinsic.index = this.transfer.extrinsicIndex
-          this.transfer.extrinsic.error_message = this.transfer.errorMessage
-          this.transfer.isNft = this.transfer.nftId !== null
-          this.transfer.fee_amount = this.transfer.signedData.fee.partialFee
-          this.transfer.success = data.transfers[0].success
-
-          if (this.transfer.to_address === 'deleted') {
-            this.transfer.to_address =
-              data.transfers[0].extrinsic.events[0].data[1]
-          }
-
-          this.transfer.from_address =
-            this.transfer.from.id || this.transfer.from.evmAddress
-          if (this.transfer.from_address === 'deleted') {
-            const response = await axiosInstance.post('', {
-              query: `query EventsData {
-                events(where: {extrinsic: {hash_eq: "${this.transfer.extrinsic.hash}", id_eq: "${this.transfer.extrinsic.index}"}, block: {height_eq: ${this.transfer.block_id}}, method_eq: "Transfer"}, limit: 1) {
-                  data
-                }
-              }`,
+          this.transfers = data.transfers
+          if (data.transfers.length === 1) {
+            this.$router.push({
+              path: `/transfer/${data.transfers[0].blockHeight}/${data.transfers[0].extrinsicIndex}/${data.transfers[0].eventIndex}`,
             })
-            this.transfer.from_address = response.data.data.events[0].data[0]
-          }
-          // TODO: update when we have token data in the contract table
-          this.transfer.token_address = this.transfer.token.id
-          if (this.transfer.token && this.transfer.token.contractData) {
-            this.transfer.tokenName = this.transfer.token.contractData.name
-            this.transfer.symbol = this.transfer.token.contractData.symbol
-            this.transfer.decimals = this.transfer.token.contractData.decimals
           }
         }
         this.loading = false
@@ -138,3 +155,9 @@ export default {
   },
 }
 </script>
+
+<style>
+.ml-2 {
+  margin-left: 0.5rem;
+}
+</style>
