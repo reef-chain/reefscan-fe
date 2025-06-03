@@ -1,37 +1,31 @@
 <template>
   <a
-    href="https://coinmarketcap.com/currencies/reef/"
+    href="https://www.gate.io/de/trade/REEF_USDT"
     target="_blank"
     class="reef-price"
     :class="`reef-price--${trendType}`"
   >
-    <div class="reef-price__label">{{ network.tokenSymbol }}</div>
-    <div class="reef-price__price">${{ USDConversion }}</div>
-    <div class="reef-price__trend">({{ USD24hChange }}%)</div>
+    <span v-if="isPriceReady" class="reef-price__label">
+      <span class="reef-price__price">${{ USDConversion }}</span>
+      <span class="reef-price__trend">({{ USD24hChange }}%)</span>
+    </span>
+    <font-awesome-icon v-else :icon="'spinner'" :class="'processing-icon'" />
   </a>
 </template>
-
 <script>
-import { network } from '@/frontend.config.js'
-
 export default {
-  data() {
-    return {
-      network,
-    }
-  },
   computed: {
     USDConversion() {
-      return parseFloat(this.$store.state.fiat.usd).toFixed(3)
+      return this.$store.getters['price/usd']()
     },
     USD24hChange() {
-      return parseFloat(this.$store.state.fiat.usd_24h_change).toFixed(2)
+      return this.$store.getters['price/usd24hChange']()
     },
     trendType() {
-      const value = this.$store.state.fiat.usd_24h_change
-      if (value < 0) return 'down'
-
-      return 'up'
+      return this.$store.getters['price/trendType']()
+    },
+    isPriceReady() {
+      return this.USDConversion && this.USD24hChange
     },
   },
 }
@@ -40,19 +34,21 @@ export default {
 <style lang="scss">
 .reef-price {
   display: flex;
-  flex-flow: row nowrap;
-  justify-content: flex-start;
+  justify-content: center;
   align-items: flex-end;
   background: #eaedf3;
   border-radius: 99px;
   padding: 7px 11px 8px 11px;
   transition: none !important;
+  min-width: 160px;
 
   .reef-price__label {
+    display: flex;
     font-size: 13px;
     line-height: 1;
     font-weight: 500;
     color: rgba(white, 0.9);
+    gap: 5px;
   }
 
   .reef-price__price {
@@ -67,12 +63,10 @@ export default {
     font-size: 12px;
     line-height: 13px;
     font-weight: 500;
-    display: flex;
     flex-flow: row nowrap;
     justify-content: center;
     align-items: center;
     color: white;
-    margin-left: 7px;
   }
 
   $good: #1dc584;
@@ -89,6 +83,21 @@ export default {
   &:hover {
     text-decoration: none;
     background: linear-gradient(130deg, #b01f6c, #3c127b);
+  }
+
+  .processing-icon {
+    opacity: 1;
+    animation: spin 1.5s linear infinite;
+    color: white;
+
+    @keyframes spin {
+      from {
+        transform: none;
+      }
+      to {
+        transform: rotate(360deg);
+      }
+    }
   }
 }
 </style>
