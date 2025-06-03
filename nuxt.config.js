@@ -99,7 +99,7 @@ export default {
     size: 'compact', // Size: 'compact', 'normal', 'invisible' (v2)
   },
   serverMiddleware: [
-    { path: '/api/gate-price', handler: '~/middleware/price.js' },
+    { path: '/api/reef-price', handler: '~/api/reef-price.js' },
   ],
 
   // Build Configuration (https://go.nuxtjs.dev/config-build)
