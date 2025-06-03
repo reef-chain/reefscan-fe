@@ -29,10 +29,9 @@ export default {
   background: transparent;
   border: none;
   outline: none;
-  margin: 0;
   padding: 20px;
   transition: all 0.2s;
-  margin-right: -20px;
+  margin: 0 -20px;
 
   div {
     position: relative;
