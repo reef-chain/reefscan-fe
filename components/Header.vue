@@ -84,12 +84,10 @@ export default {
   },
   created() {
     // Refresh fiat conversion values every minute
-    if (this.network.coinGeckoDenom) {
-      this.$store.dispatch('fiat/update')
-      setInterval(() => {
-        this.$store.dispatch('fiat/update')
-      }, 60000)
-    }
+    this.$store.dispatch('price/getReefCoinPrice')
+    setInterval(() => {
+      this.$store.dispatch('price/getReefCoinPrice')
+    }, 60000)
   },
 }
 </script>
