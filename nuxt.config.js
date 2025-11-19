@@ -27,15 +27,44 @@ export default {
     ],
     link: [{ rel: 'icon', type: 'image/png', href: '/img/favicon.png' }],
 
-    // Google Tag Manager (script)
     script: [
+      // Google Tag Manager
       {
         hid: 'gtm-script',
-        innerHTML: `alert(1);`,
+        innerHTML: `
+          (function(w,d,s,l,i){
+            w[l]=w[l]||[];
+            w[l].push({'gtm.start': new Date().getTime(), event:'gtm.js'});
+            var f=d.getElementsByTagName(s)[0],
+            j=d.createElement(s), dl=l!='dataLayer'?'&l='+l:'';
+            j.async=true;
+            j.src='https://www.googletagmanager.com/gtm.js?id=GTM-KC7LXS3G'+dl;
+            f.parentNode.insertBefore(j,f);
+          })(window,document,'script','dataLayer','GTM-KC7LXS3G');
+        `,
+        type: 'text/javascript',
+      },
+      // Google Analytics (Universal Analytics)
+      {
+        hid: 'ga-script',
+        src: 'https://www.googletagmanager.com/gtag/js?id=UA-177559811-1',
+        async: true,
+      },
+      {
+        hid: 'ga-init',
+        innerHTML: `
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'UA-177559811-1');
+        `,
         type: 'text/javascript',
       },
     ],
-
+    __dangerouslyDisableSanitizersByTagID: {
+      'gtm-script': ['innerHTML'],
+      'ga-init': ['innerHTML'],
+    },
     // Google Tag Manager (noscript)
     noscript: [
       {
