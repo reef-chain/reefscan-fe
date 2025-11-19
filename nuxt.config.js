@@ -26,6 +26,28 @@ export default {
       },
     ],
     link: [{ rel: 'icon', type: 'image/png', href: '/img/favicon.png' }],
+
+    // Google Tag Manager (script)
+    script: [
+      {
+        hid: 'gtm-script',
+        innerHTML: `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+          new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+          j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+          'https://www.googletagmanager.com/gtm.js?id=GTM-KC7LXS3G'+dl;f.parentNode.insertBefore(j,f);
+        })(window,document,'script','dataLayer','GTM-KC7LXS3G');`,
+        type: 'text/javascript',
+      },
+    ],
+
+    // Google Tag Manager (noscript)
+    noscript: [
+      {
+        hid: 'gtm-noscript',
+        innerHTML: `<iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KC7LXS3G"
+          height="0" width="0" style="display:none;visibility:hidden"></iframe>`,
+      },
+    ],
   },
 
   // Global CSS (https://go.nuxtjs.dev/config-css)
