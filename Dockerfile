@@ -42,4 +42,8 @@ ENV HOST=0.0.0.0
 EXPOSE 80
 EXPOSE 443
 
+COPY ["replaceInDir.sh", "/docker-entrypoint.d/replaceInDir.sh"]
+
+RUN chmod +x /docker-entrypoint.d/replaceInDir.sh
+
 CMD ["yarn", "start"]
