@@ -295,42 +295,56 @@ export default {
     },
     async updateData() {
       try {
-        const response = await axiosInstance.post('', {
-          query: this.currentPage === 1 ? FIRST_BATCH_QUERY : NEXT_BATCH_QUERY,
+        const queries = []
+        const firstQuery = {
+          query: FIRST_BATCH_QUERY,
           variables: {
             accountId: this.accountId,
-            first: this.perPage,
-            after: ((this.currentPage - 1) * this.perPage).toString(),
+            first: Math.min(this.perPage, 50),
           },
-        })
-        const data = response.data.data
-        const totalCount = response.data.data.transfers.totalCount
-        const dataArr = []
-        if (data.transfers.edges) {
-          for (let idx = 0; idx < data.transfers.edges.length; idx++) {
-            dataArr.push(data.transfers.edges[idx].node)
-          }
-          data.transfers = dataArr
-          this.transfers = dataArr
         }
-        this.transfers = data.transfers.map((t) => ({
-          ...t,
-          block_id: t.blockHeight,
-          extrinsic_hash: t.extrinsicHash,
-          extrinsic_index: t.extrinsicIndex,
-          success: t.success,
-          to_address: t.to.id || t.to.evmAddress,
-          from_address: t.from.id || t.from.evmAddress,
-          token_address: t.token.id,
-          isNft: t.nftId !== null,
-          fee_amount: t.signedData.fee.partialFee,
-          error_message: t.errorMessage,
-          event_index: t.eventIndex,
-          symbol: t.token.contractData?.symbol, // TODO: verified contract info isn't in the token table anymore, it's separate
-          decimals: t.token.contractData?.decimals, // TODO
-        }))
-        this.totalRows = totalCount
-        if (this.filter) this.totalRows = this.transfers.length
+
+        queries.push(axiosInstance.post('', firstQuery))
+
+        if (this.perPage > 50) {
+          const secondQuery = {
+            query: NEXT_BATCH_QUERY,
+            variables: {
+              accountId: this.accountId,
+              first: this.perPage - 50,
+              after: '50',
+            },
+          }
+          queries.push(axiosInstance.post('', secondQuery))
+        }
+
+        const results = await Promise.all(queries)
+        const edges = results.flatMap(
+          (res) => res.data?.data?.transfers?.edges || []
+        )
+        const totalCount = results[0]?.data?.data?.transfers?.totalCount || 0
+
+        this.transfers = edges.map((t) => {
+          const node = t.node
+          return {
+            ...node,
+            block_id: node.blockHeight,
+            extrinsic_hash: node.extrinsicHash,
+            extrinsic_index: node.extrinsicIndex,
+            success: node.success,
+            to_address: node.to?.id || node.to?.evmAddress,
+            from_address: node.from?.id || node.from?.evmAddress,
+            token_address: node.token?.id,
+            isNft: node.nftId !== null,
+            fee_amount: node.signedData?.fee?.partialFee,
+            error_message: node.errorMessage,
+            event_index: node.eventIndex,
+            symbol: node.token?.contractData?.symbol,
+            decimals: node.token?.contractData?.decimals,
+          }
+        })
+
+        this.totalRows = this.filter ? this.transfers.length : totalCount
         this.loading = false
       } catch (error) {
         this.setPerPage(20)
