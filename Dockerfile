@@ -9,6 +9,8 @@ RUN yarn install
 
 COPY . .
 
+RUN mv mainnet.config.js frontend.config.js
+
 RUN yarn build     # creates .nuxt + serverMiddleware support
 
 
@@ -18,32 +20,10 @@ WORKDIR /usr/src/app
 
 COPY --from=appbuild /usr/src/app ./
 
-ARG GQL_WS_URI
-ARG GQL_HTTP_URI
-ARG NODE_WS
-ARG VERIFICATOR_API
-ARG UPLOAD_TOKEN_API
-ARG NETWORK_ID
-ARG NETWORK_LABEL
-ARG SOLIDITY_SCAN_API
-
-ENV GQL_WS_URI=$GQL_WS_URI
-ENV GQL_HTTP_URI=$GQL_HTTP_URI
-ENV NODE_WS=$NODE_WS
-ENV VERIFICATOR_API=$VERIFICATOR_API
-ENV UPLOAD_TOKEN_API=$UPLOAD_TOKEN_API
-ENV NETWORK_ID=$NETWORK_ID
-ENV NETWORK_LABEL=$NETWORK_LABEL
-ENV SOLIDITY_SCAN_API=$SOLIDITY_SCAN_API
-
 ENV PORT=80
 ENV HOST=0.0.0.0
 
 EXPOSE 80
 EXPOSE 443
-
-COPY ["replaceInDir.sh", "/docker-entrypoint.d/replaceInDir.sh"]
-
-RUN chmod +x /docker-entrypoint.d/replaceInDir.sh
 
 CMD ["yarn", "start"]
