@@ -1,29 +1,43 @@
+# Build Stage 1
+# This build created a staging docker image
+#
 FROM node:18 AS appbuild
 
 WORKDIR /usr/src/app
-
-COPY package*.json ./
-COPY yarn.lock ./
-
+COPY ./ ./
 RUN yarn install
+RUN yarn build
 
-COPY . .
+# Build Stage 2
+# This creates static production server
+#
+FROM nginx:alpine
 
-RUN mv mainnet.config.js frontend.config.js
+ARG GQL_WS_URI
+ARG GQL_HTTP_URI
+ARG NODE_WS
+ARG VERIFICATOR_API
+ARG UPLOAD_TOKEN_API
+ARG NETWORK_ID
+ARG NETWORK_LABEL
+ARG SOLIDITY_SCAN_API
 
-RUN yarn build     # creates .nuxt + serverMiddleware support
+ENV GQL_WS_URI=$GQL_WS_URI
+ENV GQL_HTTP_URI=$GQL_HTTP_URI
+ENV NODE_WS=$NODE_WS
+ENV VERIFICATOR_API=$VERIFICATOR_API
+ENV UPLOAD_TOKEN_API=$UPLOAD_TOKEN_API
+ENV NETWORK_ID=$NETWORK_ID
+ENV NETWORK_LABEL=$NETWORK_LABEL
+ENV SOLIDITY_SCAN_API=$SOLIDITY_SCAN_API
 
-
-FROM node:18
-
-WORKDIR /usr/src/app
-
-COPY --from=appbuild /usr/src/app ./
-
-ENV PORT=80
-ENV HOST=0.0.0.0
-
-EXPOSE 80
 EXPOSE 443
+EXPOSE 80
 
-CMD ["yarn", "start"]
+RUN apk update
+RUN apk upgrade
+RUN apk add bash
+COPY --from=appbuild /usr/src/app/dist /usr/share/nginx/html
+COPY ["replaceInDir.sh", "/docker-entrypoint.d/replaceInDir.sh"]
+COPY ["nginx/default.conf", "/etc/nginx/conf.d/default.conf"]
+RUN chmod +x /docker-entrypoint.d/replaceInDir.sh

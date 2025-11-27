@@ -3,7 +3,9 @@ import axios from 'axios'
 // Fetches the REEF/USDT ticker data directly from Gate.io API.
 const fetchGateReefMarket = async () => {
   try {
-    const { data } = await axios.get('/api/reef-price')
+    const { data } = await axios.get(
+      'https://api.reefscan.com/price/reef/gate-io'
+    )
     return data || null
   } catch (error) {
     return null
