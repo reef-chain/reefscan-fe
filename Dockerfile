@@ -1,12 +1,17 @@
-FROM node:18
+# Build Stage 1
+# This build created a staging docker image
+#
+FROM node:18 AS appbuild
 
 WORKDIR /usr/src/app
-
-COPY package*.json ./
-COPY yarn.lock ./
+COPY ./ ./
 RUN yarn install
+RUN yarn build
 
-COPY . .
+# Build Stage 2
+# This creates static production server
+#
+FROM nginx:alpine
 
 ARG GQL_WS_URI
 ARG GQL_HTTP_URI
@@ -26,13 +31,13 @@ ENV NETWORK_ID=$NETWORK_ID
 ENV NETWORK_LABEL=$NETWORK_LABEL
 ENV SOLIDITY_SCAN_API=$SOLIDITY_SCAN_API
 
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
-ENV PORT=80
-ENV HOST=0.0.0.0
-
-EXPOSE 80
 EXPOSE 443
+EXPOSE 80
 
-ENTRYPOINT [ "/entrypoint.sh" ]
+RUN apk update
+RUN apk upgrade
+RUN apk add bash
+COPY --from=appbuild /usr/src/app/dist /usr/share/nginx/html
+COPY ["replaceInDir.sh", "/docker-entrypoint.d/replaceInDir.sh"]
+COPY ["nginx/default.conf", "/etc/nginx/conf.d/default.conf"]
+RUN chmod +x /docker-entrypoint.d/replaceInDir.sh
