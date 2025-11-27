@@ -18,5 +18,6 @@ RUN chmod +x /entrypoint.sh
 ENV PORT=80
 ENV HOST=0.0.0.0
 EXPOSE 80
+EXPOSE 443
 
 ENTRYPOINT ["/entrypoint.sh"]
