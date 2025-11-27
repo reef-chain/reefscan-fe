@@ -1,4 +1,4 @@
-FROM node:22
+FROM node:18
 
 WORKDIR /usr/src/app
 
@@ -28,10 +28,8 @@ ENV SOLIDITY_SCAN_API=$SOLIDITY_SCAN_API
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
-RUN ./entrypoint.sh
-
-RUN yarn build
-RUN yarn start
 
 EXPOSE 80
 EXPOSE 443
+
+ENTRYPOINT [ "./entrypoint.sh" ]
