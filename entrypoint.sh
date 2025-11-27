@@ -15,9 +15,3 @@ sed -i "s|&UPLOAD_TOKEN_API|${UPLOAD_TOKEN_API}|g" $CONFIG_FILE
 sed -i "s|&SOLIDITY_SCAN_API|${SOLIDITY_SCAN_API}|g" $CONFIG_FILE
 
 echo "Config replaced successfully."
-
-echo "Building Nuxt at runtime..."
-yarn build
-
-echo "Starting Nuxt..."
-exec yarn start
