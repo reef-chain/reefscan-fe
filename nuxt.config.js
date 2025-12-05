@@ -34,8 +34,8 @@ export default {
         innerHTML: `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
           new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
           j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-          'https://www.googletagmanager.com/gtm.js?id=GTM-KC7LXS3G'+dl;f.parentNode.insertBefore(j,f);
-        })(window,document,'script','dataLayer','GTM-KC7LXS3G');`,
+          'https://www.googletagmanager.com/gtm.js?id=GTM-T8N4MBSL'+dl;f.parentNode.insertBefore(j,f);
+        })(window,document,'script','dataLayer','GTM-T8N4MBSL');`,
         type: 'text/javascript',
       },
     ],
@@ -44,7 +44,7 @@ export default {
     noscript: [
       {
         hid: 'gtm-noscript',
-        innerHTML: `<iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KC7LXS3G"
+        innerHTML: `<iframe src="https://www.googletagmanager.com/ns.html?id=GTM-T8N4MBSL"
           height="0" width="0" style="display:none;visibility:hidden"></iframe>`,
       },
     ],
