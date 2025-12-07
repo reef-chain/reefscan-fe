@@ -8,7 +8,7 @@ export default {
   },
 
   // Target: https://go.nuxtjs.dev/config-target
-  target: 'server',
+  target: 'static',
 
   // Global page headers: https://go.nuxtjs.dev/config-head
   head: {
@@ -120,9 +120,7 @@ export default {
     version: 2, // Version
     size: 'compact', // Size: 'compact', 'normal', 'invisible' (v2)
   },
-  serverMiddleware: [
-    { path: '/api/reef-price', handler: '~/api/reef-price.js' },
-  ],
+  serverMiddleware: [],
 
   // Build Configuration (https://go.nuxtjs.dev/config-build)
   build: {
