@@ -38,6 +38,20 @@ export default {
         })(window,document,'script','dataLayer','GTM-T8N4MBSL');`,
         type: 'text/javascript',
       },
+
+      // Formo Analytics
+      {
+        hid: 'formo-analytics',
+        src: 'https://cdn.formo.so/analytics@latest',
+        defer: true,
+        onload: `
+          window.formofy('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJvcmlnaW4iOiJodHRwczovL3JlZWYuaW8iLCJwcm9qZWN0X2lkIjoid2lsMGJMR1NrUURucWx4TDc4bHgyIiwiaWF0IjoxNzY1OTgyNDI5fQ.aPap3ykS2g1QFg1roeTWrSv7XO47tnh6fl7-xo1NyVQ', {
+            ready: function(formo) {
+              formo.identify();
+            }
+          });
+        `,
+      },
     ],
 
     // Google Tag Manager (noscript)
