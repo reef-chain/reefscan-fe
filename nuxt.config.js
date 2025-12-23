@@ -45,7 +45,7 @@ export default {
         src: 'https://cdn.formo.so/analytics@latest',
         defer: true,
         onload: `
-          window.formofy('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJvcmlnaW4iOiJodHRwczovL2FwcC5yZWVmLmlvIiwicHJvamVjdF9pZCI6IlFtM3ZxTGd4dUZOblpVMmlHV3g2YSIsImlhdCI6MTc2NjE1MTg3Nn0.FZ6x8vm7s72MAtGj4MYOBm3p1R5oFVGPEGPBZO2mj8Y', {
+          window.formofy('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJvcmlnaW4iOiJodHRwczovL3JlZWZzd2FwLmNvbS8iLCJwcm9qZWN0X2lkIjoiZnBtUWYySlVuQU5MamZDTWdmSkFzIiwiaWF0IjoxNzY2NDExOTY4fQ.ts-JpGetb6K6Ggn444oZFjH0pLfLqLLbnlaqspeSVhw', {
             ready: function(formo) {
               formo.identify();
             }
